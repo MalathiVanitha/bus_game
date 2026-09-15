@@ -2,6 +2,7 @@ import { fullScreen } from '../utils/screen.js'
 import { pointerUp } from '../utils/buttons.js'
 import { CTA } from '../objects/cta.js';
 import AnimationManager from '../objects/AnimationManager.js';
+import { GamePlay } from '../objects/game-play.js';
 import data from '../data/data.js';
 
 export default class GameScene extends Phaser.Scene {
@@ -54,6 +55,9 @@ export default class GameScene extends Phaser.Scene {
 
         this.graphics = this.make.graphics().fillStyle(0x98ddfc, .5).fillRect(dimensions.leftOffset, dimensions.topOffset, dimensions.actualWidth * 3, dimensions.actualHeight * 3);
         this.graphicsGrp.add(this.graphics);
+
+        this.gamePlay = new GamePlay(this, 0, 0);
+        this.gameGroup.add(this.gamePlay);
 
         this.cta = new CTA(this, 0, 0, this);
         this.gameGroup.add(this.cta)
@@ -246,15 +250,19 @@ export default class GameScene extends Phaser.Scene {
         this.graphics = this.make.graphics().fillStyle(0x98ddfc, 1).fillRect(dimensions.leftOffset, dimensions.topOffset, dimensions.actualWidth, dimensions.actualHeight);
         this.graphicsGrp.add(this.graphics);
 
+        this.gamePlay.adjust();
         this.cta.adjust();
 
     }
 
+    // Where the pointer is now, in the design space the game is laid out in.
+    // downX/downY would only ever give back the spot the touch started at, which
+    // a drag cannot be followed by.
     offsetMouse() {
 
         return {
-            x: (this.game.input.activePointer.downX * dimensions.actualWidth / dimensions.fullWidth) + ((dimensions.gameWidth - dimensions.actualWidth) / 2),
-            y: (this.game.input.activePointer.downY * dimensions.actualHeight / dimensions.fullHeight) + ((dimensions.gameHeight - dimensions.actualHeight) / 2)
+            x: (this.game.input.activePointer.worldX * dimensions.actualWidth / dimensions.fullWidth) + ((dimensions.gameWidth - dimensions.actualWidth) / 2),
+            y: (this.game.input.activePointer.worldY * dimensions.actualHeight / dimensions.fullHeight) + ((dimensions.gameHeight - dimensions.actualHeight) / 2)
         };
     }
 
@@ -279,11 +287,11 @@ export default class GameScene extends Phaser.Scene {
         this.updateCamera(scene)
     }
 
-    update() {
+    update(time, delta) {
 
-        // The board hands input back only once it has stopped moving, and it
-        // needs a frame by frame look at itself to know when that is.
-        if (this.board) this.board.update();
+        // The convoys are walked along their trails a frame at a time, so the
+        // drag has something to pull against between pointer moves.
+        if (this.gamePlay) this.gamePlay.update(time, delta);
     }
 
     resize(gameSize) {
