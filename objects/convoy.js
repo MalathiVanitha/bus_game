@@ -87,9 +87,6 @@ const SLIP_STIFFNESS = 26;
 const SLIP_REST = 0.05;
 const SLIP_REST_RATE = 0.5;
 
-// A vehicle being drawn into a garage shrinks away over this much track.
-const SWALLOW_TAPER = 0.55;
-
 // The couplings, drawn between vehicle centres and covered at both ends by the
 // art they join.
 const LINK_COLOR = 0x23262d;
@@ -189,7 +186,11 @@ export class Convoy {
 
         for (let i = 0; i < this.count; i++) this.was.push({ x: 0, y: 0, heading: 0 });
 
-        const most = (this.count + LOOK_AHEAD + TAIL_PAD + 4) * (TURN_SEGMENTS + 2);
+        // Room for the longest track that ever gets laid: the trail behind, plus
+        // the road ahead - which on the way into a garage runs the length of the
+        // convoy again rather than the couple of cells a look-ahead needs.
+        const ahead = Math.max(LOOK_AHEAD, this.count + 1);
+        const most = (this.count + ahead + TAIL_PAD + 4) * (TURN_SEGMENTS + 2);
 
         for (let i = 0; i < most; i++) {
             this.road.push({ x: 0, y: 0 });
@@ -205,8 +206,9 @@ export class Convoy {
      * `ahead` is the road the tractor is routed onto next, so the corner it is
      * coming up to is curved before it gets there. `recoil` slides the convoy
      * back down the track without moving it off it, which is how the nudge off a
-     * wall is drawn; `swallow` slides it the other way, pulling it into a garage
-     * a vehicle at a time.
+     * wall is drawn; `swallow` slides it the other way, driving it on through a
+     * garage doorway. Vehicles keep their full size all the way in - it is the
+     * doorway that takes them out of sight, not any shrinking of their own.
      *
      * The corners are laid at the same radius every frame, moving or stopped.
      * The track is what the convoy is standing on, so anything that reshapes it
@@ -222,10 +224,8 @@ export class Convoy {
      */
     draw(trail, opts) {
         const settings = opts || {};
-        const pulled = settings.swallow || 0;
-        const offset = (settings.recoil || 0) - pulled;
+        const offset = (settings.recoil || 0) - (settings.swallow || 0);
         const delta = settings.delta || 0;
-        const taper = SWALLOW_TAPER * this.cellSize;
         const tangent = TANGENT * this.cellSize;
 
         const radius = TURN_RADIUS * this.cellSize;
@@ -263,11 +263,6 @@ export class Convoy {
             const vehicle = this.vehicles[i];
             const here = this.trackAt(i, offset, tangent, this.spot);
 
-            // Full size until a garage starts pulling it in, then shrinking away
-            // over the last half cell so nothing pokes out past the doorway.
-            const room = i * this.cellSize - pulled;
-            const fade = pulled > 0 ? Math.min(1, Math.max(0, (room + taper) / taper)) : 1;
-
             if (shifted) this.takeUpSlip(vehicle, this.was[i], here);
 
             this.easeSlip(vehicle, delta);
@@ -275,15 +270,14 @@ export class Convoy {
 
             vehicle.x = here.x + vehicle.slipX;
             vehicle.y = here.y + vehicle.slipY;
-            vehicle.shown = fade > 0.02;
+            vehicle.shown = true;
 
             const art = vehicle.art;
 
-            art.visible = vehicle.shown;
+            art.visible = true;
             art.x = vehicle.x;
             art.y = vehicle.y;
             art.rotation = vehicle.heading - vehicle.facing;
-            art.setScale(this.scale * fade);
         }
 
         this.drawLinks();

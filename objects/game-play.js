@@ -21,7 +21,9 @@ const CHASE_SPAN = 4;
 // How close a touch has to land to a vehicle to take hold of the convoy.
 const GRAB_REACH = 0.75;
 
-// The nudge a convoy gives when the drag asks for somewhere it cannot reach.
+// The nudge a convoy gives when it runs up against a cone. Only a cone: a board
+// edge, a wall, or another convoy all stop it just as dead, but none of them are
+// something it has hit, so none of them are worth a knock.
 const BUMP = 0.12;
 
 // Trail kept behind the last cart, in cells. It has to cover what the rig reads
@@ -37,6 +39,17 @@ const PULL_SPEED = 5;
 // Cells of the routed road handed to the rig so it can curve the corner the
 // tractor is coming up to, not just the ones it has already been round.
 const LOOK_AHEAD_CELLS = 2;
+
+// Past the back wall of a garage's doorway, a vehicle is cut away: it has gone
+// as far into the room as the art has room for it.
+//
+// The slab that does it is wider than a vehicle - wider than the opening, which
+// is narrower than the vehicles that go through it - and runs well past the back
+// of the building, so the back wall is the only edge of it a vehicle is ever cut
+// against. It is only drawn for a convoy actually on its way in, so it can never
+// take a bite out of one driving past.
+const DOOR_HALF = 0.75;
+const DOOR_DEPTH = 12;
 
 /**
  * The board and the convoys on it.
@@ -86,7 +99,11 @@ export class GamePlay extends Phaser.GameObjects.Container {
             this.tiles[row] = [];
 
             for (let col = 0; col < this.columns; col++) {
-                this.tiles[row][col] = { owner: -1, blocked: this.pattern[row][col] !== 1 };
+                this.tiles[row][col] = {
+                    owner: -1,
+                    blocked: this.pattern[row][col] !== 1,
+                    cone: false
+                };
             }
         }
 
@@ -94,7 +111,13 @@ export class GamePlay extends Phaser.GameObjects.Container {
             const col = this.cones[i][0];
             const row = this.cones[i][1];
 
-            if (this.onBoard(col, row)) this.tiles[row][col].blocked = true;
+            if (!this.onBoard(col, row)) continue;
+
+            // Blocked like a gap in the board, but kept apart from one: a cone
+            // is a thing standing on the tarmac, and hitting it is worth a knock
+            // where driving into the edge of the world is not.
+            this.tiles[row][col].blocked = true;
+            this.tiles[row][col].cone = true;
         }
 
         this.board = new Board(this.scene, {
@@ -109,12 +132,37 @@ export class GamePlay extends Phaser.GameObjects.Container {
             startY: this.startY
         });
 
+        // The rooms the vehicles drive into, under the convoys; the buildings
+        // themselves go over them, further down.
+        this.garageBackGroup = this.scene.add.container();
+        this.add(this.garageBackGroup);
+
         this.convoyGroup = this.scene.add.container();
         this.add(this.convoyGroup);
 
-        // Above the convoys, so a vehicle being pulled in goes behind the door.
+        // Cut the doorways out of the convoys, so a vehicle driving into a
+        // garage goes out of sight inside it. The shape is held in world space,
+        // which is why it is redrawn through the board's own transform.
+        this.doorShape = this.scene.make.graphics({ add: false });
+        this.doorMatrix = new Phaser.GameObjects.Components.TransformMatrix();
+        this.doorParent = new Phaser.GameObjects.Components.TransformMatrix();
+
+        const doors = this.doorShape.createGeometryMask();
+
+        doors.invertAlpha = true;
+        this.convoyGroup.setMask(doors);
+
+        // Above the convoys, so a vehicle at a garage is behind the building
+        // everywhere but the doorway, which is cut out of this layer.
         this.garageGroup = this.scene.add.container();
         this.add(this.garageGroup);
+
+        this.mouthShape = this.scene.make.graphics({ add: false });
+
+        const mouths = this.mouthShape.createGeometryMask();
+
+        mouths.invertAlpha = true;
+        this.garageGroup.setMask(mouths);
 
         this.drag = null;
         this.dragPoint = null;
@@ -155,6 +203,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
         return this.onBoard(col, row) && !this.tiles[row][col].blocked;
     }
 
+    isCone(col, row) {
+        return this.onBoard(col, row) && this.tiles[row][col].cone;
+    }
+
     canEnter(convoy, col, row) {
         if (!this.isFloor(col, row)) return false;
 
@@ -175,6 +227,29 @@ export class GamePlay extends Phaser.GameObjects.Container {
         return null;
     }
 
+    /**
+     * Which way a garage's doorway looks: out towards the cell a convoy reaches
+     * it from. A garage set into an edge has only the one way in, which is the
+     * whole of it; where there is more than one, or none, the doorway is turned
+     * towards the middle of the board, which is the way the board opens out.
+     */
+    wayIn(col, row) {
+        const ways = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        const open = [];
+
+        for (let i = 0; i < ways.length; i++) {
+            if (this.isFloor(col + ways[i][0], row + ways[i][1])) open.push(ways[i]);
+        }
+
+        if (open.length === 1) return Math.atan2(open[0][1], open[0][0]);
+
+        const outX = (this.columns - 1) / 2 - col;
+        const outY = (this.rows - 1) / 2 - row;
+
+        return Math.abs(outX) >= Math.abs(outY) ?
+            Math.atan2(0, outX || 1) : Math.atan2(outY, 0);
+    }
+
     createGarages() {
         for (let i = 0; i < this.convoys.length; i++) {
             const convoy = this.convoys[i];
@@ -191,6 +266,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 x: spot.x,
                 y: spot.y,
                 size: this.cellSize,
+                facing: this.wayIn(convoy.exit[0], convoy.exit[1]),
+                behind: this.garageBackGroup,
                 parent: this.garageGroup
             });
 
@@ -259,7 +336,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             settling: false,
 
             moving: false,
-            blocked: false,
+            hitCone: false,
 
             // Set the moment the tractor sets off for its own garage: from then
             // on the dive is paid for and the drag cannot steer it back out.
@@ -422,14 +499,14 @@ export class GamePlay extends Phaser.GameObjects.Container {
         // Once the tractor has set off for its own garage the rest of the drag
         // is ignored rather than steering it back out.
         if (this.enteringGarage(convoy)) {
-            convoy.blocked = false;
+            convoy.hitCone = false;
             return;
         }
 
         const goal = this.pixelToCell(point.x, point.y);
 
         if (!this.isFloor(goal.col, goal.row)) {
-            this.noteBlocked(convoy, point);
+            this.noteConeHit(convoy, point);
             return;
         }
 
@@ -440,7 +517,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             "|" + lead.col + "," + lead.row + "|" + (reserved ? 1 : 0);
 
         if (convoy.routeStamp === stamp) {
-            this.noteBlocked(convoy, point);
+            this.noteConeHit(convoy, point);
             return;
         }
 
@@ -461,16 +538,41 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         convoy.queue = route;
 
-        this.noteBlocked(convoy, point);
+        this.noteConeHit(convoy, point);
     }
 
-    /** The finger is somewhere the convoy has no way of following it to. */
-    noteBlocked(convoy, point) {
+    /**
+     * The convoy has run up against something on its way to the finger. Note it
+     * only where that something is a cone, since that is the one case worth a
+     * knock - a wall, the edge of the board or another convoy stop it just as
+     * dead, and it simply comes to rest against them.
+     */
+    noteConeHit(convoy, point) {
         const lead = this.leadCell(convoy);
         const at = this.cellToPixel(lead.col, lead.row);
 
-        convoy.blocked = !convoy.queue.length && !convoy.settle &&
+        const stuck = !convoy.queue.length && !convoy.settle &&
             Math.hypot(point.x - at.x, point.y - at.y) > this.cellSize * 0.6;
+
+        const next = this.stepToward(lead, at, point);
+
+        convoy.hitCone = stuck && this.isCone(next.col, next.row);
+    }
+
+    /**
+     * The cell the tractor would take next on its way to the finger: one step
+     * along whichever of the two axes it is further off on, which is the cell it
+     * is being driven into and so the one it can hit.
+     */
+    stepToward(lead, at, point) {
+        const dx = point.x - at.x;
+        const dy = point.y - at.y;
+
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            return { col: lead.col + Math.sign(dx), row: lead.row };
+        }
+
+        return { col: lead.col, row: lead.row + Math.sign(dy) };
     }
 
 
@@ -673,13 +775,107 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         out.length = 0;
 
-        if (convoy.swallowing || convoy.escaped) return out;
+        if (convoy.escaped) return out;
+
+        // Being reeled in: the road carries straight on through the doorway and
+        // into the building, far enough back for the whole convoy to follow the
+        // tractor inside. Without it the track would stop at the garage and the
+        // vehicles would pile up on its step instead of driving in.
+        if (convoy.swallowing) {
+            if (!convoy.garage) return out;
+
+            const spot = this.cellToPixel(convoy.exit[0], convoy.exit[1]);
+            const stepX = -Math.cos(convoy.garage.facing) * this.cellSize;
+            const stepY = -Math.sin(convoy.garage.facing) * this.cellSize;
+
+            for (let i = 1; i <= convoy.count + 1; i++) {
+                out.push({ x: spot.x + stepX * i, y: spot.y + stepY * i });
+            }
+
+            return out;
+        }
 
         for (let i = 0; i < convoy.queue.length && out.length < LOOK_AHEAD_CELLS; i++) {
             out.push(this.cellToPixel(convoy.queue[i].col, convoy.queue[i].row));
         }
 
         return out;
+    }
+
+    /**
+     * Redraw the two doorway shapes.
+     *
+     * One cuts each garage's opening out of the buildings drawn over the
+     * convoys, so a vehicle at the doorway is seen through it rather than
+     * behind it - that is the whole of what makes it read as going inside. The
+     * other hides a vehicle once it is past the back wall of the room, where
+     * the art has no more depth to show it in.
+     */
+    updateDoors() {
+        const mouths = this.mouthShape;
+        const doors = this.doorShape;
+
+        if (!mouths || !doors) return;
+
+        const at = this.getWorldTransformMatrix(this.doorMatrix, this.doorParent)
+            .decomposeMatrix();
+
+        this.placeShape(mouths, at);
+        this.placeShape(doors, at);
+
+        for (let i = 0; i < this.convoys.length; i++) {
+            const convoy = this.convoys[i];
+            const garage = convoy.garage;
+
+            if (!garage) continue;
+
+            const spot = this.cellToPixel(convoy.exit[0], convoy.exit[1]);
+
+            // Out through the doorway, and across it.
+            const outX = Math.cos(garage.facing);
+            const outY = Math.sin(garage.facing);
+
+            // The opening is always cut out, so an empty garage still shows the
+            // room behind it and looks no different from before.
+            this.fillSlab(
+                mouths, spot, outX, outY,
+                garage.doorMouth, garage.doorBack, garage.doorHalf
+            );
+
+            if (convoy.escaped) continue;
+            if (!convoy.swallowing && !this.enteringGarage(convoy)) continue;
+
+            this.fillSlab(
+                doors, spot, outX, outY,
+                garage.doorBack, garage.doorBack - DOOR_DEPTH * this.cellSize,
+                DOOR_HALF * this.cellSize
+            );
+        }
+    }
+
+    /** Stand a mask shape on the board, whatever the board's own transform is. */
+    placeShape(g, at) {
+        g.clear();
+        g.setPosition(at.translateX, at.translateY);
+        g.setScale(at.scaleX, at.scaleY);
+        g.setRotation(at.rotation);
+        g.fillStyle(0xffffff, 1);
+    }
+
+    /**
+     * A rectangle lying square to the way a garage looks, running from `near` to
+     * `far` out along it and `half` wide either side.
+     */
+    fillSlab(g, spot, outX, outY, near, far, half) {
+        const acrossX = -outY;
+        const acrossY = outX;
+
+        g.fillPoints([
+            { x: spot.x + outX * near + acrossX * half, y: spot.y + outY * near + acrossY * half },
+            { x: spot.x + outX * near - acrossX * half, y: spot.y + outY * near - acrossY * half },
+            { x: spot.x + outX * far - acrossX * half, y: spot.y + outY * far - acrossY * half },
+            { x: spot.x + outX * far + acrossX * half, y: spot.y + outY * far + acrossY * half }
+        ], true);
     }
 
     updateSwallow(convoy, delta) {
@@ -860,15 +1056,15 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         // Already through the door - it finishes the run itself.
         if (this.enteringGarage(convoy)) {
-            convoy.blocked = false;
+            convoy.hitCone = false;
             return;
         }
 
         convoy.settling = true;
 
-        if (convoy.blocked) this.bumpConvoy(convoy);
+        if (convoy.hitCone) this.bumpConvoy(convoy);
 
-        convoy.blocked = false;
+        convoy.hitCone = false;
 
         if (!convoy.stepReserved) {
             convoy.queue.length = 0;
@@ -953,6 +1149,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         }
 
         this.board.step(step);
+        this.updateDoors();
     }
 
     adjust() {

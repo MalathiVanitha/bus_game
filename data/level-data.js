@@ -19,13 +19,13 @@ export default {
     // Cones sit on a cell and take it out of the board for everyone, the same way
     // a 0 in the pattern does. Laid out to match the storyboard.
     cones: [
-        // [6, 0],
-        // [1, 2],
-        // [4, 2],
-        // [3, 3],
-        // [0, 4],
-        // [3, 6],
-        // [7, 7]
+        [6, 0],
+        [1, 2],
+        [4, 2],
+        [3, 3],
+        [0, 4],
+        [3, 6],
+        [7, 7]
     ],
 
     // Tractor first, then each cart back down the line. Cells have to be a
