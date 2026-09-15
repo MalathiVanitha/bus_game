@@ -34,7 +34,7 @@ const TRAIL_TAIL = 1.5;
 const DOOR_SPEED = 10;
 const PULL_SPEED = 5;
 
-// Cells of the routed road handed to the rig so it can round the corner the
+// Cells of the routed road handed to the rig so it can curve the corner the
 // tractor is coming up to, not just the ones it has already been round.
 const LOOK_AHEAD_CELLS = 2;
 

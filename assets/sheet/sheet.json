@@ -10,10 +10,10 @@
 },
 {
 	"filename": "bus/red/luggage_cart",
-	"frame": {"x":194,"y":164,"w":191,"h":156},
+	"frame": {"x":230,"y":164,"w":169,"h":191},
 	"rotated": false,
 	"trimmed": true,
-	"spriteSourceSize": {"x":14,"y":32,"w":191,"h":156},
+	"spriteSourceSize": {"x":25,"y":14,"w":169,"h":191},
 	"sourceSize": {"w":220,"h":220}
 },
 {
@@ -26,7 +26,7 @@
 },
 {
 	"filename": "bus/red/tractor_front",
-	"frame": {"x":2,"y":196,"w":170,"h":191},
+	"frame": {"x":2,"y":248,"w":170,"h":191},
 	"rotated": false,
 	"trimmed": true,
 	"spriteSourceSize": {"x":25,"y":14,"w":170,"h":191},
@@ -34,7 +34,7 @@
 },
 {
 	"filename": "progress bar",
-	"frame": {"x":175,"y":323,"w":225,"h":49},
+	"frame": {"x":2,"y":196,"w":225,"h":49},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":225,"h":49},
@@ -42,7 +42,7 @@
 },
 {
 	"filename": "progress",
-	"frame": {"x":175,"y":375,"w":212,"h":37},
+	"frame": {"x":175,"y":358,"w":212,"h":37},
 	"rotated": false,
 	"trimmed": false,
 	"spriteSourceSize": {"x":0,"y":0,"w":212,"h":37},
@@ -53,8 +53,8 @@
 	"version": "1.0",
 	"image": "sheet.png",
 	"format": "RGBA8888",
-	"size": {"w":402,"h":414},
+	"size": {"w":401,"h":441},
 	"scale": "1",
-	"smartupdate": "$TexturePacker:SmartUpdate:d064640afca90eed4ce70bb487199d6f:5b28ef1a5f1ec948f6b9860df55b91d5:9c44ecd7e9a522007eaff2949095bc1d$"
+	"smartupdate": "$TexturePacker:SmartUpdate:3e1fb4e8c65cebda1794931e5962260b:60450676187b9edd32401e98adc0c4cc:9c44ecd7e9a522007eaff2949095bc1d$"
 }
 }
