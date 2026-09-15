@@ -34,13 +34,6 @@ const TRAIL_TAIL = 1.5;
 const DOOR_SPEED = 10;
 const PULL_SPEED = 5;
 
-// How long a convoy takes to take up the corner rounding it swings through, and
-// how long to give it up again. Given up only once it has properly stopped, and
-// more slowly than it is taken up, so a parked convoy settles back onto its
-// cells without easing off every time a frame happens to move it nowhere.
-const ROUND_RISE = 120;
-const ROUND_FALL = 260;
-
 // Cells of the routed road handed to the rig so it can round the corner the
 // tractor is coming up to, not just the ones it has already been round.
 const LOOK_AHEAD_CELLS = 2;
@@ -268,11 +261,6 @@ export class GamePlay extends Phaser.GameObjects.Container {
             // the value the art was last drawn at.
             recoil: 0,
             drawnRecoil: 0,
-
-            // How much of the corner rounding the convoy is currently drawn
-            // with, and the value the art was last drawn at.
-            rounding: 0,
-            drawnRounding: -1,
             bumpTween: null,
 
             trail: null
@@ -677,25 +665,6 @@ export class GamePlay extends Phaser.GameObjects.Container {
         return out;
     }
 
-    /** Swinging wide through corners while it drives, back on its cells at rest. */
-    easeRounding(convoy, driving, delta) {
-        const want = driving ? 1 : 0;
-        const rate = delta / (driving ? ROUND_RISE : ROUND_FALL);
-
-        convoy.rounding += Phaser.Math.Clamp(want - convoy.rounding, -rate, rate);
-    }
-
-    /**
-     * Is this convoy still under way? A frame that happens to move it nowhere -
-     * the finger held still for a moment, a step it has not been given the room
-     * for yet - is not the same as having stopped, and treating it as one has
-     * the convoy settling back onto its cells mid-corner and swinging out again.
-     */
-    isDriving(convoy, moved) {
-        return moved || convoy.queue.length > 0 || !!convoy.settle ||
-            (!!this.drag && this.drag.convoy === convoy);
-    }
-
     updateSwallow(convoy, delta) {
         convoy.swallowed += this.cellSize * PULL_SPEED * (delta / 1000);
 
@@ -705,7 +674,6 @@ export class GamePlay extends Phaser.GameObjects.Container {
             return;
         }
 
-        this.easeRounding(convoy, true, delta);
         this.updateConvoyView(convoy, delta);
     }
 
@@ -765,12 +733,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
     updateConvoyView(convoy, delta) {
         convoy.drawnRecoil = convoy.recoil;
-        convoy.drawnRounding = convoy.rounding;
 
         convoy.rig.draw(convoy.trail, {
             recoil: convoy.recoil,
             swallow: convoy.swallowed,
-            rounding: convoy.rounding,
             ahead: this.roadAhead(convoy),
             delta: delta || 0
         });
@@ -957,10 +923,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
             const moved = this.updateConvoy(convoy, step);
 
-            this.easeRounding(convoy, this.isDriving(convoy, moved), step);
-
-            if (moved || convoy.recoil !== convoy.drawnRecoil ||
-                convoy.rounding !== convoy.drawnRounding || !convoy.rig.settled) {
+            if (moved || convoy.recoil !== convoy.drawnRecoil || !convoy.rig.settled) {
                 this.updateConvoyView(convoy, step);
             }
 
