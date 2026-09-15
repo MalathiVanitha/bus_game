@@ -12,14 +12,18 @@ const CART_ART = "luggage_cart";
 
 // Which way each render is already pointing, so a vehicle's heading only has to
 // make up the difference. Read off the art itself, where a vehicle is drawn
-// longer along the way it drives: both are now drawn looking straight down at
-// them with their length running away from the viewer - the tractor 170 wide by
-// 191 tall, the cart 169 by 191 - so both already point down a column.
+// longer along the way it drives: both are drawn looking straight down at them
+// with their length running away from the viewer - the tractor 170 wide by 191
+// tall, the cart 169 by 191 - so both already point along a column.
 //
-// Kept apart rather than shared because it is a fact about each piece of art
-// and not about vehicles: the cart art was once drawn side on, and pointed
-// along a row instead.
-const TRACTOR_FACING = -Math.PI / 2;
+// The two point opposite ways down it. The tractor is drawn nose towards the
+// bottom of its frame, headlights at the foot and the seat back at the head, so
+// it points the way y grows; the cart is drawn the other way about.
+//
+// Kept apart rather than shared for exactly this reason: it is a fact about
+// each piece of art and not about vehicles. The cart art was once drawn side
+// on, and pointed along a row instead.
+const TRACTOR_FACING = Math.PI / 2;
 const CART_FACING = -Math.PI / 2;
 
 // The radius the track curves through at a corner, in cells.

@@ -20,6 +20,29 @@ const WELL_CORNER = 16 / ART_CELL;
 const TILE_GAP = 3 / ART_CELL;
 const TILE_CORNER = 9 / ART_CELL;
 
+// A tile lights up as a convoy takes it and sinks back to nothing on its own
+// clock - it does not wait for the vehicles to move off, so a convoy left parked
+// on its track ends up sitting on plain tarmac again.
+const LIFT = 0xffffff;
+
+// Bright enough to read against the tarmac, short of the white of the rim.
+const LIFT_ALPHA = 0.38;
+
+// Kept inside the tile, on top of the seam the tiles are already drawn with, so
+// that seam still reads between two lit neighbours.
+const LIFT_INSET = 1.5 / ART_CELL;
+
+// Up fast, a breath at full, then a long sink - so the convoy leaves a trail
+// that reads as one thing rather than a row of separate tiles blinking out.
+const LIFT_RISE = 120;
+const LIFT_HOLD = 70;
+const LIFT_FALL = 320;
+
+// A lit tile opens out from this much of its size, with a touch of overshoot
+// past full before it settles.
+const LIFT_FROM = 0.8;
+const LIFT_OVER = 0.06;
+
 const CONE_WIDTH = 0.44;
 const CONE_HEIGHT = 0.62;
 const CONE_BASE_H = 0.09;
@@ -27,8 +50,11 @@ const CONE_LIFT = 0.1;
 const SHADOW_ALPHA = 0.22;
 
 /**
- * The tarmac the convoys drive on. Drawn once into a graphics object - nothing
- * on it moves, so it is only redrawn when the board itself is rebuilt.
+ * The tarmac the convoys drive on. The board itself is drawn once and only
+ * redrawn when it is rebuilt, since nothing on it moves.
+ *
+ * The tiles a convoy is standing on light up over the top of it, on a layer of
+ * their own that is redrawn every frame there is anything lit to draw.
  */
 export class Board {
     constructor(scene, config) {
@@ -45,6 +71,18 @@ export class Board {
 
         this.g = scene.add.graphics();
         config.parent.add(this.g);
+
+        // Over the tarmac and under everything the board's parent adds after it,
+        // so a lit tile reads beneath the convoys rather than over them.
+        this.liftG = scene.add.graphics();
+        config.parent.add(this.liftG);
+
+        const count = this.rows * this.columns;
+
+        this.liftLevel = new Float32Array(count);
+        this.liftRise = new Float32Array(count);
+        this.liftHold = new Float32Array(count);
+        this.liftDrawn = false;
 
         this.draw();
     }
@@ -152,5 +190,82 @@ export class Board {
             w * 1.44, CONE_BASE_H * this.cell * 1.6,
             CONE_BASE_H * this.cell * 0.5
         );
+    }
+
+    /** A convoy is standing on the tile - light it, or top it back up. */
+    pulseCell(col, row) {
+        if (!this.isFloor(col, row)) return;
+
+        const i = row * this.columns + col;
+
+        // A tile still lit from a moment ago is only topped back up, so a convoy
+        // doubling back over its own track does not pop it open from nothing.
+        if (this.liftLevel[i] <= 0) this.liftRise[i] = 0;
+
+        this.liftLevel[i] = 1;
+        this.liftHold[i] = LIFT_HOLD;
+    }
+
+    step(delta) {
+        const level = this.liftLevel;
+        const rise = this.liftRise;
+        const hold = this.liftHold;
+
+        let live = false;
+
+        for (let i = 0; i < level.length; i++) {
+            if (level[i] <= 0) continue;
+
+            if (hold[i] > 0) hold[i] -= delta;
+            else level[i] = Math.max(0, level[i] - delta / LIFT_FALL);
+
+            if (level[i] <= 0) continue;
+
+            if (rise[i] < 1) rise[i] = Math.min(1, rise[i] + delta / LIFT_RISE);
+
+            live = true;
+        }
+
+        // One idle frame still has to run, to wipe the last tile off the layer.
+        if (!live && !this.liftDrawn) return;
+
+        this.drawLifts();
+        this.liftDrawn = live;
+    }
+
+    drawLifts() {
+        const g = this.liftG;
+        const gap = TILE_GAP * this.cell;
+        const inset = gap / 2 + LIFT_INSET * this.cell;
+
+        g.clear();
+
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.columns; col++) {
+                const i = row * this.columns + col;
+                const level = this.liftLevel[i];
+
+                if (level <= 0) continue;
+
+                const scale = this.liftScale(this.liftRise[i]);
+                const w = (this.tileWidth - inset * 2) * scale;
+                const h = (this.tileHeight - inset * 2) * scale;
+                const spot = this.cellToPixel(col, row);
+
+                g.fillStyle(LIFT, level * LIFT_ALPHA);
+                g.fillRoundedRect(
+                    spot.x - w / 2, spot.y - h / 2,
+                    w, h,
+                    TILE_CORNER * this.cell * scale
+                );
+            }
+        }
+    }
+
+    /** Opens out to full size with a bump past it, then settles on the tile. */
+    liftScale(t) {
+        const ease = 1 - Math.pow(1 - t, 3);
+
+        return LIFT_FROM + (1 - LIFT_FROM) * ease + Math.sin(Math.PI * t) * LIFT_OVER;
     }
 }

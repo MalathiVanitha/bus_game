@@ -198,6 +198,17 @@ export class GamePlay extends Phaser.GameObjects.Container {
         }
     }
 
+    /**
+     * Light every tile the convoy is standing on, so the lift covers the whole
+     * of it rather than only the cell the tractor is stepping into. Stop calling
+     * this and the track sinks away on the board's own clock.
+     */
+    lightConvoy(convoy) {
+        for (let i = 0; i < convoy.cells.length; i++) {
+            this.board.pulseCell(convoy.cells[i].col, convoy.cells[i].row);
+        }
+    }
+
     occupy(convoy, col, row) {
         if (!this.onBoard(col, row)) return;
 
@@ -553,6 +564,12 @@ export class GamePlay extends Phaser.GameObjects.Container {
             }
 
             this.occupy(convoy, cell.col, cell.row);
+
+            // lightConvoy() covers the body, but a flick fast enough to cross a
+            // cell inside one frame would leave a hole in the track without
+            // this. Lit here rather than in occupy(), so the convoys are dark
+            // where the level starts them.
+            this.board.pulseCell(cell.col, cell.row);
 
             convoy.cells.unshift({ col: cell.col, row: cell.row });
             convoy.stepReserved = true;
@@ -918,10 +935,13 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
             if (convoy.swallowing) {
                 this.updateSwallow(convoy, step);
+                this.lightConvoy(convoy);
                 continue;
             }
 
             const moved = this.updateConvoy(convoy, step);
+
+            if (moved) this.lightConvoy(convoy);
 
             if (moved || convoy.recoil !== convoy.drawnRecoil || !convoy.rig.settled) {
                 this.updateConvoyView(convoy, step);
@@ -931,6 +951,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 this.settleTrail(convoy);
             }
         }
+
+        this.board.step(step);
     }
 
     adjust() {
