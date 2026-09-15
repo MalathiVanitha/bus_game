@@ -66,6 +66,23 @@ const TURN_STIFFNESS = 34;
 const TURN_REST = 0.002;
 const TURN_REST_RATE = 0.01;
 
+// The road ahead is part of the track, and it can change under a convoy that is
+// standing on it: letting go drops the corner the tractor was leaning into, and
+// asking for a new route lays a different one. Either way the track moves out
+// from under the vehicles, and the ground they are drawn on has to keep up.
+//
+// So the move is measured and taken up as slip - how far each vehicle is drawn
+// from where the track now puts it - and wound off as a critically damped
+// spring. The vehicle does not move at all on the frame the road changes, and
+// eases onto the new track over about a fifth of a second.
+//
+// Slacker than the heading spring below because it has a real distance to
+// cover rather than a frame or two of give: a convoy let go on the approach to
+// a corner has to give up most of a turn.
+const SLIP_STIFFNESS = 26;
+const SLIP_REST = 0.05;
+const SLIP_REST_RATE = 0.5;
+
 // A vehicle being drawn into a garage shrinks away over this much track.
 const SWALLOW_TAPER = 0.55;
 
@@ -125,7 +142,16 @@ export class Convoy {
                 y: 0,
                 shown: true,
                 heading: null,
-                turnRate: 0
+                turnRate: 0,
+
+                // How far this vehicle is drawn from where the track now puts
+                // it, and how fast that is winding off.
+                slipX: 0,
+                slipY: 0,
+                slipTurn: 0,
+                slipRateX: 0,
+                slipRateY: 0,
+                slipRateTurn: 0
             };
         }
 
@@ -138,6 +164,26 @@ export class Convoy {
         this.laid = 0;
         this.leadArc = 0;
         this.extended = { x: 0, y: 0 };
+
+        // The track as it was last laid: the road ahead, and the corners behind.
+        // Kept so a track that has changed shape can be laid again as it was and
+        // measured against the one replacing it.
+        //
+        // The tractor's own leading point is left out of it. That point moves
+        // every frame, and its movement is the convoy driving rather than the
+        // track changing - so the old track is always relaid with the tractor
+        // where it is now, and what comes out is the change alone.
+        this.roadWas = [];
+        this.trailWas = [{ x: 0, y: 0 }];
+        this.wasTrail = { points: this.trailWas };
+        this.roadKnown = false;
+
+        // Where each vehicle stood on that track, and scratch for where it
+        // stands on this one.
+        this.was = [];
+        this.spot = { x: 0, y: 0, heading: 0 };
+
+        for (let i = 0; i < this.count; i++) this.was.push({ x: 0, y: 0, heading: 0 });
 
         const most = (this.count + LOOK_AHEAD + TAIL_PAD + 4) * (TURN_SEGMENTS + 2);
 
@@ -163,6 +209,12 @@ export class Convoy {
      * moves vehicles that are not driving anywhere: straightening a stopped
      * convoy back onto its cells would walk it off its corner every time it came
      * to rest and back around it the moment it set off again.
+     *
+     * What the track cannot avoid is changing when the road does - letting go
+     * drops the corner the tractor was leaning into, and asking for a new route
+     * lays a different one. That change is measured and taken up as slip rather
+     * than shown, so the convoy eases onto the new track instead of jumping onto
+     * it.
      */
     draw(trail, opts) {
         const settings = opts || {};
@@ -172,38 +224,220 @@ export class Convoy {
         const taper = SWALLOW_TAPER * this.cellSize;
         const tangent = TANGENT * this.cellSize;
 
-        this.layTrack(trail, settings.ahead, TURN_RADIUS * this.cellSize);
+        const radius = TURN_RADIUS * this.cellSize;
+        const road = settings.ahead;
 
-        // Cleared by any vehicle still turning, so the board knows to keep
-        // drawing until the convoy has properly come to rest.
+        // Cells the tractor has reached move from the road ahead to the trail
+        // behind, which changes both lists and the track not at all.
+        if (this.roadKnown) this.catchUp(trail);
+
+        // The track has changed shape under the convoy. Lay it again as it was -
+        // with the tractor where it is now, so its own travel does not count -
+        // and read off where each vehicle stood, to measure against where the
+        // new track puts them.
+        const shifted = this.roadKnown && this.trackChanged(trail, road);
+
+        if (shifted) {
+            this.trailWas[0].x = trail.points[0].x;
+            this.trailWas[0].y = trail.points[0].y;
+
+            this.layTrack(this.wasTrail, this.roadWas, radius);
+
+            for (let i = 0; i < this.count; i++) {
+                this.trackAt(i, offset, tangent, this.was[i]);
+            }
+        }
+
+        this.layTrack(trail, road, radius);
+        this.remember(trail, road);
+
+        // Cleared by any vehicle still turning or still winding off slip, so the
+        // board knows to keep drawing until the convoy has properly come to rest.
         this.settled = true;
 
         for (let i = 0; i < this.count; i++) {
-            const along = this.leadArc + offset + i * this.cellSize;
             const vehicle = this.vehicles[i];
-            const here = this.pointAt(along);
+            const here = this.trackAt(i, offset, tangent, this.spot);
 
             // Full size until a garage starts pulling it in, then shrinking away
             // over the last half cell so nothing pokes out past the doorway.
             const room = i * this.cellSize - pulled;
             const fade = pulled > 0 ? Math.min(1, Math.max(0, (room + taper) / taper)) : 1;
 
-            this.turnTowards(vehicle, this.headingAt(along, tangent), delta);
+            if (shifted) this.takeUpSlip(vehicle, this.was[i], here);
 
-            vehicle.x = here.x;
-            vehicle.y = here.y;
+            this.easeSlip(vehicle, delta);
+            this.turnTowards(vehicle, here.heading + vehicle.slipTurn, delta);
+
+            vehicle.x = here.x + vehicle.slipX;
+            vehicle.y = here.y + vehicle.slipY;
             vehicle.shown = fade > 0.02;
 
             const art = vehicle.art;
 
             art.visible = vehicle.shown;
-            art.x = here.x;
-            art.y = here.y;
+            art.x = vehicle.x;
+            art.y = vehicle.y;
             art.rotation = vehicle.heading - vehicle.facing;
             art.setScale(this.scale * fade);
         }
 
         this.drawLinks();
+    }
+
+    /** Where the track puts vehicle `i`, and which way it faces there. */
+    trackAt(i, offset, tangent, out) {
+        const along = this.leadArc + offset + i * this.cellSize;
+        const here = this.pointAt(along);
+
+        out.x = here.x;
+        out.y = here.y;
+        out.heading = this.headingAt(along, tangent);
+
+        return out;
+    }
+
+    /**
+     * Take up the move from `was` to `now` as slip, so the vehicle is drawn
+     * exactly where it was drawn last frame and the new track is eased onto
+     * rather than snapped to.
+     */
+    takeUpSlip(vehicle, was, now) {
+        vehicle.slipX += was.x - now.x;
+        vehicle.slipY += was.y - now.y;
+        vehicle.slipTurn += Phaser.Math.Angle.Wrap(was.heading - now.heading);
+    }
+
+    /**
+     * Wind the slip off towards nothing. Critically damped, and starting from
+     * rest, so a vehicle eases out of the offset rather than setting off at full
+     * tilt the frame the road changes. Solved implicitly, the same as the
+     * heading spring and for the same reason.
+     */
+    easeSlip(vehicle, delta) {
+        const step = delta / 1000;
+
+        // A frame of no time winds nothing off, but it must still say whether
+        // there is slip left to wind off: the convoy is redrawn once with no
+        // time on it as it comes to rest, and reporting itself settled there
+        // would stop the board redrawing and leave the slip standing.
+        if (step > 0) {
+            const w = SLIP_STIFFNESS;
+            const damp = 1 + 2 * w * step + w * w * step * step;
+
+            vehicle.slipRateX = (vehicle.slipRateX - w * w * vehicle.slipX * step) / damp;
+            vehicle.slipRateY = (vehicle.slipRateY - w * w * vehicle.slipY * step) / damp;
+            vehicle.slipRateTurn =
+                (vehicle.slipRateTurn - w * w * vehicle.slipTurn * step) / damp;
+
+            vehicle.slipX += vehicle.slipRateX * step;
+            vehicle.slipY += vehicle.slipRateY * step;
+            vehicle.slipTurn += vehicle.slipRateTurn * step;
+        }
+
+        const still = Math.abs(vehicle.slipX) < SLIP_REST &&
+            Math.abs(vehicle.slipY) < SLIP_REST &&
+            Math.abs(vehicle.slipRateX) < SLIP_REST_RATE &&
+            Math.abs(vehicle.slipRateY) < SLIP_REST_RATE &&
+            Math.abs(vehicle.slipTurn) < TURN_REST &&
+            Math.abs(vehicle.slipRateTurn) < TURN_REST_RATE;
+
+        if (!still) {
+            this.settled = false;
+            return;
+        }
+
+        vehicle.slipX = 0;
+        vehicle.slipY = 0;
+        vehicle.slipTurn = 0;
+        vehicle.slipRateX = 0;
+        vehicle.slipRateY = 0;
+        vehicle.slipRateTurn = 0;
+    }
+
+    /**
+     * Move the cells the tractor has reached since the last frame from the
+     * remembered road ahead to the remembered trail behind.
+     *
+     * Handing a cell from one list to the other leaves the track itself exactly
+     * as it was - it is the same run of corners, split in a different place. But
+     * it is the split that says which leg of the track the tractor is on, so
+     * without this the track would be relaid with the tractor still short of a
+     * corner it has already driven through, and the convoy would be shown
+     * jumping the difference.
+     */
+    catchUp(trail) {
+        const road = this.roadWas;
+        const past = this.trailWas;
+        const at = trail.points[1];
+
+        if (!at || !road.length) return;
+
+        let reached = 0;
+
+        // The road is held nearest first, so a cell that is now the newest
+        // corner behind the tractor takes every cell before it with it.
+        for (let i = 0; i < road.length; i++) {
+            if (road[i].x === at.x && road[i].y === at.y) {
+                reached = i + 1;
+                break;
+            }
+        }
+
+        if (!reached) return;
+
+        for (let i = 0; i < reached; i++) {
+            past.splice(1, 0, { x: road[i].x, y: road[i].y });
+        }
+
+        road.splice(0, reached);
+    }
+
+    /**
+     * Would the track come out differently from the one last laid? Only the road
+     * ahead and the corners behind are compared - the tractor's leading point is
+     * left out, because it moves every frame and that is the convoy driving
+     * rather than the track changing.
+     *
+     * A cell handed over from the road to the trail as the tractor reaches it
+     * changes both lists at once and the track not at all, which is why they
+     * have to be compared together rather than one at a time.
+     */
+    trackChanged(trail, road) {
+        return this.listChanged(this.roadWas, road, 0) ||
+            this.listChanged(this.trailWas, trail.points, 1);
+    }
+
+    listChanged(was, now, from) {
+        const count = now ? now.length - from : 0;
+
+        if (was.length - from !== count) return true;
+
+        for (let i = 0; i < count; i++) {
+            if (was[from + i].x !== now[from + i].x ||
+                was[from + i].y !== now[from + i].y) return true;
+        }
+
+        return false;
+    }
+
+    remember(trail, road) {
+        this.keep(this.roadWas, road, 0);
+        this.keep(this.trailWas, trail.points, 1);
+        this.roadKnown = true;
+    }
+
+    keep(was, now, from) {
+        const count = now ? now.length - from : 0;
+
+        while (was.length - from < count) was.push({ x: 0, y: 0 });
+
+        was.length = from + count;
+
+        for (let i = 0; i < count; i++) {
+            was[from + i].x = now[from + i].x;
+            was[from + i].y = now[from + i].y;
+        }
     }
 
     /**
@@ -475,17 +709,22 @@ export class Convoy {
         }
 
         const step = delta / 1000;
-
-        if (step <= 0) return;
-
         const w = TURN_STIFFNESS;
-        const gap = Phaser.Math.Angle.Wrap(target - vehicle.heading);
-        const damp = 1 + 2 * w * step + w * w * step * step;
 
-        vehicle.turnRate = (vehicle.turnRate + w * w * gap * step) / damp;
-        vehicle.heading = Phaser.Math.Angle.Wrap(vehicle.heading + vehicle.turnRate * step);
+        // As in easeSlip: a frame of no time turns the vehicle nowhere, but it
+        // still has to report a turn left to make.
+        if (step > 0) {
+            const gap = Phaser.Math.Angle.Wrap(target - vehicle.heading);
+            const damp = 1 + 2 * w * step + w * w * step * step;
 
-        if (Math.abs(gap) > TURN_REST || Math.abs(vehicle.turnRate) > TURN_REST_RATE) {
+            vehicle.turnRate = (vehicle.turnRate + w * w * gap * step) / damp;
+            vehicle.heading =
+                Phaser.Math.Angle.Wrap(vehicle.heading + vehicle.turnRate * step);
+        }
+
+        const left = Phaser.Math.Angle.Wrap(target - vehicle.heading);
+
+        if (Math.abs(left) > TURN_REST || Math.abs(vehicle.turnRate) > TURN_REST_RATE) {
             this.settled = false;
         }
     }
