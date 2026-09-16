@@ -21,10 +21,20 @@ const CHASE_SPAN = 4;
 // How close a touch has to land to a vehicle to take hold of the convoy.
 const GRAB_REACH = 0.75;
 
-// The nudge a convoy gives when it runs up against a cone. Only a cone: a board
-// edge, a wall, or another convoy all stop it just as dead, but none of them are
-// something it has hit, so none of them are worth a knock.
-const BUMP = 0.12;
+// Running into a cone. Only a cone: a board edge, a wall, or another convoy all
+// stop it just as dead, but none of them are something it has hit, so none of
+// them are worth a knock.
+//
+// The convoy comes to rest a whole cell short of the cone, which is too far off
+// to read as a collision on its own. So it noses the rest of the way in until it
+// is up against the thing, takes the knock back past where it started, and rolls
+// forward to rest. In cells, along the track: into the cone first, back after.
+const BUMP_INTO = 0.28;
+const BUMP_BACK = 0.16;
+
+const BUMP_IN_TIME = 90;
+const BUMP_BACK_TIME = 90;
+const BUMP_REST_TIME = 300;
 
 // Trail kept behind the last cart, in cells. It has to cover what the rig reads
 // past the end of the convoy plus the furthest a bump shunts it back.
@@ -555,8 +565,14 @@ export class GamePlay extends Phaser.GameObjects.Container {
             Math.hypot(point.x - at.x, point.y - at.y) > this.cellSize * 0.6;
 
         const next = this.stepToward(lead, at, point);
+        const hit = stuck && this.isCone(next.col, next.row);
 
-        convoy.hitCone = stuck && this.isCone(next.col, next.row);
+        // The knock goes off the moment the convoy runs up against the cone -
+        // that is when it hits it - and is not sounded again until it has come
+        // off the thing and been driven back at it.
+        if (hit && !convoy.hitCone) this.bumpConvoy(convoy);
+
+        convoy.hitCone = hit;
     }
 
     /**
@@ -915,34 +931,63 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
     /**
-     * Asked to drive somewhere it cannot reach, the convoy shunts back down its
-     * own trail and rolls forward again. Tweened as a distance along the trail
-     * rather than onto the art, which the next frame's draw would paint over.
+     * Run into a cone: nose on into it, take the knock back, then roll forward to
+     * rest. Tweened as a distance along the track rather than onto the art,
+     * which the next frame's draw would paint over.
      */
     bumpConvoy(convoy) {
         if (convoy.bumpTween) convoy.bumpTween.remove();
 
+        this.bumpStep(convoy, -BUMP_INTO, BUMP_IN_TIME, "Quad.easeOut", () => {
+            this.bumpStep(convoy, BUMP_BACK, BUMP_BACK_TIME, "Quad.easeOut", () => {
+                this.bumpStep(convoy, 0, BUMP_REST_TIME, "Sine.easeOut", () => {
+                    convoy.bumpTween = null;
+                });
+            });
+        });
+    }
+
+    /**
+     * One leg of the knock, as a distance in cells along the track the convoy is
+     * standing on. Negative runs it forward, on into the cone; positive runs it
+     * back down the way it came up.
+     */
+    bumpStep(convoy, to, duration, ease, then) {
         convoy.bumpTween = this.scene.tweens.add({
             targets: convoy,
-            recoil: this.cellSize * BUMP,
-            duration: 70,
-            ease: "Quad.easeOut",
-            onComplete: () => {
-                convoy.bumpTween = this.scene.tweens.add({
-                    targets: convoy,
-                    recoil: 0,
-                    duration: 260,
-                    ease: "Sine.easeOut",
-                    onComplete: () => {
-                        convoy.bumpTween = null;
-                    }
-                });
-            }
+            recoil: this.cellSize * to,
+            duration: duration,
+            ease: ease,
+            onComplete: then
         });
     }
 
 
     // ---- view -----------------------------------------------------------
+
+    /**
+     * Where this convoy's doorway stands, for the rig to draw its vehicles
+     * smaller the further into it they have got. Nothing while it is out on the
+     * board, so only a convoy actually going in is ever drawn any smaller.
+     */
+    doorwayFor(convoy) {
+        const garage = convoy.garage;
+
+        if (!garage || convoy.escaped) return null;
+        if (!convoy.swallowing && !this.enteringGarage(convoy)) return null;
+
+        const spot = this.cellToPixel(convoy.exit[0], convoy.exit[1]);
+        const door = this.doorway || (this.doorway = {});
+
+        door.x = spot.x;
+        door.y = spot.y;
+        door.outX = Math.cos(garage.facing);
+        door.outY = Math.sin(garage.facing);
+        door.mouth = garage.doorMouth;
+        door.back = garage.doorBack;
+
+        return door;
+    }
 
     updateConvoyView(convoy, delta) {
         convoy.drawnRecoil = convoy.recoil;
@@ -951,6 +996,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             recoil: convoy.recoil,
             swallow: convoy.swallowed,
             ahead: this.roadAhead(convoy),
+            door: this.doorwayFor(convoy),
             delta: delta || 0
         });
     }
@@ -1062,8 +1108,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         convoy.settling = true;
 
-        if (convoy.hitCone) this.bumpConvoy(convoy);
-
+        // The knock has already been given, back when it ran into the thing.
+        // Cleared so driving at it again is a fresh hit.
         convoy.hitCone = false;
 
         if (!convoy.stepReserved) {

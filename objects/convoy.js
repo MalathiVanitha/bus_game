@@ -87,6 +87,41 @@ const SLIP_STIFFNESS = 26;
 const SLIP_REST = 0.05;
 const SLIP_REST_RATE = 0.5;
 
+// How small a vehicle is drawn by the time the doorway has taken all of it. It
+// is driving away from the viewer into the room, so it draws off with distance
+// the way anything does - flat to the end and it would read as sliding behind
+// the doorway rather than going away into it.
+const DOOR_SHRINK = 0.34;
+
+// How the drawing off is paced. Held a little past straight, so a vehicle keeps
+// its size while it is being lifted and then falls away, which is what reads as
+// being pulled in rather than driving in at its own steady pace. Not much past
+// it, or the whole of the shrinking piles into the last frame or two.
+const DOOR_DRAW_OFF = 1.35;
+
+// The vehicle goes on drawing off past the back wall, because it goes on being
+// seen past it: the wall takes its nose first and the rest of it is still out in
+// the room behind. In cells, past the wall, for the shrinking to finish over.
+const DOOR_DEEP = 0.28;
+
+// A vehicle does not drive in under its own power - the garage takes hold of it
+// at the mouth and draws it inside. It is picked up a little as that happens,
+// and looking straight down on it there is nowhere for a lift to go but towards
+// the viewer, so it is drawn as a swell over full size. The board lifts its
+// tiles the same way.
+//
+// How far out in front of the doorway the garage reaches to take a vehicle, in
+// cells. The painted room is only a third of a cell deep, which at the pace the
+// convoy is reeled in is three or four frames - too few to see anything happen
+// in. Reaching out past the mouth gives the lift somewhere to play out, and
+// reads as the garage taking hold of the vehicle rather than waiting for it.
+const DOOR_REACH = 0.45;
+
+// Where the swell crests, over that whole run: around the mouth, which is where
+// the vehicle is being taken hold of. Nothing at either end of the run.
+const DOOR_LIFT = 0.12;
+const DOOR_LIFT_AT = 0.55;
+
 // The couplings, drawn between vehicle centres and covered at both ends by the
 // art they join.
 const LINK_COLOR = 0x23262d;
@@ -207,8 +242,8 @@ export class Convoy {
      * coming up to is curved before it gets there. `recoil` slides the convoy
      * back down the track without moving it off it, which is how the nudge off a
      * wall is drawn; `swallow` slides it the other way, driving it on through a
-     * garage doorway. Vehicles keep their full size all the way in - it is the
-     * doorway that takes them out of sight, not any shrinking of their own.
+     * garage doorway. `door` is where that doorway stands, so a vehicle going
+     * through it can be drawn smaller the further in it gets.
      *
      * The corners are laid at the same radius every frame, moving or stopped.
      * The track is what the convoy is standing on, so anything that reshapes it
@@ -230,6 +265,7 @@ export class Convoy {
 
         const radius = TURN_RADIUS * this.cellSize;
         const road = settings.ahead;
+        const door = settings.door;
 
         // Cells the tractor has reached move from the road ahead to the trail
         // behind, which changes both lists and the track not at all.
@@ -278,9 +314,45 @@ export class Convoy {
             art.x = vehicle.x;
             art.y = vehicle.y;
             art.rotation = vehicle.heading - vehicle.facing;
+            art.setScale(this.scale * (door ? this.doorScale(vehicle, door) : 1));
         }
 
         this.drawLinks();
+    }
+
+    /**
+     * How to draw a vehicle for how far into a doorway it has got: full size out
+     * on the tarmac, lifted as the garage takes hold of it at the mouth, then
+     * drawing away to DOOR_SHRINK by the back wall of the room.
+     *
+     * Measured along the way the door looks, so it holds however the garage is
+     * turned - there is no up or down on the board to lift a vehicle towards.
+     */
+    doorScale(vehicle, door) {
+        const along = (vehicle.x - door.x) * door.outX + (vehicle.y - door.y) * door.outY;
+        const reach = door.mouth + DOOR_REACH * this.cellSize;
+        const room = door.mouth - door.back + DOOR_DEEP * this.cellSize;
+
+        if (along >= reach) return 1;
+        if (along <= door.mouth - room) return DOOR_SHRINK;
+
+        // Two runs, not one. The vehicle only draws away once it is at the mouth,
+        // where the art has depth to show it going into; the lift runs over the
+        // longer stretch from where the garage first takes hold of it, so it
+        // still holds its size on the way to the door.
+        const deep = Math.min(1, Math.max(0, (door.mouth - along) / room));
+        const taken = Math.min(1, (reach - along) / (reach - door.back));
+
+        // Up to the crest and back down again: nothing where the garage takes
+        // hold, nothing again by the back wall. A quarter turn of a sine either
+        // side rather than a straight rise and fall, so it is flat at the top.
+        const crest = taken < DOOR_LIFT_AT ?
+            taken / DOOR_LIFT_AT :
+            (1 - taken) / (1 - DOOR_LIFT_AT);
+
+        const lift = Math.sin(Math.PI * 0.5 * crest) * DOOR_LIFT;
+
+        return 1 + (DOOR_SHRINK - 1) * Math.pow(deep, DOOR_DRAW_OFF) + lift;
     }
 
     /** Where the track puts vehicle `i`, and which way it faces there. */

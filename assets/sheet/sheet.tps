@@ -88,9 +88,9 @@
         <key>maxTextureSize</key>
         <QSize>
             <key>width</key>
-            <int>512</int>
+            <int>2048</int>
             <key>height</key>
-            <int>512</int>
+            <int>2048</int>
         </QSize>
         <key>fixedTextureSize</key>
         <QSize>
@@ -181,9 +181,45 @@
         </struct>
         <key>individualSpriteSettings</key>
         <map type="IndividualSpriteSettingsMap">
+            <key type="filename">../source/board/tile_road.png</key>
+            <key type="filename">../source/bus/blue/garage.png</key>
+            <key type="filename">../source/bus/cyan/garage.png</key>
+            <key type="filename">../source/bus/green/garage.png</key>
+            <key type="filename">../source/bus/lime/garage.png</key>
+            <key type="filename">../source/bus/orange/garage.png</key>
+            <key type="filename">../source/bus/pink/garage.png</key>
+            <key type="filename">../source/bus/purple/garage.png</key>
+            <key type="filename">../source/bus/white/garage.png</key>
+            <key type="filename">../source/bus/yellow/garage.png</key>
+            <key type="filename">../source/icons/icon_gear.png</key>
+            <key type="filename">../source/icons/icon_music.png</key>
+            <key type="filename">../source/icons/icon_play.png</key>
+            <key type="filename">../source/icons/icon_sound.png</key>
+            <key type="filename">../source/icons/icon_timer_blue.png</key>
+            <key type="filename">../source/icons/icon_vibration.png</key>
+            <key type="filename">../source/icons/icon_video.png</key>
+            <key type="filename">../source/obstacles/obstacle_barrier.png</key>
+            <key type="filename">../source/obstacles/obstacle_cargo_container.png</key>
+            <key type="filename">../source/obstacles/obstacle_cargo_pallet.png</key>
+            <key type="filename">../source/obstacles/obstacle_cone.png</key>
+            <key type="filename">../source/obstacles/obstacle_planter.png</key>
+            <key type="filename">../source/obstacles/obstacle_service_cabinet.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>48,48,96,96</rect>
+                <key>scale9Paddings</key>
+                <rect>48,48,96,96</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
             <key type="filename">../source/bus/red/garage.png</key>
             <key type="filename">../source/bus/red/luggage_cart.png</key>
-            <key type="filename">../source/bus/red/tractor+side.png</key>
             <key type="filename">../source/bus/red/tractor_front.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
@@ -196,6 +232,113 @@
                 <rect>55,55,110,110</rect>
                 <key>scale9Paddings</key>
                 <rect>55,55,110,110</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">../source/icons/icon_close.png</key>
+            <key type="filename">../source/icons/icon_pause.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>32,32,64,64</rect>
+                <key>scale9Paddings</key>
+                <rect>32,32,64,64</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">../source/icons/icon_coin.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>72,72,144,144</rect>
+                <key>scale9Paddings</key>
+                <rect>72,72,144,144</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">../source/icons/icon_coin_stack.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>90,72,180,144</rect>
+                <key>scale9Paddings</key>
+                <rect>90,72,180,144</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">../source/icons/icon_hint.png</key>
+            <key type="filename">../source/icons/icon_recycle.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>64,64,128,128</rect>
+                <key>scale9Paddings</key>
+                <rect>64,64,128,128</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">../source/icons/icon_no_ads.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>90,90,180,180</rect>
+                <key>scale9Paddings</key>
+                <rect>90,90,180,180</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">../source/icons/icon_store.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>60,60,120,120</rect>
+                <key>scale9Paddings</key>
+                <rect>60,60,120,120</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">../source/icons/icon_timer_coral.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>110,110,220,220</rect>
+                <key>scale9Paddings</key>
+                <rect>110,110,220,220</rect>
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
@@ -226,6 +369,82 @@
                 <rect>53,9,106,19</rect>
                 <key>scale9Paddings</key>
                 <rect>53,9,106,19</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">../source/ui/badge_count.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>36,36,72,72</rect>
+                <key>scale9Paddings</key>
+                <rect>36,36,72,72</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">../source/ui/button_booster_base.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>92,92,184,184</rect>
+                <key>scale9Paddings</key>
+                <rect>92,92,184,184</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">../source/ui/button_icon_base.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>84,84,168,168</rect>
+                <key>scale9Paddings</key>
+                <rect>84,84,168,168</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">../source/ui/toggle_base_white.png</key>
+            <key type="filename">../source/ui/toggle_fill_green.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>100,40,200,80</rect>
+                <key>scale9Paddings</key>
+                <rect>100,40,200,80</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">../source/ui/toggle_knob.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>26,26,52,52</rect>
+                <key>scale9Paddings</key>
+                <rect>26,26,52,52</rect>
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
