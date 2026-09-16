@@ -5,7 +5,7 @@ import { Convoy } from './convoy.js';
 import { Garage } from './garage.js';
 import levelData from '../data/level-data.js';
 
-const BOARD_SIZE = 440;
+const BOARD_SIZE = 450;
 
 // Pace the tractor keeps when it is under the finger, and the pace it winds up
 // to as the finger pulls ahead of it. Both in cells per second.
@@ -248,7 +248,12 @@ export class GamePlay extends Phaser.GameObjects.Container {
      * towards the middle of the board, which is the way the board opens out.
      */
     wayIn(col, row) {
-        const ways = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        const ways = [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1]
+        ];
         const open = [];
 
         for (let i = 0; i < ways.length; i++) {

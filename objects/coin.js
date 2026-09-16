@@ -30,10 +30,10 @@ const FLY_END_SCALE = 0.62;
 const POP_SCALE = 1.1;
 const POP_TIME = 110;
 
-// Drops in from off the top of the screen when the home screen comes on.
-const INTRO_Y = -70;
-const INTRO_TIME = 560;
-const INTRO_DELAY = 120;
+// Slides in past the corner it lives in when the home screen comes on.
+const INTRO_X = 150;
+const INTRO_TIME = 540;
+const INTRO_DELAY = 260;
 
 // The balance the storyboard shows. Nothing spends coins yet, so a fresh
 // player is started on it rather than on nothing.
@@ -61,6 +61,33 @@ function writeStore(value) {
     }
 }
 
+/**
+ * The pill itself - the art, the coin and the count - which the counter puts in
+ * the corner of the screen and the store puts in its header.
+ */
+export function makeCoinPill(scene, value, textRes) {
+    const pill = scene.add.container(0, 0);
+
+    const base = scene.add.sprite(0, 0, 'sheet', PILL);
+    base.setScale(PILL_SCALE);
+    pill.add(base);
+
+    const icon = scene.add.sprite(ICON_X, 0, 'sheet', ICON);
+    icon.setScale(ICON_SCALE);
+    pill.add(icon);
+
+    pill.count = scene.add.text(COUNT_X, 0, String(value), {
+        fontFamily: 'FredokaOne_Regular',
+        fontSize: COUNT_SIZE,
+        color: INK
+    });
+    pill.count.setOrigin(.5);
+    pill.count.setResolution(textRes);
+    pill.add(pill.count);
+
+    return pill;
+}
+
 export class Coin extends Phaser.GameObjects.Container {
     constructor(scene, x = 0, y = 0) {
         super(scene, x, y);
@@ -77,25 +104,9 @@ export class Coin extends Phaser.GameObjects.Container {
     build() {
         this.textRes = Math.min(3, Math.max(1, Math.ceil(this.scene.gameScale || 1)));
 
-        const pill = this.scene.add.container(0, 0);
+        const pill = makeCoinPill(this.scene, this.value, this.textRes);
 
-        const base = this.scene.add.sprite(0, 0, 'sheet', PILL);
-        base.setScale(PILL_SCALE);
-        pill.add(base);
-
-        const icon = this.scene.add.sprite(ICON_X, 0, 'sheet', ICON);
-        icon.setScale(ICON_SCALE);
-        pill.add(icon);
-
-        this.count = this.scene.add.text(COUNT_X, 0, String(this.value), {
-            fontFamily: 'FredokaOne_Regular',
-            fontSize: COUNT_SIZE,
-            color: INK
-        });
-        this.count.setOrigin(.5);
-        this.count.setResolution(this.textRes);
-        pill.add(this.count);
-
+        this.count = pill.count;
         this.pill = pill;
         this.add(pill);
     }
@@ -106,6 +117,9 @@ export class Coin extends Phaser.GameObjects.Container {
         this.count.setText(String(this.value));
 
         writeStore(this.value);
+
+        // Anything else showing the balance - the store header - follows it.
+        this.scene.events.emit('coin:changed', this.value);
     }
 
     /** Pays in, with the pill giving a little under the weight of it. */
@@ -200,18 +214,18 @@ export class Coin extends Phaser.GameObjects.Container {
         coin.destroy();
     }
 
-    /** Drops the counter in, for the home screen coming on behind it. */
+    /** Slides the counter in, for the home screen coming on behind it. */
     intro() {
         this.show();
 
         this.scene.tweens.killTweensOf(this.pill);
 
-        this.pill.y = INTRO_Y;
+        this.pill.x = INTRO_X;
         this.pill.alpha = 0;
 
         this.scene.tweens.add({
             targets: this.pill,
-            y: 0,
+            x: 0,
             alpha: 1,
             duration: INTRO_TIME,
             delay: INTRO_DELAY,

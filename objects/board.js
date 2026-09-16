@@ -1,8 +1,10 @@
-// Sampled off the storyboard: a white rounded tray, a near-black well cut into
-// it, and the tarmac tiles sitting in the well.
+// Sampled off the storyboard: a white rounded tray and a near-black well cut
+// into it. The tarmac tiles sitting in the well are art.
 const RIM = 0xffffff;
 const WELL = 0x2b2e37;
-const TILE = 0x5a697b;
+
+const TILE = 'board/tile_road';
+const TILE_ART = 96;
 
 const SHADOW = 0x000000;
 
@@ -79,6 +81,15 @@ export class Board {
         this.g = scene.add.graphics();
         config.parent.add(this.g);
 
+        // The tarmac itself, a piece of art to a cell, over the well it sits in.
+        this.tileLayer = scene.add.container();
+        config.parent.add(this.tileLayer);
+
+        // The pools under the obstacles lie on the tarmac, so they are drawn
+        // over the tiles rather than on the tray underneath them.
+        this.shadowG = scene.add.graphics();
+        config.parent.add(this.shadowG);
+
         // Over the tarmac and under everything the board's parent adds after it,
         // so a lit tile reads beneath the convoys rather than over them.
         this.liftG = scene.add.graphics();
@@ -140,21 +151,23 @@ export class Board {
 
         const gap = TILE_GAP * this.cell;
 
-        g.fillStyle(TILE, 1);
+        // A tile is laid a seam short of its cell, which is the gap the board
+        // was drawn with before the art took over.
+        this.tileLayer.removeAll(true);
 
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.columns; col++) {
                 if (!this.isFloor(col, row)) continue;
 
                 const spot = this.cellToPixel(col, row);
+                const tile = this.scene.add.sprite(spot.x, spot.y, 'sheet', TILE);
 
-                g.fillRoundedRect(
-                    spot.x - this.tileWidth / 2 + gap / 2,
-                    spot.y - this.tileHeight / 2 + gap / 2,
-                    this.tileWidth - gap,
-                    this.tileHeight - gap,
-                    TILE_CORNER * this.cell
+                tile.setScale(
+                    (this.tileWidth - gap) / TILE_ART,
+                    (this.tileHeight - gap) / TILE_ART
                 );
+
+                this.tileLayer.add(tile);
             }
         }
 
@@ -169,8 +182,10 @@ export class Board {
      * pieces themselves are sprites, on the layer the parent has placed.
      */
     placeObstacles() {
-        const g = this.g;
+        const g = this.shadowG;
         const scale = (this.cell * OBSTACLE_FIT) / OBSTACLE_ART;
+
+        g.clear();
 
         this.props.removeAll(true);
 

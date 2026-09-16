@@ -5,6 +5,7 @@ import AnimationManager from '../objects/AnimationManager.js';
 import { GamePlay } from '../objects/game-play.js';
 import { Settings } from '../objects/settings.js';
 import { Home } from '../objects/home.js';
+import { StorePanel } from '../objects/store.js';
 import { Coin } from '../objects/coin.js';
 import data from '../data/data.js';
 
@@ -74,12 +75,20 @@ export default class GameScene extends Phaser.Scene {
         this.coin = new Coin(this, 0, 0);
         this.gameGroup.add(this.coin);
 
+        // The shop, over the home screen it is opened from.
+        this.storePanel = new StorePanel(this, 0, 0);
+        this.gameGroup.add(this.storePanel);
+
+        this.events.on('store:open', () => this.storePanel.show());
+
         // Last in, so the gear and the card it opens sit over everything else.
         this.settings = new Settings(this, 0, 0);
         this.gameGroup.add(this.settings);
 
         this.setPositions();
         this.showHome();
+
+        if (location.search.indexOf('replay') !== -1) window.__replayHome = () => this.showHome();
 
         // this.startGamePlay();
     }
@@ -284,6 +293,7 @@ export default class GameScene extends Phaser.Scene {
         this.cta.adjust();
         this.home.adjust();
         this.coin.adjust();
+        this.storePanel.adjust();
         this.settings.adjust();
 
     }

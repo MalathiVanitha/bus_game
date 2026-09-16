@@ -65,24 +65,48 @@ const CONTENT_MARGIN = 12;
 
 const SHUT_TIME = 220;
 
-// The screen builds itself up when it comes on: the title drops in, the convoy
-// drives on the way it is facing and pulls up, and the plate and the buttons
-// rise from under the bottom of the screen, one behind the other.
+// The screen comes on like a camera settling on it: the whole lot eases back
+// from a touch too close while the pieces arrive over the top of that. The
+// title stamps in on the turn, the convoy drives on the way it is facing and
+// pulls up on its springs, and the plate and the buttons sweep in from
+// alternate sides, one behind the other.
 //
-// The convoy faces left, so it comes on from the right - the other way round
-// and it reads as reversing. It brakes rather than springs, and takes a little
-// bob on its springs once it is standing still.
+// A piece's entry is written as where it starts - off to a side, up high, small
+// or turned - and every tween runs it back to where it sits.
+const PUSH_FROM = 1.06;
+const PUSH_TIME = 900;
+
+// Far enough past either edge for a piece to start out of sight.
+const SWEEP = 620;
+
 const INTRO = [
-    { piece: 'logo', dy: -180, scale: 0.88, duration: 660, delay: 0, ease: 'Back.easeOut', pulse: 1.03 },
-    { piece: 'convoy', dx: 560, duration: 780, delay: 170, ease: 'Quint.easeOut', bob: -5 },
-    { piece: 'plate', dy: 120, duration: 500, delay: 430, ease: 'Back.easeOut' },
-    { piece: 'playButton', dy: 140, duration: 500, delay: 510, ease: 'Back.easeOut' },
-    { piece: 'store', dy: 160, duration: 500, delay: 580, ease: 'Back.easeOut' }
+    { piece: 'logo', scale: 0.4, dy: -40, angle: -8, duration: 620, delay: 0, ease: 'Back.easeOut', pulse: 1.04 },
+    { piece: 'convoy', dx: 560, duration: 820, delay: 200, ease: 'Quart.easeOut', hop: true },
+    { piece: 'plate', dx: -SWEEP, duration: 480, delay: 430, ease: 'Back.easeOut' },
+    { piece: 'playButton', dx: SWEEP, duration: 480, delay: 520, ease: 'Back.easeOut' },
+    { piece: 'store', dx: -SWEEP, duration: 480, delay: 610, ease: 'Back.easeOut' }
 ];
+
+// The convoy hops its way on rather than sliding. Four bounces, each one
+// roughly half the last and quicker with it, which is how a bounce dies away.
+// It stretches and rears its nose up as it leaves the ground - it faces left,
+// so that is a turn clockwise - and squashes flat as it lands, hardest on the
+// first landing and barely at all by the last.
+const HOPS = [
+    { height: 34, duration: 290, tilt: 3.5 },
+    { height: 19, duration: 225, tilt: 2.2 },
+    { height: 10, duration: 170, tilt: 1.2 },
+    { height: 4, duration: 120, tilt: 0.6 }
+];
+
+const HOP_STRETCH = 0.07;
+const HOP_NARROW = 0.6;
+const HOP_SQUASH = 0.1;
+const HOP_SQUASH_TIME = 130;
 
 // A piece is solid for most of its travel rather than ghosting the whole way
 // in, and the settle is the bit of give at the end of the two big moves.
-const INTRO_FADE = 260;
+const INTRO_FADE = 240;
 const INTRO_SETTLE = 170;
 
 const INTRO_CLOUD_TIME = 900;
@@ -244,15 +268,43 @@ export class Home extends Phaser.GameObjects.Container {
 
     /** Brings the screen on a piece at a time. */
     intro() {
+        const fit = this.fitScale || 1;
+
+        // Anything still in the air from a run before this one belongs to that
+        // run, and is left to drop its work on the floor.
+        this.introRun = (this.introRun || 0) + 1;
+
+        const run = this.introRun;
+
+        // The push in sits under everything else and carries the whole screen.
+        this.scene.tweens.killTweensOf(this.content);
+        this.content.setScale(fit * PUSH_FROM);
+
+        this.scene.tweens.add({
+            targets: this.content,
+            scale: fit,
+            duration: PUSH_TIME,
+            ease: 'Sine.easeOut'
+        });
+
         for (let i = 0; i < INTRO.length; i++) {
             const step = INTRO[i];
             const piece = this[step.piece];
 
             this.scene.tweens.killTweensOf(piece);
 
+            if (piece.hops) {
+                piece.hops.destroy();
+                piece.hops = null;
+            }
+
             piece.x = piece.restX + (step.dx || 0);
             piece.y = piece.restY + (step.dy || 0);
+            piece.angle = step.angle || 0;
             piece.alpha = 0;
+
+            // However far the last run got, this one starts from the top.
+            piece.setScale(piece.introScale);
 
             this.scene.tweens.add({
                 targets: piece,
@@ -262,22 +314,30 @@ export class Home extends Phaser.GameObjects.Container {
                 ease: 'Quad.easeOut'
             });
 
-            const run = {
+            const drive = {
                 targets: piece,
                 x: piece.restX,
-                y: piece.restY,
                 duration: step.duration,
                 delay: step.delay,
                 ease: step.ease,
                 onComplete: () => this.settle(piece, step)
             };
 
-            if (step.scale) {
-                piece.setScale(piece.introScale * step.scale);
-                run.scale = piece.introScale;
+            // A hopping piece carries its own height, lean and weight, so the
+            // run in is left to bring it across and nothing else.
+            if (step.hop) {
+                this.hopIn(piece, step, run);
+            } else {
+                drive.y = piece.restY;
+                drive.angle = 0;
             }
 
-            this.scene.tweens.add(run);
+            if (step.scale) {
+                piece.setScale(piece.introScale * step.scale);
+                drive.scale = piece.introScale;
+            }
+
+            this.scene.tweens.add(drive);
         }
 
         for (let i = 0; i < this.clouds.length; i++) {
@@ -293,6 +353,50 @@ export class Home extends Phaser.GameObjects.Container {
                 ease: 'Quad.easeOut'
             });
         }
+    }
+
+    /** Bounces a piece in, each hop lower and quicker than the one before. */
+    hopIn(piece, step, run) {
+        if (piece.hops) piece.hops.destroy();
+
+        const rest = piece.introScale;
+
+        piece.hops = this.scene.tweens.chain({
+            targets: piece,
+            delay: step.delay,
+            tweens: HOPS.map((hop) => {
+                // How much of the first hop this one is, which is how much of
+                // the stretch and the landing it is worth.
+                const share = hop.height / HOPS[0].height;
+
+                return {
+                    y: piece.restY - hop.height,
+                    angle: hop.tilt,
+                    scaleX: rest * (1 - HOP_STRETCH * share * HOP_NARROW),
+                    scaleY: rest * (1 + HOP_STRETCH * share),
+                    duration: hop.duration / 2,
+                    ease: 'Quad.easeOut',
+                    yoyo: true,
+                    onComplete: () => this.squash(piece, share, run)
+                };
+            })
+        });
+    }
+
+    /** The weight going through it as it lands. */
+    squash(piece, share, run) {
+        if (run !== this.introRun) return;
+
+        const rest = piece.introScale;
+
+        this.scene.tweens.add({
+            targets: piece,
+            scaleX: rest * (1 + HOP_SQUASH * share),
+            scaleY: rest * (1 - HOP_SQUASH * share),
+            duration: HOP_SQUASH_TIME * (0.6 + 0.4 * share),
+            ease: 'Quad.easeOut',
+            yoyo: true
+        });
     }
 
     /** The bit of give at the end of a big move. */
@@ -337,10 +441,12 @@ export class Home extends Phaser.GameObjects.Container {
         // not just the box the screen is laid out in.
         this.sky.setSize(dimensions.actualWidth, dimensions.actualHeight);
 
-        this.content.setScale(Math.min(
+        this.fitScale = Math.min(
             1,
             (dimensions.gameHeight - CONTENT_MARGIN * 2) / CONTENT_H,
             (dimensions.gameWidth - CONTENT_MARGIN * 2) / CONTENT_W
-        ));
+        );
+
+        this.content.setScale(this.fitScale);
     }
 }
