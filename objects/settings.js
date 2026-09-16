@@ -3,11 +3,11 @@ import soundsData from "../sounds-data.js";
 const PANEL_W = 470;
 const PANEL_H = 600;
 
-const PANEL_SCALE = 0.28;
-const PANEL_PAD_X = 88;
-const PANEL_PAD_Y = 263;
-const PANEL_CORNER_X = 250;
-const PANEL_CORNER_Y = 300;
+const PANEL_SCALE = 0.56;
+const PANEL_PAD_X = 44;
+const PANEL_PAD_Y = 131;
+const PANEL_CORNER_X = 125;
+const PANEL_CORNER_Y = 150;
 
 const PANEL_DRIFT_Y = -1.5;
 
@@ -27,21 +27,21 @@ const TITLE_SIZE = 58;
 
 const CLOSE_X = 193;
 const CLOSE_Y = -250;
-const CLOSE_SCALE = 0.36;
+const CLOSE_SCALE = 0.72;
 const CLOSE_HIT = 78;
 
 const ROW_Y = [-128, -15, 99];
 const RULE_Y = [-188, -71, 42];
 
 const ICON_X = -158;
-const ICON_SCALE = 0.38;
+const ICON_SCALE = 0.76;
 
 const LABEL_X = -84;
 const LABEL_SIZE = 34;
 
-const TOGGLE_X = 140;
-const TOGGLE_SCALE = 0.33;
-const KNOB_TRAVEL = 44;
+const TOGGLE_X = 147;
+const TOGGLE_SCALE = 0.85;
+const KNOB_TRAVEL = 27;
 const TOGGLE_OFF = 0xb7b8c3;
 const TOGGLE_ON = 0xffffff;
 const TOGGLE_TIME = 170;
@@ -49,19 +49,19 @@ const TOGGLE_TIME = 170;
 const ROW_HIT_W = RULE_HALF * 2;
 const ROW_HIT_H = 113;
 
-const DONE_Y = 225;
-const DONE_SCALE = 0.308;
+const DONE_Y = 212;
+const DONE_SCALE = 0.58;
 
 const DONE_HIT_W = 416;
 const DONE_HIT_H = 100;
 
-const DONE_TEXT_Y = 220;
+const DONE_TEXT_Y = 207;
 const DONE_SIZE = 54;
 
 const GEAR_X = 84;
 const GEAR_Y = 62;
-const GEAR_BASE_SCALE = 0.262;
-const GEAR_ICON_SCALE = 0.29;
+const GEAR_BASE_SCALE = 0.524;
+const GEAR_ICON_SCALE = 0.58;
 const GEAR_HIT = 104;
 
 const OPEN_TIME = 300;
@@ -73,9 +73,9 @@ const PRESS = 0.94;
 const PRESS_TIME = 90;
 
 const ROWS = [
-    { key: 'music', icon: 'icons/icon_music', label: 'Music' },
-    { key: 'sound', icon: 'icons/icon_sound', label: 'Sound' },
-    { key: 'vibration', icon: 'icons/icon_vibration', label: 'Vibration' }
+    { key: 'music', icon: 'icons/icon-music', label: 'Music' },
+    { key: 'sound', icon: 'icons/icon-sound', label: 'Sound' },
+    { key: 'vibration', icon: 'icons/icon-vibration', label: 'Vibration' }
 ];
 
 const STORE_KEY = 'baggage-out.settings';
@@ -138,7 +138,7 @@ export class Settings extends Phaser.GameObjects.Container {
         base.setScale(GEAR_BASE_SCALE);
         gear.add(base);
 
-        const icon = this.scene.add.sprite(0, 0, 'sheet', 'icons/icon_gear');
+        const icon = this.scene.add.sprite(0, 0, 'sheet', 'icons/icon-gear');
         icon.setScale(GEAR_ICON_SCALE);
         gear.add(icon);
 
@@ -169,7 +169,7 @@ export class Settings extends Phaser.GameObjects.Container {
         ).setScale(PANEL_SCALE));
 
         const title = this.scene.add.text(TITLE_X, TITLE_Y, 'Settings', {
-            fontFamily: 'Oduda-Bold-Demo',
+            fontFamily: 'FredokaOne_Regular',
             fontSize: TITLE_SIZE,
             color: INK
         });
@@ -178,7 +178,7 @@ export class Settings extends Phaser.GameObjects.Container {
         card.add(title);
 
         const close = this.scene.add.container(CLOSE_X, CLOSE_Y);
-        const cross = this.scene.add.sprite(0, 0, 'sheet', 'icons/icon_close');
+        const cross = this.scene.add.sprite(0, 0, 'sheet', 'icons/icon-close');
         cross.setScale(CLOSE_SCALE);
         close.add(cross);
         this.pressable(close, CLOSE_HIT, CLOSE_HIT, () => this.hide());
@@ -200,7 +200,7 @@ export class Settings extends Phaser.GameObjects.Container {
         done.add(face);
 
         const doneText = this.scene.add.text(0, DONE_TEXT_Y - DONE_Y, 'Done', {
-            fontFamily: 'Oduda-Bold-Demo',
+            fontFamily: 'FredokaOne_Regular',
             fontSize: DONE_SIZE,
             color: '#ffffff'
         });
@@ -225,7 +225,7 @@ export class Settings extends Phaser.GameObjects.Container {
         card.add(icon);
 
         const label = this.scene.add.text(LABEL_X, y, row.label, {
-            fontFamily: 'Oduda-Bold-Demo',
+            fontFamily: 'FredokaOne_Regular',
             fontSize: LABEL_SIZE,
             color: INK
         });
@@ -235,11 +235,11 @@ export class Settings extends Phaser.GameObjects.Container {
 
         const toggle = this.scene.add.container(TOGGLE_X, y);
 
-        toggle.track = this.scene.add.sprite(0, 0, 'sheet', 'ui/toggle_base_white');
+        toggle.track = this.scene.add.sprite(0, 0, 'toggle-base');
         toggle.track.setScale(TOGGLE_SCALE);
         toggle.add(toggle.track);
 
-        toggle.fill = this.scene.add.sprite(0, 0, 'sheet', 'ui/toggle_fill_green');
+        toggle.fill = this.scene.add.sprite(0, 0, 'toggle-fill');
         toggle.fill.setScale(TOGGLE_SCALE);
         toggle.add(toggle.fill);
 

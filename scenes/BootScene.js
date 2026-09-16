@@ -13,6 +13,12 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('panel_modal', 'assets/panel_modal.png')
         this.load.image('button_purple', 'assets/button_purple.png')
 
+        // The packed toggle is a long, thin pill. The storyboard's is a stubby
+        // one, so the track and its fill are kept here, reshaped, until the
+        // sheet is exported with them at that size.
+        this.load.image('toggle-base', 'assets/toggle-base.png')
+        this.load.image('toggle-fill', 'assets/toggle-fill.png')
+
         this.load.atlas('sheet', 'assets/sheet/sheet.png', 'assets/sheet/sheet.json')
 
         this.load.script('webfont', '../../js/webfont.js');
@@ -21,6 +27,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.setPath('assets/sounds');
 
         this.loadFont('Oduda-Bold-Demo', 'fonts/Oduda-Bold-Demo.otf');
+        this.loadFont('FredokaOne_Regular', 'fonts/FredokaOne_Regular.otf');
 
         this.width = this.game.screenBaseSize.width
         this.height = this.game.screenBaseSize.height

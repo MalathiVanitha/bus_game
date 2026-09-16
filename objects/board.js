@@ -45,7 +45,7 @@ const LIFT_OVER = 0.06;
 // low and wide, a cone tall and narrow. So the box is what gets fitted to the
 // cell, and one scale covers the lot of them; fitting each piece to the cell in
 // its own right would flatten those differences out.
-const OBSTACLE_ART = 192;
+const OBSTACLE_ART = 96;
 const OBSTACLE_FIT = 0.92;
 
 const DEFAULT_OBSTACLE = 'cone';
@@ -196,11 +196,13 @@ export class Board {
 
     /** Falls back to a cone rather than the missing-texture box. */
     obstacleFrame(name) {
-        const frame = 'obstacles/obstacle_' + (name || DEFAULT_OBSTACLE);
+        // The art is packed under hyphenated names, while a level names its
+        // obstacles the way the rest of the data does.
+        const frame = 'obstacles/obstacle-' + String(name || DEFAULT_OBSTACLE).replace(/_/g, '-');
 
         if (this.scene.textures.getFrame('sheet', frame)) return frame;
 
-        return 'obstacles/obstacle_' + DEFAULT_OBSTACLE;
+        return 'obstacles/obstacle-' + DEFAULT_OBSTACLE;
     }
 
     /** A convoy is standing on the tile - light it, or top it back up. */
