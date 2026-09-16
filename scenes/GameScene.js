@@ -3,6 +3,7 @@ import { pointerUp } from '../utils/buttons.js'
 import { CTA } from '../objects/cta.js';
 import AnimationManager from '../objects/AnimationManager.js';
 import { GamePlay } from '../objects/game-play.js';
+import { Settings } from '../objects/settings.js';
 import data from '../data/data.js';
 
 export default class GameScene extends Phaser.Scene {
@@ -61,6 +62,10 @@ export default class GameScene extends Phaser.Scene {
 
         this.cta = new CTA(this, 0, 0, this);
         this.gameGroup.add(this.cta)
+
+        // Last in, so the gear and the card it opens sit over everything else.
+        this.settings = new Settings(this, 0, 0);
+        this.gameGroup.add(this.settings);
 
         this.setPositions();
 
@@ -252,6 +257,7 @@ export default class GameScene extends Phaser.Scene {
 
         this.gamePlay.adjust();
         this.cta.adjust();
+        this.settings.adjust();
 
     }
 

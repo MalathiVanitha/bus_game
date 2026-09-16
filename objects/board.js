@@ -4,9 +4,6 @@ const RIM = 0xffffff;
 const WELL = 0x2b2e37;
 const TILE = 0x5a697b;
 
-const CONE = 0xf4772e;
-const CONE_BAND = 0xfdf4ec;
-const CONE_BASE = 0xd8541a;
 const SHADOW = 0x000000;
 
 // Everything below is a fraction of a cell, so the board holds its proportions
@@ -43,11 +40,21 @@ const LIFT_FALL = 320;
 const LIFT_FROM = 0.8;
 const LIFT_OVER = 0.06;
 
-const CONE_WIDTH = 0.44;
-const CONE_HEIGHT = 0.62;
-const CONE_BASE_H = 0.09;
-const CONE_LIFT = 0.1;
-const SHADOW_ALPHA = 0.22;
+// Every piece of the obstacle art is drawn inside a box of this size, and each
+// one is already sized within that box to read against the others - a barrier
+// low and wide, a cone tall and narrow. So the box is what gets fitted to the
+// cell, and one scale covers the lot of them; fitting each piece to the cell in
+// its own right would flatten those differences out.
+const OBSTACLE_ART = 192;
+const OBSTACLE_FIT = 0.92;
+
+const DEFAULT_OBSTACLE = 'cone';
+
+// A soft pool under each piece, sat where the art's own feet are rather than at
+// a fixed depth, so a barrier gets its shadow at its legs and a cone at its base.
+const SHADOW_ALPHA = 0.16;
+const SHADOW_SPREAD = 0.86;
+const SHADOW_DEPTH = 0.17;
 
 /**
  * The tarmac the convoys drive on. The board itself is drawn once and only
@@ -67,7 +74,7 @@ export class Board {
         this.startX = config.startX;
         this.startY = config.startY;
         this.cell = (this.tileWidth + this.tileHeight) / 2;
-        this.cones = config.cones || [];
+        this.obstacles = config.obstacles || [];
 
         this.g = scene.add.graphics();
         config.parent.add(this.g);
@@ -76,6 +83,11 @@ export class Board {
         // so a lit tile reads beneath the convoys rather than over them.
         this.liftG = scene.add.graphics();
         config.parent.add(this.liftG);
+
+        // Left for the parent to place. An obstacle has to read over a convoy
+        // that has run up against it, which is further up the board's layers
+        // than anything drawn here.
+        this.props = scene.add.container();
 
         const count = this.rows * this.columns;
 
@@ -146,50 +158,49 @@ export class Board {
             }
         }
 
-        for (let i = 0; i < this.cones.length; i++) {
-            const spot = this.cellToPixel(this.cones[i][0], this.cones[i][1]);
+        this.placeObstacles();
+    }
 
-            this.drawCone(spot.x, spot.y);
+    /**
+     * Stands the obstacle art on the cells that carry one, and lays each piece's
+     * shadow down on the tarmac under it.
+     *
+     * The shadows go on the board's own graphics, since they never change; the
+     * pieces themselves are sprites, on the layer the parent has placed.
+     */
+    placeObstacles() {
+        const g = this.g;
+        const scale = (this.cell * OBSTACLE_FIT) / OBSTACLE_ART;
+
+        this.props.removeAll(true);
+
+        for (let i = 0; i < this.obstacles.length; i++) {
+            const spot = this.obstacles[i];
+            const at = this.cellToPixel(spot[0], spot[1]);
+            const frame = this.obstacleFrame(spot[2]);
+
+            const piece = this.scene.add.sprite(at.x, at.y, 'sheet', frame);
+
+            piece.setScale(scale);
+            this.props.add(piece);
+
+            // Where the drawn pixels stop inside the art's box - the piece's
+            // feet, which is where its shadow belongs, whatever the box says.
+            const art = piece.frame.data.spriteSourceSize;
+            const foot = (art.y + art.h - OBSTACLE_ART / 2) * scale;
+
+            g.fillStyle(SHADOW, SHADOW_ALPHA);
+            g.fillEllipse(at.x, at.y + foot, art.w * scale * SHADOW_SPREAD, this.cell * SHADOW_DEPTH);
         }
     }
 
-    /** A cone, standing in for the art until it lands: enough to read the cell as taken. */
-    drawCone(x, y) {
-        const g = this.g;
-        const w = CONE_WIDTH * this.cell;
-        const h = CONE_HEIGHT * this.cell;
-        const base = y + h / 2 - CONE_LIFT * this.cell;
-        const tip = base - h;
+    /** Falls back to a cone rather than the missing-texture box. */
+    obstacleFrame(name) {
+        const frame = 'obstacles/obstacle_' + (name || DEFAULT_OBSTACLE);
 
-        g.fillStyle(SHADOW, SHADOW_ALPHA);
-        g.fillEllipse(x, base, w * 1.25, w * 0.42);
+        if (this.scene.textures.getFrame('sheet', frame)) return frame;
 
-        g.fillStyle(CONE, 1);
-        g.fillTriangle(x, tip, x - w / 2, base, x + w / 2, base);
-
-        // The band sits on the slice of the cone between a third and a half of
-        // the way up, so it narrows with the taper the same way a painted one does.
-        const bandLow = 0.42;
-        const bandHigh = 0.58;
-        const lowY = base - h * bandLow;
-        const highY = base - h * bandHigh;
-        const lowW = (w / 2) * (1 - bandLow);
-        const highW = (w / 2) * (1 - bandHigh);
-
-        g.fillStyle(CONE_BAND, 1);
-        g.fillPoints([
-            { x: x - lowW, y: lowY },
-            { x: x + lowW, y: lowY },
-            { x: x + highW, y: highY },
-            { x: x - highW, y: highY }
-        ], true);
-
-        g.fillStyle(CONE_BASE, 1);
-        g.fillRoundedRect(
-            x - w * 0.72, base - CONE_BASE_H * this.cell,
-            w * 1.44, CONE_BASE_H * this.cell * 1.6,
-            CONE_BASE_H * this.cell * 0.5
-        );
+        return 'obstacles/obstacle_' + DEFAULT_OBSTACLE;
     }
 
     /** A convoy is standing on the tile - light it, or top it back up. */

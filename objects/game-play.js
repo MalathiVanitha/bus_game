@@ -21,14 +21,14 @@ const CHASE_SPAN = 4;
 // How close a touch has to land to a vehicle to take hold of the convoy.
 const GRAB_REACH = 0.75;
 
-// Running into a cone. Only a cone: a board edge, a wall, or another convoy all
-// stop it just as dead, but none of them are something it has hit, so none of
-// them are worth a knock.
+// Running into an obstacle. Only an obstacle: a board edge, a wall, or another
+// convoy all stop it just as dead, but none of them are something it has hit, so
+// none of them are worth a knock.
 //
-// The convoy comes to rest a whole cell short of the cone, which is too far off
-// to read as a collision on its own. So it noses the rest of the way in until it
-// is up against the thing, takes the knock back past where it started, and rolls
-// forward to rest. In cells, along the track: into the cone first, back after.
+// The convoy comes to rest a whole cell short of the obstacle, which is too far
+// off to read as a collision on its own. So it noses the rest of the way in
+// until it is up against the thing, takes the knock back past where it started,
+// and rolls forward to rest. In cells, along the track: in first, back after.
 const BUMP_INTO = 0.28;
 const BUMP_BACK = 0.16;
 
@@ -84,7 +84,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.rows = levelData.rows;
         this.columns = levelData.columns;
         this.pattern = levelData.pattern;
-        this.cones = levelData.cones || [];
+        this.obstacles = levelData.obstacles || [];
 
         this.tileWidth = BOARD_SIZE / this.columns;
         this.tileHeight = BOARD_SIZE / this.rows;
@@ -112,28 +112,28 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 this.tiles[row][col] = {
                     owner: -1,
                     blocked: this.pattern[row][col] !== 1,
-                    cone: false
+                    obstacle: false
                 };
             }
         }
 
-        for (let i = 0; i < this.cones.length; i++) {
-            const col = this.cones[i][0];
-            const row = this.cones[i][1];
+        for (let i = 0; i < this.obstacles.length; i++) {
+            const col = this.obstacles[i][0];
+            const row = this.obstacles[i][1];
 
             if (!this.onBoard(col, row)) continue;
 
-            // Blocked like a gap in the board, but kept apart from one: a cone
-            // is a thing standing on the tarmac, and hitting it is worth a knock
-            // where driving into the edge of the world is not.
+            // Blocked like a gap in the board, but kept apart from one: an
+            // obstacle is a thing standing on the tarmac, and hitting it is
+            // worth a knock where driving into the edge of the world is not.
             this.tiles[row][col].blocked = true;
-            this.tiles[row][col].cone = true;
+            this.tiles[row][col].obstacle = true;
         }
 
         this.board = new Board(this.scene, {
             parent: this,
             pattern: this.pattern,
-            cones: this.cones,
+            obstacles: this.obstacles,
             rows: this.rows,
             columns: this.columns,
             tileWidth: this.tileWidth,
@@ -149,6 +149,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         this.convoyGroup = this.scene.add.container();
         this.add(this.convoyGroup);
+
+        // Over the convoys: one nosing into an obstacle has run up against the
+        // thing, not over the top of it.
+        this.add(this.board.props);
 
         // Cut the doorways out of the convoys, so a vehicle driving into a
         // garage goes out of sight inside it. The shape is held in world space,
@@ -213,8 +217,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
         return this.onBoard(col, row) && !this.tiles[row][col].blocked;
     }
 
-    isCone(col, row) {
-        return this.onBoard(col, row) && this.tiles[row][col].cone;
+    isObstacle(col, row) {
+        return this.onBoard(col, row) && this.tiles[row][col].obstacle;
     }
 
     canEnter(convoy, col, row) {
@@ -346,7 +350,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             settling: false,
 
             moving: false,
-            hitCone: false,
+            hitObstacle: false,
 
             // Set the moment the tractor sets off for its own garage: from then
             // on the dive is paid for and the drag cannot steer it back out.
@@ -509,14 +513,14 @@ export class GamePlay extends Phaser.GameObjects.Container {
         // Once the tractor has set off for its own garage the rest of the drag
         // is ignored rather than steering it back out.
         if (this.enteringGarage(convoy)) {
-            convoy.hitCone = false;
+            convoy.hitObstacle = false;
             return;
         }
 
         const goal = this.pixelToCell(point.x, point.y);
 
         if (!this.isFloor(goal.col, goal.row)) {
-            this.noteConeHit(convoy, point);
+            this.noteObstacleHit(convoy, point);
             return;
         }
 
@@ -527,7 +531,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             "|" + lead.col + "," + lead.row + "|" + (reserved ? 1 : 0);
 
         if (convoy.routeStamp === stamp) {
-            this.noteConeHit(convoy, point);
+            this.noteObstacleHit(convoy, point);
             return;
         }
 
@@ -548,16 +552,16 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         convoy.queue = route;
 
-        this.noteConeHit(convoy, point);
+        this.noteObstacleHit(convoy, point);
     }
 
     /**
      * The convoy has run up against something on its way to the finger. Note it
-     * only where that something is a cone, since that is the one case worth a
+     * only where that something is an obstacle, since that is the one case worth a
      * knock - a wall, the edge of the board or another convoy stop it just as
      * dead, and it simply comes to rest against them.
      */
-    noteConeHit(convoy, point) {
+    noteObstacleHit(convoy, point) {
         const lead = this.leadCell(convoy);
         const at = this.cellToPixel(lead.col, lead.row);
 
@@ -565,14 +569,14 @@ export class GamePlay extends Phaser.GameObjects.Container {
             Math.hypot(point.x - at.x, point.y - at.y) > this.cellSize * 0.6;
 
         const next = this.stepToward(lead, at, point);
-        const hit = stuck && this.isCone(next.col, next.row);
+        const hit = stuck && this.isObstacle(next.col, next.row);
 
-        // The knock goes off the moment the convoy runs up against the cone -
+        // The knock goes off the moment the convoy runs up against it -
         // that is when it hits it - and is not sounded again until it has come
         // off the thing and been driven back at it.
-        if (hit && !convoy.hitCone) this.bumpConvoy(convoy);
+        if (hit && !convoy.hitObstacle) this.bumpConvoy(convoy);
 
-        convoy.hitCone = hit;
+        convoy.hitObstacle = hit;
     }
 
     /**
@@ -931,7 +935,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
     /**
-     * Run into a cone: nose on into it, take the knock back, then roll forward to
+     * Run into an obstacle: nose on into it, take the knock back, then roll forward to
      * rest. Tweened as a distance along the track rather than onto the art,
      * which the next frame's draw would paint over.
      */
@@ -949,7 +953,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
     /**
      * One leg of the knock, as a distance in cells along the track the convoy is
-     * standing on. Negative runs it forward, on into the cone; positive runs it
+     * standing on. Negative runs it forward, on into the obstacle; positive runs it
      * back down the way it came up.
      */
     bumpStep(convoy, to, duration, ease, then) {
@@ -1102,7 +1106,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         // Already through the door - it finishes the run itself.
         if (this.enteringGarage(convoy)) {
-            convoy.hitCone = false;
+            convoy.hitObstacle = false;
             return;
         }
 
@@ -1110,7 +1114,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         // The knock has already been given, back when it ran into the thing.
         // Cleared so driving at it again is a fresh hit.
-        convoy.hitCone = false;
+        convoy.hitObstacle = false;
 
         if (!convoy.stepReserved) {
             convoy.queue.length = 0;

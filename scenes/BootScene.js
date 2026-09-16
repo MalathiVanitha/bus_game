@@ -8,6 +8,11 @@ export default class BootScene extends Phaser.Scene {
     preload() {
         this.load.image('logo', 'assets/logo.png')
 
+        // Too big for the sheet, and both are stretched rather than drawn at
+        // size, so they are kept as their own images.
+        this.load.image('panel_modal', 'assets/panel_modal.png')
+        this.load.image('button_purple', 'assets/button_purple.png')
+
         this.load.atlas('sheet', 'assets/sheet/sheet.png', 'assets/sheet/sheet.json')
 
         this.load.script('webfont', '../../js/webfont.js');

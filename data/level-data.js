@@ -16,16 +16,20 @@ export default {
         [1, 1, 1, 1, 1, 1, 1, 1]
     ],
 
-    // Cones sit on a cell and take it out of the board for everyone, the same way
-    // a 0 in the pattern does. Laid out to match the storyboard.
-    cones: [
-        [6, 0],
+    // An obstacle sits on a cell and takes it out of the board for everyone, the
+    // same way a 0 in the pattern does - the difference is that it is a thing
+    // standing on the tarmac, so driving into one is worth a knock.
+    //
+    // Column, row, and which of the pieces in the obstacle art to stand there.
+    // Leave the name off for a cone. Laid out to match the storyboard.
+    obstacles: [
+        [6, 0, "cargo_container"],
         [1, 2],
-        [4, 2],
+        [4, 2, "barrier"],
         [3, 3],
-        [0, 4],
-        [3, 6],
-        [7, 7]
+        [0, 4, "planter"],
+        [3, 6, "cargo_pallet"],
+        [7, 7, "service_cabinet"]
     ],
 
     // Tractor first, then each cart back down the line. Cells have to be a
