@@ -4,6 +4,8 @@ import { CTA } from '../objects/cta.js';
 import AnimationManager from '../objects/AnimationManager.js';
 import { GamePlay } from '../objects/game-play.js';
 import { Settings } from '../objects/settings.js';
+import { Home } from '../objects/home.js';
+import { Coin } from '../objects/coin.js';
 import data from '../data/data.js';
 
 export default class GameScene extends Phaser.Scene {
@@ -63,11 +65,21 @@ export default class GameScene extends Phaser.Scene {
         this.cta = new CTA(this, 0, 0, this);
         this.gameGroup.add(this.cta)
 
+        // Over the board, which it covers until Play is pressed.
+        this.home = new Home(this, 0, 0, () => this.enterGame());
+        this.gameGroup.add(this.home);
+
+        // The counter outlives the home screen: the end of a level pays coins
+        // into it off the board.
+        this.coin = new Coin(this, 0, 0);
+        this.gameGroup.add(this.coin);
+
         // Last in, so the gear and the card it opens sit over everything else.
         this.settings = new Settings(this, 0, 0);
         this.gameGroup.add(this.settings);
 
         this.setPositions();
+        this.showHome();
 
         // this.startGamePlay();
     }
@@ -129,6 +141,19 @@ export default class GameScene extends Phaser.Scene {
                 this.cta.show();
             }
         });
+    }
+
+    // The home screen and the counter over it come on together.
+    showHome() {
+        this.home.show();
+        this.coin.intro();
+    }
+
+    // The board is built and waiting underneath, so entering a game is only a
+    // matter of the home screen and its counter getting out of the way.
+    enterGame() {
+        this.home.hide();
+        this.coin.hide();
     }
 
     startGamePlay() {
@@ -257,6 +282,8 @@ export default class GameScene extends Phaser.Scene {
 
         this.gamePlay.adjust();
         this.cta.adjust();
+        this.home.adjust();
+        this.coin.adjust();
         this.settings.adjust();
 
     }
@@ -298,6 +325,9 @@ export default class GameScene extends Phaser.Scene {
         // The convoys are walked along their trails a frame at a time, so the
         // drag has something to pull against between pointer moves.
         if (this.gamePlay) this.gamePlay.update(time, delta);
+
+        // Clouds on the home screen, while it is up.
+        if (this.home) this.home.update(time, delta);
     }
 
     resize(gameSize) {

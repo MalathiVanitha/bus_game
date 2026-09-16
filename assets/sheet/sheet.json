@@ -1,436 +1,1338 @@
-{"frames": [
-
 {
-	"filename": "board/tile_road",
-	"frame": {"x":894,"y":339,"w":94,"h":93},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":1,"y":1,"w":94,"h":93},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "bus/blue/garage",
-	"frame": {"x":357,"y":612,"w":175,"h":166},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":8,"y":13,"w":175,"h":166},
-	"sourceSize": {"w":192,"h":192}
-},
-{
-	"filename": "bus/blue/luggage_cart",
-	"frame": {"x":713,"y":196,"w":174,"h":191},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":23,"y":14,"w":174,"h":191},
-	"sourceSize": {"w":220,"h":220}
-},
-{
-	"filename": "bus/blue/tractor_front",
-	"frame": {"x":2,"y":2,"w":186,"h":191},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":17,"y":14,"w":186,"h":191},
-	"sourceSize": {"w":220,"h":220}
-},
-{
-	"filename": "bus/cyan/garage",
-	"frame": {"x":179,"y":572,"w":175,"h":168},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":8,"y":12,"w":175,"h":168},
-	"sourceSize": {"w":192,"h":192}
-},
-{
-	"filename": "bus/cyan/luggage_cart",
-	"frame": {"x":191,"y":2,"w":178,"h":191},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":21,"y":14,"w":178,"h":191},
-	"sourceSize": {"w":220,"h":220}
-},
-{
-	"filename": "bus/green/garage",
-	"frame": {"x":179,"y":743,"w":175,"h":166},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":8,"y":13,"w":175,"h":166},
-	"sourceSize": {"w":192,"h":192}
-},
-{
-	"filename": "bus/green/luggage_cart",
-	"frame": {"x":2,"y":399,"w":174,"h":191},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":23,"y":14,"w":174,"h":191},
-	"sourceSize": {"w":220,"h":220}
-},
-{
-	"filename": "bus/lime/garage",
-	"frame": {"x":357,"y":781,"w":175,"h":166},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":8,"y":13,"w":175,"h":166},
-	"sourceSize": {"w":192,"h":192}
-},
-{
-	"filename": "bus/lime/luggage_cart",
-	"frame": {"x":535,"y":196,"w":175,"h":191},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":22,"y":14,"w":175,"h":191},
-	"sourceSize": {"w":220,"h":220}
-},
-{
-	"filename": "bus/orange/garage",
-	"frame": {"x":175,"y":912,"w":175,"h":166},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":8,"y":13,"w":175,"h":166},
-	"sourceSize": {"w":192,"h":192}
-},
-{
-	"filename": "bus/orange/luggage_cart",
-	"frame": {"x":731,"y":2,"w":175,"h":191},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":22,"y":14,"w":175,"h":191},
-	"sourceSize": {"w":220,"h":220}
-},
-{
-	"filename": "bus/pink/garage",
-	"frame": {"x":535,"y":612,"w":175,"h":166},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":8,"y":13,"w":175,"h":166},
-	"sourceSize": {"w":192,"h":192}
-},
-{
-	"filename": "bus/pink/luggage_cart",
-	"frame": {"x":176,"y":196,"w":177,"h":191},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":21,"y":14,"w":177,"h":191},
-	"sourceSize": {"w":220,"h":220}
-},
-{
-	"filename": "bus/purple/garage",
-	"frame": {"x":535,"y":781,"w":175,"h":161},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":8,"y":15,"w":175,"h":161},
-	"sourceSize": {"w":192,"h":192}
-},
-{
-	"filename": "bus/purple/luggage_cart",
-	"frame": {"x":356,"y":196,"w":176,"h":191},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":22,"y":14,"w":176,"h":191},
-	"sourceSize": {"w":220,"h":220}
-},
-{
-	"filename": "bus/red/garage",
-	"frame": {"x":360,"y":390,"w":175,"h":167},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":8,"y":12,"w":175,"h":167},
-	"sourceSize": {"w":192,"h":192}
-},
-{
-	"filename": "bus/red/luggage_cart",
-	"frame": {"x":552,"y":2,"w":176,"h":191},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":22,"y":14,"w":176,"h":191},
-	"sourceSize": {"w":220,"h":220}
-},
-{
-	"filename": "bus/red/tractor_front",
-	"frame": {"x":2,"y":787,"w":170,"h":191},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":25,"y":14,"w":170,"h":191},
-	"sourceSize": {"w":220,"h":220}
-},
-{
-	"filename": "bus/white/garage",
-	"frame": {"x":538,"y":390,"w":175,"h":167},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":8,"y":12,"w":175,"h":167},
-	"sourceSize": {"w":192,"h":192}
-},
-{
-	"filename": "bus/white/luggage_cart",
-	"frame": {"x":2,"y":593,"w":174,"h":191},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":23,"y":14,"w":174,"h":191},
-	"sourceSize": {"w":220,"h":220}
-},
-{
-	"filename": "bus/yellow/garage",
-	"frame": {"x":716,"y":390,"w":175,"h":167},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":8,"y":12,"w":175,"h":167},
-	"sourceSize": {"w":192,"h":192}
-},
-{
-	"filename": "bus/yellow/luggage_cart",
-	"frame": {"x":372,"y":2,"w":177,"h":191},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":21,"y":14,"w":177,"h":191},
-	"sourceSize": {"w":220,"h":220}
-},
-{
-	"filename": "icons/icon-close",
-	"frame": {"x":876,"y":960,"w":60,"h":59},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":2,"y":2,"w":60,"h":59},
-	"sourceSize": {"w":64,"h":64}
-},
-{
-	"filename": "icons/icon-coin-stack",
-	"frame": {"x":2,"y":981,"w":164,"h":113},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":8,"y":15,"w":164,"h":113},
-	"sourceSize": {"w":180,"h":144}
-},
-{
-	"filename": "icons/icon-coin",
-	"frame": {"x":713,"y":763,"w":132,"h":129},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":6,"y":7,"w":132,"h":129},
-	"sourceSize": {"w":144,"h":144}
-},
-{
-	"filename": "icons/icon-gear",
-	"frame": {"x":879,"y":608,"w":85,"h":88},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":5,"y":4,"w":85,"h":88},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "icons/icon-hint",
-	"frame": {"x":890,"y":223,"w":117,"h":113},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":5,"y":7,"w":117,"h":113},
-	"sourceSize": {"w":128,"h":128}
-},
-{
-	"filename": "icons/icon-music",
-	"frame": {"x":894,"y":524,"w":88,"h":81},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":4,"y":7,"w":88,"h":81},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "icons/icon-no-ads",
-	"frame": {"x":353,"y":950,"w":164,"h":151},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":8,"y":14,"w":164,"h":151},
-	"sourceSize": {"w":180,"h":180}
-},
-{
-	"filename": "icons/icon-pause",
-	"frame": {"x":867,"y":1022,"w":52,"h":60},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":6,"y":2,"w":52,"h":60},
-	"sourceSize": {"w":64,"h":64}
-},
-{
-	"filename": "icons/icon-play",
-	"frame": {"x":936,"y":773,"w":82,"h":88},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":7,"y":4,"w":82,"h":88},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "icons/icon-recycle",
-	"frame": {"x":909,"y":2,"w":111,"h":117},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":8,"y":5,"w":111,"h":117},
-	"sourceSize": {"w":128,"h":128}
-},
-{
-	"filename": "icons/icon-sound",
-	"frame": {"x":879,"y":699,"w":88,"h":71},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":4,"y":12,"w":88,"h":71},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "icons/icon-store",
-	"frame": {"x":909,"y":122,"w":110,"h":98},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":5,"y":11,"w":110,"h":98},
-	"sourceSize": {"w":120,"h":120}
-},
-{
-	"filename": "icons/icon-timer-blue",
-	"frame": {"x":520,"y":950,"w":73,"h":88},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":11,"y":4,"w":73,"h":88},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "icons/icon-timer-coral",
-	"frame": {"x":2,"y":196,"w":171,"h":200},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":24,"y":10,"w":171,"h":200},
-	"sourceSize": {"w":220,"h":220}
-},
-{
-	"filename": "icons/icon-vibration",
-	"frame": {"x":596,"y":945,"w":88,"h":79},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":4,"y":8,"w":88,"h":79},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "icons/icon-video",
-	"frame": {"x":611,"y":1027,"w":88,"h":64},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":4,"y":16,"w":88,"h":64},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "obstacles/obstacle-barrier",
-	"frame": {"x":520,"y":1041,"w":88,"h":49},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":4,"y":23,"w":88,"h":49},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "obstacles/obstacle-cargo-container",
-	"frame": {"x":910,"y":864,"w":84,"h":88},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":6,"y":4,"w":84,"h":88},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "obstacles/obstacle-cargo-pallet",
-	"frame": {"x":702,"y":1015,"w":88,"h":74},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":4,"y":11,"w":88,"h":74},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "obstacles/obstacle-cone",
-	"frame": {"x":939,"y":955,"w":74,"h":88},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":11,"y":4,"w":74,"h":88},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "obstacles/obstacle-planter",
-	"frame": {"x":848,"y":773,"w":85,"h":88},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":5,"y":4,"w":85,"h":88},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "obstacles/obstacle-service-cabinet",
-	"frame": {"x":894,"y":435,"w":88,"h":86},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":4,"y":5,"w":88,"h":86},
-	"sourceSize": {"w":96,"h":96}
-},
-{
-	"filename": "progress bar",
-	"frame": {"x":360,"y":560,"w":225,"h":49},
-	"rotated": false,
-	"trimmed": false,
-	"spriteSourceSize": {"x":0,"y":0,"w":225,"h":49},
-	"sourceSize": {"w":225,"h":49}
-},
-{
-	"filename": "progress",
-	"frame": {"x":588,"y":560,"w":212,"h":37},
-	"rotated": false,
-	"trimmed": false,
-	"spriteSourceSize": {"x":0,"y":0,"w":212,"h":37},
-	"sourceSize": {"w":212,"h":37}
-},
-{
-	"filename": "ui/badge_count",
-	"frame": {"x":793,"y":1015,"w":71,"h":71},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":0,"y":0,"w":71,"h":71},
-	"sourceSize": {"w":72,"h":72}
-},
-{
-	"filename": "ui/button_booster_base",
-	"frame": {"x":179,"y":390,"w":178,"h":179},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":3,"y":2,"w":178,"h":179},
-	"sourceSize": {"w":184,"h":184}
-},
-{
-	"filename": "ui/button_icon_base",
-	"frame": {"x":713,"y":600,"w":163,"h":160},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":2,"y":4,"w":163,"h":160},
-	"sourceSize": {"w":168,"h":168}
-},
-{
-	"filename": "ui/toggle_base_white",
-	"frame": {"x":713,"y":895,"w":194,"h":62},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":3,"y":9,"w":194,"h":62},
-	"sourceSize": {"w":200,"h":80}
-},
-{
-	"filename": "ui/toggle_fill_green",
-	"frame": {"x":687,"y":960,"w":186,"h":52},
-	"rotated": false,
-	"trimmed": true,
-	"spriteSourceSize": {"x":7,"y":14,"w":186,"h":52},
-	"sourceSize": {"w":200,"h":80}
-},
-{
-	"filename": "ui/toggle_knob",
-	"frame": {"x":922,"y":1046,"w":52,"h":52},
-	"rotated": false,
-	"trimmed": false,
-	"spriteSourceSize": {"x":0,"y":0,"w":52,"h":52},
-	"sourceSize": {"w":52,"h":52}
-}],
-"meta": {
-	"app": "https://www.codeandweb.com/texturepacker",
-	"version": "1.0",
-	"image": "sheet.png",
-	"format": "RGBA8888",
-	"size": {"w":1022,"h":1103},
-	"scale": "1",
-	"smartupdate": "$TexturePacker:SmartUpdate:90b0559bb999e6175cd05bebaa73d7b4:59d94ce08fe60becd2569a74ac33b700:9c44ecd7e9a522007eaff2949095bc1d$"
-}
+  "frames": [
+    {
+      "filename": "board/tile_road",
+      "frame": {
+        "x": 222,
+        "y": 1225,
+        "w": 94,
+        "h": 93
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 1,
+        "w": 94,
+        "h": 93
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "bus/blue/garage",
+      "frame": {
+        "x": 708,
+        "y": 902,
+        "w": 175,
+        "h": 166
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 13,
+        "w": 175,
+        "h": 166
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    {
+      "filename": "bus/blue/luggage_cart",
+      "frame": {
+        "x": 532,
+        "y": 709,
+        "w": 174,
+        "h": 191
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 23,
+        "y": 14,
+        "w": 174,
+        "h": 191
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "filename": "bus/blue/tractor_front",
+      "frame": {
+        "x": 995,
+        "y": 479,
+        "w": 186,
+        "h": 191
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 17,
+        "y": 14,
+        "w": 186,
+        "h": 191
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "filename": "bus/cyan/garage",
+      "frame": {
+        "x": 0,
+        "y": 902,
+        "w": 175,
+        "h": 168
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 12,
+        "w": 175,
+        "h": 168
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    {
+      "filename": "bus/cyan/luggage_cart",
+      "frame": {
+        "x": 1183,
+        "y": 479,
+        "w": 178,
+        "h": 191
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 21,
+        "y": 14,
+        "w": 178,
+        "h": 191
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "filename": "bus/green/garage",
+      "frame": {
+        "x": 885,
+        "y": 902,
+        "w": 175,
+        "h": 166
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 13,
+        "w": 175,
+        "h": 166
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    {
+      "filename": "bus/green/luggage_cart",
+      "frame": {
+        "x": 708,
+        "y": 709,
+        "w": 174,
+        "h": 191
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 23,
+        "y": 14,
+        "w": 174,
+        "h": 191
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "filename": "bus/lime/garage",
+      "frame": {
+        "x": 1062,
+        "y": 902,
+        "w": 175,
+        "h": 166
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 13,
+        "w": 175,
+        "h": 166
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    {
+      "filename": "bus/lime/luggage_cart",
+      "frame": {
+        "x": 178,
+        "y": 709,
+        "w": 175,
+        "h": 191
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 22,
+        "y": 14,
+        "w": 175,
+        "h": 191
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "filename": "bus/orange/garage",
+      "frame": {
+        "x": 1239,
+        "y": 902,
+        "w": 175,
+        "h": 166
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 13,
+        "w": 175,
+        "h": 166
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    {
+      "filename": "bus/orange/luggage_cart",
+      "frame": {
+        "x": 355,
+        "y": 709,
+        "w": 175,
+        "h": 191
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 22,
+        "y": 14,
+        "w": 175,
+        "h": 191
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "filename": "bus/pink/garage",
+      "frame": {
+        "x": 1416,
+        "y": 902,
+        "w": 175,
+        "h": 166
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 13,
+        "w": 175,
+        "h": 166
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    {
+      "filename": "bus/pink/luggage_cart",
+      "frame": {
+        "x": 1363,
+        "y": 479,
+        "w": 177,
+        "h": 191
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 21,
+        "y": 14,
+        "w": 177,
+        "h": 191
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "filename": "bus/purple/garage",
+      "frame": {
+        "x": 1593,
+        "y": 902,
+        "w": 175,
+        "h": 161
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 15,
+        "w": 175,
+        "h": 161
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    {
+      "filename": "bus/purple/luggage_cart",
+      "frame": {
+        "x": 1721,
+        "y": 479,
+        "w": 176,
+        "h": 191
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 22,
+        "y": 14,
+        "w": 176,
+        "h": 191
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "filename": "bus/red/garage",
+      "frame": {
+        "x": 177,
+        "y": 902,
+        "w": 175,
+        "h": 167
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 12,
+        "w": 175,
+        "h": 167
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    {
+      "filename": "bus/red/luggage_cart",
+      "frame": {
+        "x": 0,
+        "y": 709,
+        "w": 176,
+        "h": 191
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 22,
+        "y": 14,
+        "w": 176,
+        "h": 191
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "filename": "bus/red/tractor_front",
+      "frame": {
+        "x": 1060,
+        "y": 709,
+        "w": 170,
+        "h": 191
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 25,
+        "y": 14,
+        "w": 170,
+        "h": 191
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "filename": "bus/white/garage",
+      "frame": {
+        "x": 354,
+        "y": 902,
+        "w": 175,
+        "h": 167
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 12,
+        "w": 175,
+        "h": 167
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    {
+      "filename": "bus/white/luggage_cart",
+      "frame": {
+        "x": 884,
+        "y": 709,
+        "w": 174,
+        "h": 191
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 23,
+        "y": 14,
+        "w": 174,
+        "h": 191
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "filename": "bus/yellow/garage",
+      "frame": {
+        "x": 531,
+        "y": 902,
+        "w": 175,
+        "h": 167
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 12,
+        "w": 175,
+        "h": 167
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    {
+      "filename": "bus/yellow/luggage_cart",
+      "frame": {
+        "x": 1542,
+        "y": 479,
+        "w": 177,
+        "h": 191
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 21,
+        "y": 14,
+        "w": 177,
+        "h": 191
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "filename": "home/cloud",
+      "frame": {
+        "x": 1277,
+        "y": 1072,
+        "w": 288,
+        "h": 119
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 6,
+        "y": 10,
+        "w": 288,
+        "h": 119
+      },
+      "sourceSize": {
+        "w": 300,
+        "h": 140
+      }
+    },
+    {
+      "filename": "home/coin-base",
+      "frame": {
+        "x": 1075,
+        "y": 1225,
+        "w": 346,
+        "h": 80
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 7,
+        "y": 25,
+        "w": 346,
+        "h": 80
+      },
+      "sourceSize": {
+        "w": 360,
+        "h": 130
+      }
+    },
+    {
+      "filename": "home/coin-icon",
+      "frame": {
+        "x": 1145,
+        "y": 1072,
+        "w": 130,
+        "h": 127
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 7,
+        "y": 8,
+        "w": 130,
+        "h": 127
+      },
+      "sourceSize": {
+        "w": 144,
+        "h": 144
+      }
+    },
+    {
+      "filename": "home/convoy",
+      "frame": {
+        "x": 922,
+        "y": 0,
+        "w": 873,
+        "h": 343
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 4,
+        "w": 873,
+        "h": 343
+      },
+      "sourceSize": {
+        "w": 900,
+        "h": 355
+      }
+    },
+    {
+      "filename": "home/level-plate",
+      "frame": {
+        "x": 166,
+        "y": 1072,
+        "w": 843,
+        "h": 134
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 48,
+        "y": 3,
+        "w": 843,
+        "h": 134
+      },
+      "sourceSize": {
+        "w": 940,
+        "h": 140
+      }
+    },
+    {
+      "filename": "home/logo",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 920,
+        "h": 477
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 19,
+        "y": 41,
+        "w": 920,
+        "h": 477
+      },
+      "sourceSize": {
+        "w": 960,
+        "h": 560
+      }
+    },
+    {
+      "filename": "home/play-button",
+      "frame": {
+        "x": 0,
+        "y": 479,
+        "w": 820,
+        "h": 228
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 59,
+        "y": 4,
+        "w": 820,
+        "h": 228
+      },
+      "sourceSize": {
+        "w": 940,
+        "h": 240
+      }
+    },
+    {
+      "filename": "home/play-icon",
+      "frame": {
+        "x": 903,
+        "y": 1225,
+        "w": 80,
+        "h": 86
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 5,
+        "w": 80,
+        "h": 86
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "home/store-button",
+      "frame": {
+        "x": 1412,
+        "y": 709,
+        "w": 606,
+        "h": 172
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 47,
+        "y": 3,
+        "w": 606,
+        "h": 172
+      },
+      "sourceSize": {
+        "w": 700,
+        "h": 180
+      }
+    },
+    {
+      "filename": "home/store-icon",
+      "frame": {
+        "x": 112,
+        "y": 1225,
+        "w": 108,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 6,
+        "y": 12,
+        "w": 108,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 120,
+        "h": 120
+      }
+    },
+    {
+      "filename": "icons/icon-close",
+      "frame": {
+        "x": 250,
+        "y": 1325,
+        "w": 60,
+        "h": 59
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 2,
+        "y": 2,
+        "w": 60,
+        "h": 59
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      }
+    },
+    {
+      "filename": "icons/icon-coin",
+      "frame": {
+        "x": 1011,
+        "y": 1072,
+        "w": 132,
+        "h": 129
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 6,
+        "y": 7,
+        "w": 132,
+        "h": 129
+      },
+      "sourceSize": {
+        "w": 144,
+        "h": 144
+      }
+    },
+    {
+      "filename": "icons/icon-coin-stack",
+      "frame": {
+        "x": 1680,
+        "y": 1072,
+        "w": 164,
+        "h": 113
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 15,
+        "w": 164,
+        "h": 113
+      },
+      "sourceSize": {
+        "w": 180,
+        "h": 144
+      }
+    },
+    {
+      "filename": "icons/icon-gear",
+      "frame": {
+        "x": 318,
+        "y": 1225,
+        "w": 85,
+        "h": 88
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 5,
+        "y": 4,
+        "w": 85,
+        "h": 88
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "icons/icon-hint",
+      "frame": {
+        "x": 1846,
+        "y": 1072,
+        "w": 117,
+        "h": 113
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 5,
+        "y": 7,
+        "w": 117,
+        "h": 113
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    {
+      "filename": "icons/icon-music",
+      "frame": {
+        "x": 985,
+        "y": 1225,
+        "w": 88,
+        "h": 81
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 7,
+        "w": 88,
+        "h": 81
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "icons/icon-no-ads",
+      "frame": {
+        "x": 0,
+        "y": 1072,
+        "w": 164,
+        "h": 151
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 14,
+        "w": 164,
+        "h": 151
+      },
+      "sourceSize": {
+        "w": 180,
+        "h": 180
+      }
+    },
+    {
+      "filename": "icons/icon-pause",
+      "frame": {
+        "x": 196,
+        "y": 1325,
+        "w": 52,
+        "h": 60
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 6,
+        "y": 2,
+        "w": 52,
+        "h": 60
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      }
+    },
+    {
+      "filename": "icons/icon-play",
+      "frame": {
+        "x": 578,
+        "y": 1225,
+        "w": 82,
+        "h": 88
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 7,
+        "y": 4,
+        "w": 82,
+        "h": 88
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "icons/icon-recycle",
+      "frame": {
+        "x": 1567,
+        "y": 1072,
+        "w": 111,
+        "h": 117
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 8,
+        "y": 5,
+        "w": 111,
+        "h": 117
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      }
+    },
+    {
+      "filename": "icons/icon-sound",
+      "frame": {
+        "x": 1603,
+        "y": 1225,
+        "w": 88,
+        "h": 71
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 12,
+        "w": 88,
+        "h": 71
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "icons/icon-store",
+      "frame": {
+        "x": 0,
+        "y": 1225,
+        "w": 110,
+        "h": 98
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 5,
+        "y": 11,
+        "w": 110,
+        "h": 98
+      },
+      "sourceSize": {
+        "w": 120,
+        "h": 120
+      }
+    },
+    {
+      "filename": "icons/icon-timer-blue",
+      "frame": {
+        "x": 738,
+        "y": 1225,
+        "w": 73,
+        "h": 88
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 11,
+        "y": 4,
+        "w": 73,
+        "h": 88
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "icons/icon-timer-coral",
+      "frame": {
+        "x": 822,
+        "y": 479,
+        "w": 171,
+        "h": 200
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 24,
+        "y": 10,
+        "w": 171,
+        "h": 200
+      },
+      "sourceSize": {
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "filename": "icons/icon-vibration",
+      "frame": {
+        "x": 1423,
+        "y": 1225,
+        "w": 88,
+        "h": 79
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 8,
+        "w": 88,
+        "h": 79
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "icons/icon-video",
+      "frame": {
+        "x": 1766,
+        "y": 1225,
+        "w": 88,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 16,
+        "w": 88,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "obstacles/obstacle-barrier",
+      "frame": {
+        "x": 781,
+        "y": 1325,
+        "w": 88,
+        "h": 49
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 23,
+        "w": 88,
+        "h": 49
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "obstacles/obstacle-cargo-container",
+      "frame": {
+        "x": 492,
+        "y": 1225,
+        "w": 84,
+        "h": 88
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 6,
+        "y": 4,
+        "w": 84,
+        "h": 88
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "obstacles/obstacle-cargo-pallet",
+      "frame": {
+        "x": 1513,
+        "y": 1225,
+        "w": 88,
+        "h": 74
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 11,
+        "w": 88,
+        "h": 74
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "obstacles/obstacle-cone",
+      "frame": {
+        "x": 662,
+        "y": 1225,
+        "w": 74,
+        "h": 88
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 11,
+        "y": 4,
+        "w": 74,
+        "h": 88
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "obstacles/obstacle-planter",
+      "frame": {
+        "x": 405,
+        "y": 1225,
+        "w": 85,
+        "h": 88
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 5,
+        "y": 4,
+        "w": 85,
+        "h": 88
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "obstacles/obstacle-service-cabinet",
+      "frame": {
+        "x": 813,
+        "y": 1225,
+        "w": 88,
+        "h": 86
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 5,
+        "w": 88,
+        "h": 86
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    {
+      "filename": "progress",
+      "frame": {
+        "x": 871,
+        "y": 1325,
+        "w": 212,
+        "h": 37
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 212,
+        "h": 37
+      },
+      "sourceSize": {
+        "w": 212,
+        "h": 37
+      }
+    },
+    {
+      "filename": "progress bar",
+      "frame": {
+        "x": 554,
+        "y": 1325,
+        "w": 225,
+        "h": 49
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 225,
+        "h": 49
+      },
+      "sourceSize": {
+        "w": 225,
+        "h": 49
+      }
+    },
+    {
+      "filename": "ui/badge_count",
+      "frame": {
+        "x": 1693,
+        "y": 1225,
+        "w": 71,
+        "h": 71
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 71,
+        "h": 71
+      },
+      "sourceSize": {
+        "w": 72,
+        "h": 72
+      }
+    },
+    {
+      "filename": "ui/button_booster_base",
+      "frame": {
+        "x": 1232,
+        "y": 709,
+        "w": 178,
+        "h": 179
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 3,
+        "y": 2,
+        "w": 178,
+        "h": 179
+      },
+      "sourceSize": {
+        "w": 184,
+        "h": 184
+      }
+    },
+    {
+      "filename": "ui/button_icon_base",
+      "frame": {
+        "x": 1770,
+        "y": 902,
+        "w": 163,
+        "h": 160
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 2,
+        "y": 4,
+        "w": 163,
+        "h": 160
+      },
+      "sourceSize": {
+        "w": 168,
+        "h": 168
+      }
+    },
+    {
+      "filename": "ui/toggle_base_white",
+      "frame": {
+        "x": 0,
+        "y": 1325,
+        "w": 194,
+        "h": 62
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 3,
+        "y": 9,
+        "w": 194,
+        "h": 62
+      },
+      "sourceSize": {
+        "w": 200,
+        "h": 80
+      }
+    },
+    {
+      "filename": "ui/toggle_fill_green",
+      "frame": {
+        "x": 312,
+        "y": 1325,
+        "w": 186,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 7,
+        "y": 14,
+        "w": 186,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 200,
+        "h": 80
+      }
+    },
+    {
+      "filename": "ui/toggle_knob",
+      "frame": {
+        "x": 500,
+        "y": 1325,
+        "w": 52,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 52,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 52,
+        "h": 52
+      }
+    }
+  ],
+  "meta": {
+    "app": "https://www.codeandweb.com/texturepacker",
+    "version": "1.0",
+    "image": "sheet.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 2018,
+      "h": 1387
+    },
+    "scale": "1"
+  }
 }

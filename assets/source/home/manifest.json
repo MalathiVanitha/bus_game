@@ -1,0 +1,213 @@
+{
+  "canvas": [
+    1080,
+    1920
+  ],
+  "assets": [
+    {
+      "id": "home-cloud",
+      "display_size": [
+        300,
+        140
+      ],
+      "source_size": [
+        1774,
+        887
+      ],
+      "files": [
+        "1x/home-cloud.png",
+        "2x/home-cloud.png"
+      ]
+    },
+    {
+      "id": "home-title-rays",
+      "display_size": [
+        880,
+        300
+      ],
+      "source_size": [
+        2103,
+        748
+      ],
+      "files": [
+        "1x/home-title-rays.png",
+        "2x/home-title-rays.png"
+      ]
+    },
+    {
+      "id": "home-level-plate",
+      "display_size": [
+        940,
+        140
+      ],
+      "source_size": [
+        2172,
+        724
+      ],
+      "files": [
+        "1x/home-level-plate.png",
+        "2x/home-level-plate.png"
+      ]
+    },
+    {
+      "id": "home-logo",
+      "display_size": [
+        960,
+        560
+      ],
+      "source_size": [
+        1536,
+        1024
+      ],
+      "files": [
+        "1x/home-logo.png",
+        "2x/home-logo.png"
+      ]
+    },
+    {
+      "id": "home-play-button",
+      "display_size": [
+        800,
+        170
+      ],
+      "files": [
+        "1x/home-play-button.png",
+        "2x/home-play-button.png"
+      ],
+      "provenance": "Unchanged copy of previously delivered UI asset"
+    },
+    {
+      "id": "home-store-button",
+      "display_size": [
+        700,
+        160
+      ],
+      "files": [
+        "1x/home-store-button.png",
+        "2x/home-store-button.png"
+      ],
+      "provenance": "Unchanged copy of previously delivered UI asset"
+    },
+    {
+      "id": "home-settings-base",
+      "display_size": [
+        168,
+        168
+      ],
+      "files": [
+        "1x/home-settings-base.png",
+        "2x/home-settings-base.png"
+      ],
+      "provenance": "Unchanged copy of previously delivered UI asset"
+    },
+    {
+      "id": "home-settings-icon",
+      "display_size": [
+        96,
+        96
+      ],
+      "files": [
+        "1x/home-settings-icon.png",
+        "2x/home-settings-icon.png"
+      ],
+      "provenance": "Unchanged copy of previously delivered UI asset"
+    },
+    {
+      "id": "home-coin-counter-base",
+      "display_size": [
+        360,
+        130
+      ],
+      "files": [
+        "1x/home-coin-counter-base.png",
+        "2x/home-coin-counter-base.png"
+      ],
+      "provenance": "Unchanged copy of previously delivered UI asset"
+    },
+    {
+      "id": "home-coin-icon",
+      "display_size": [
+        144,
+        144
+      ],
+      "files": [
+        "1x/home-coin-icon.png",
+        "2x/home-coin-icon.png"
+      ],
+      "provenance": "Unchanged copy of previously delivered UI asset"
+    },
+    {
+      "id": "home-play-icon",
+      "display_size": [
+        96,
+        96
+      ],
+      "files": [
+        "1x/home-play-icon.png",
+        "2x/home-play-icon.png"
+      ],
+      "provenance": "Unchanged copy of previously delivered UI asset"
+    },
+    {
+      "id": "home-store-icon",
+      "display_size": [
+        120,
+        120
+      ],
+      "files": [
+        "1x/home-store-icon.png",
+        "2x/home-store-icon.png"
+      ],
+      "provenance": "Unchanged copy of previously delivered UI asset"
+    },
+    {
+      "id": "home-tractor-red",
+      "display_size": [
+        220,
+        220
+      ],
+      "files": [
+        "1x/home-tractor-red.png",
+        "2x/home-tractor-red.png"
+      ],
+      "provenance": "Existing approved top-down vehicle sprite, resized only"
+    },
+    {
+      "id": "home-luggage-cart-orange",
+      "display_size": [
+        220,
+        220
+      ],
+      "files": [
+        "1x/home-luggage-cart-orange.png",
+        "2x/home-luggage-cart-orange.png"
+      ],
+      "provenance": "Existing approved top-down vehicle sprite, resized only"
+    },
+    {
+      "id": "home-luggage-cart-yellow",
+      "display_size": [
+        220,
+        220
+      ],
+      "files": [
+        "1x/home-luggage-cart-yellow.png",
+        "2x/home-luggage-cart-yellow.png"
+      ],
+      "provenance": "Existing approved top-down vehicle sprite, resized only"
+    },
+    {
+      "id": "home-luggage-cart-red",
+      "display_size": [
+        220,
+        220
+      ],
+      "files": [
+        "1x/home-luggage-cart-red.png",
+        "2x/home-luggage-cart-red.png"
+      ],
+      "provenance": "Existing approved top-down vehicle sprite, resized only"
+    }
+  ],
+  "title_policy": "Logo is supplied as an image; all other labels and numbers remain code-rendered."
+}
