@@ -5,7 +5,17 @@ import { Convoy } from './convoy.js';
 import { Garage } from './garage.js';
 import levelData from '../data/level-data.js';
 
-const BOARD_SIZE = 450;
+// The board is laid out in square cells, so a level that is taller than it is
+// wide comes out taller on the screen rather than squashed back into a square.
+// These are the most room it may take in the portrait layout: it fills whichever
+// of the two it runs out of first.
+const BOARD_WIDTH = 500;
+const BOARD_HEIGHT = 615;
+
+// The share of the screen's height the board may fill once it is stood on it,
+// which is what pulls it in again in landscape. The rest is the room the HUD and
+// the boosters sit in.
+const BOARD_SCREEN = 0.72;
 
 // Pace the tractor keeps when it is under the finger, and the pace it winds up
 // to as the finger pulls ahead of it. Both in cells per second.
@@ -41,10 +51,13 @@ const BUMP_REST_TIME = 300;
 const TRAIL_TAIL = 1.5;
 
 // The last step into a garage is taken faster than a driven one - the convoy
-// commits to the door. The reel-in after it is slower than driving, so the
-// vehicles are seen to file in one at a time rather than all vanishing at once.
-const DOOR_SPEED = 10;
-const PULL_SPEED = 5;
+// commits to the door. The reel-in after it is quicker still than a driven step
+// but well short of that dive, which is the margin the vehicles are seen to file
+// in one at a time over rather than all vanishing at once. A long convoy is the
+// one to judge it by: it has the most carts to pull through the door, so it is
+// the one left waiting if this is set too gently.
+const DOOR_SPEED = 16;
+const PULL_SPEED = 9;
 
 // Cells of the routed road handed to the rig so it can curve the corner the
 // tractor is coming up to, not just the ones it has already been round.
@@ -86,12 +99,17 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.pattern = levelData.pattern;
         this.obstacles = levelData.obstacles || [];
 
-        this.tileWidth = BOARD_SIZE / this.columns;
-        this.tileHeight = BOARD_SIZE / this.rows;
-        this.cellSize = (this.tileWidth + this.tileHeight) / 2;
+        // Square, so a cart is the same size whichever way it is driving and a
+        // corner is a quarter turn rather than an ellipse.
+        this.cellSize = Math.min(BOARD_WIDTH / this.columns, BOARD_HEIGHT / this.rows);
+        this.tileWidth = this.cellSize;
+        this.tileHeight = this.cellSize;
 
-        this.startX = -BOARD_SIZE / 2 + this.tileWidth / 2;
-        this.startY = -BOARD_SIZE / 2 + this.tileHeight / 2;
+        this.boardWidth = this.columns * this.tileWidth;
+        this.boardHeight = this.rows * this.tileHeight;
+
+        this.startX = -this.boardWidth / 2 + this.tileWidth / 2;
+        this.startY = -this.boardHeight / 2 + this.tileHeight / 2;
 
         this.dragSpeed = this.cellSize * DRAG_SPEED;
         this.chaseSpeed = this.cellSize * CHASE_SPEED;
@@ -234,9 +252,40 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         const garage = this.garageAt(col, row);
 
-        if (garage && garage.convoyIndex !== convoy.index) return false;
+        // A garage takes its own convoy and nobody else's, and it takes it
+        // through the door: the one cell its opening looks out on is the whole
+        // of the way in. Driving at it from the side is driving at a wall, so
+        // the tractor has to be stood on that cell before the door is open to
+        // it at all - which is what keeps a convoy on the roads that lead there
+        // rather than letting it slip in off whichever side it happens to reach.
+        if (garage) {
+            if (garage.convoyIndex !== convoy.index) return false;
+            if (!this.atDoorstep(convoy, this.leadCell(convoy))) return false;
+        }
 
         return this.tiles[row][col].owner === -1;
+    }
+
+    /**
+     * The cell a garage's doorway looks out on - the one the convoy drives in
+     * from. Worked out off the way the building is turned, so the two can never
+     * disagree: wherever the art's opening points, that is the way in.
+     */
+    doorstep(convoy) {
+        const garage = convoy.garage;
+
+        if (!garage) return null;
+
+        return {
+            col: convoy.exit[0] + Math.round(Math.cos(garage.facing)),
+            row: convoy.exit[1] + Math.round(Math.sin(garage.facing))
+        };
+    }
+
+    atDoorstep(convoy, cell) {
+        const step = this.doorstep(convoy);
+
+        return !!step && !!cell && step.col === cell.col && step.row === cell.row;
     }
 
     garageAt(col, row) {
@@ -515,6 +564,14 @@ export class GamePlay extends Phaser.GameObjects.Container {
         return route.map((node) => ({ col: node.x, row: node.y }));
     }
 
+    routeGoal(convoy, goal) {
+        if (!this.isExitCell(convoy, goal.col, goal.row)) return goal;
+
+        const step = this.doorstep(convoy);
+
+        return (step && this.isFloor(step.col, step.row)) ? step : goal;
+    }
+
     /** Work out the cells the tractor should drive to reach the finger. */
     routeDrag(point) {
         const convoy = this.drag && this.drag.convoy;
@@ -530,7 +587,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             return;
         }
 
-        const goal = this.pixelToCell(point.x, point.y);
+        const goal = this.routeGoal(convoy, this.pixelToCell(point.x, point.y));
 
         if (!this.isFloor(goal.col, goal.row)) {
             this.noteObstacleHit(convoy, point);
@@ -740,7 +797,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
     nextToExit(convoy, cell) {
         if (!convoy.exit) return false;
 
-        return Math.abs(cell.col - convoy.exit[0]) + Math.abs(cell.row - convoy.exit[1]) === 1;
+        return this.atDoorstep(convoy, cell);
     }
 
     // True from the frame the tractor sets off for its own garage until the pull
@@ -1294,11 +1351,22 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.init();
     }
 
+    /**
+     * Stand the board in the middle of the screen, pulled in to whichever way
+     * the screen runs out first. It keeps its own proportions either way, so a
+     * tall level stays tall and its cells stay square - a landscape screen just
+     * gets less of it.
+     */
     adjust() {
         this.x = dimensions.gameWidth / 2;
         this.y = dimensions.gameHeight / 2;
 
-        this.setScale(dimensions.isLandscape ? 0.95 : 1);
+        const room = Math.min(
+            dimensions.gameWidth / this.boardWidth,
+            (dimensions.gameHeight * BOARD_SCREEN) / this.boardHeight
+        );
+
+        this.setScale(Math.min(1, room));
     }
 
     destroy(fromScene) {

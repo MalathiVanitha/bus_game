@@ -11,6 +11,21 @@ const LOGO = 'home/logo';
 const LOGO_Y = -240;
 const LOGO_SCALE = 0.525;
 
+const GLEAM_WARM = 0xfff4d8;
+
+// The pulse: up, a beat at the top, then the same way back down, straight
+// into the next one. It never stops, so it is slower than it would be if it
+// only came round every few seconds — a breath rather than a throb.
+const GLEAM_TIME = 1100;
+const GLEAM_HOLD = 140;
+const GLEAM_DELAY = 1250;
+
+// The halo standing off the edges of the artwork. It is the whole of the
+// shine: the logo itself is left exactly as drawn.
+const HALO_STRENGTH = 2.4;
+const HALO_QUALITY = 0.16;
+const HALO_DISTANCE = 16;
+
 const CLOUD = 'home/cloud';
 const CLOUD_ART_W = 300;
 const CLOUD_EDGE = 20;
@@ -107,6 +122,8 @@ export class Home extends Phaser.GameObjects.Container {
         this.logo.setScale(LOGO_SCALE);
         this.content.add(this.logo);
 
+        this.buildGleam();
+
         this.convoy = this.scene.add.sprite(0, CONVOY_Y, 'sheet', CONVOY);
         this.convoy.setScale(ART_SCALE);
         this.content.add(this.convoy);
@@ -191,6 +208,38 @@ export class Home extends Phaser.GameObjects.Container {
 
         this.playButton = play;
         this.content.add(play);
+    }
+
+    buildGleam() {
+        // A real glow standing off the edges of the artwork, rather than a
+        // second copy of it pretending to be one.
+        this.halo = this.logo.postFX.addGlow(GLEAM_WARM, 0, 0, false, HALO_QUALITY, HALO_DISTANCE);
+    }
+
+    startGleam() {
+        this.stopGleam();
+
+        // One tween, played out and back on a loop: the first pulse lands once
+        // the intro has settled, and from there the logo keeps breathing for
+        // as long as the home screen is up.
+        this.gleam = this.scene.tweens.add({
+            targets: this.halo,
+            outerStrength: HALO_STRENGTH,
+            duration: GLEAM_TIME,
+            delay: GLEAM_DELAY,
+            hold: GLEAM_HOLD,
+            repeat: -1,
+            yoyo: true,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    stopGleam() {
+        this.scene.tweens.killTweensOf(this.halo);
+
+        this.gleam = null;
+
+        this.halo.outerStrength = 0;
     }
 
     update(time, delta) {
@@ -309,6 +358,8 @@ export class Home extends Phaser.GameObjects.Container {
                 ease: 'Quad.easeOut'
             });
         }
+
+        this.startGleam();
     }
 
     hopIn(piece, step, run) {
@@ -383,6 +434,14 @@ export class Home extends Phaser.GameObjects.Container {
 
     hide() {
         this.visible = false;
+
+        this.stopGleam();
+    }
+
+    destroy(fromScene) {
+        this.stopGleam();
+
+        super.destroy(fromScene);
     }
 
     adjust() {

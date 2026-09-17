@@ -126,6 +126,7 @@ export default class GameScene extends Phaser.Scene {
 
     /** The level is over, one way or the other. Called by the board itself. */
     showEndCard(gameWin = false) {
+        return
         this.cta.userWon = gameWin;
 
         if (gameWin) this.cta.setValue(GameScene.LEVEL_COINS);
