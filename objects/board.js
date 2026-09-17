@@ -48,7 +48,7 @@ const LIFT_OVER = 0.06;
 // cell, and one scale covers the lot of them; fitting each piece to the cell in
 // its own right would flatten those differences out.
 const OBSTACLE_ART = 96;
-const OBSTACLE_FIT = 0.92;
+const OBSTACLE_FIT = 1;
 
 const DEFAULT_OBSTACLE = 'cone';
 
@@ -95,10 +95,10 @@ export class Board {
         this.liftG = scene.add.graphics();
         config.parent.add(this.liftG);
 
-        // Left for the parent to place. An obstacle has to read over a convoy
-        // that has run up against it, which is further up the board's layers
-        // than anything drawn here.
-        this.props = scene.add.container();
+        // The layer the obstacles stand on, handed in by the parent: they are
+        // stacked by depth there with everything else standing on the board.
+        this.props = config.props;
+        this.pieces = [];
 
         const count = this.rows * this.columns;
 
@@ -187,17 +187,21 @@ export class Board {
 
         g.clear();
 
-        this.props.removeAll(true);
+        for (let i = 0; i < this.pieces.length; i++) this.pieces[i].destroy();
+
+        this.pieces.length = 0;
 
         for (let i = 0; i < this.obstacles.length; i++) {
             const spot = this.obstacles[i];
             const at = this.cellToPixel(spot[0], spot[1]);
             const frame = this.obstacleFrame(spot[2]);
 
-            const piece = this.scene.add.sprite(at.x, at.y, 'sheet', frame);
+            const piece = this.scene.add.sprite(at.x, at.y - 3, 'sheet', frame);
 
             piece.setScale(scale);
+            piece.depth = at.y;
             this.props.add(piece);
+            this.pieces.push(piece);
 
             // Where the drawn pixels stop inside the art's box - the piece's
             // feet, which is where its shadow belongs, whatever the box says.

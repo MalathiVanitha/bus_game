@@ -142,6 +142,10 @@ const STRAIGHT = 1e-6;
  * front of it ran over, and draws up a little through a bend the way anything
  * on a rope does, rather than each turning on the spot as it reaches a corner.
  */
+// Where the couplings stand among the things stacked by depth: under every
+// vehicle, whichever way round the two they join are standing.
+const LINK_DEPTH = -Number.MAX_VALUE;
+
 export class Convoy {
     constructor(scene, config) {
         this.scene = scene;
@@ -153,11 +157,11 @@ export class Convoy {
         this.scale = (this.cellSize * VEHICLE_FIT) / ART_CELL;
 
         this.links = scene.add.graphics();
+        this.links.depth = LINK_DEPTH;
         config.parent.add(this.links);
 
-        // Back to front, so the tractor sits over the cart it is towing and each
-        // cart over the one behind it - the order they overlap in when the
-        // convoy is drawn up on a corner.
+        // Built back to front, which is only where they start: once drawn, each
+        // vehicle stands at its own depth and the layer is sorted by it.
         this.vehicles = [];
 
         for (let i = this.count - 1; i >= 0; i--) {
@@ -190,6 +194,15 @@ export class Convoy {
                 slipRateTurn: 0
             };
         }
+
+        // Cuts a vehicle away past the back wall of its garage. The shape is
+        // stood on the board by the owner, which knows the board's transform,
+        // and is only put on the vehicles while the convoy is going in - a mask
+        // costs the renderer a pass whether or not anything is drawn in it.
+        this.doorShape = scene.make.graphics({ add: false });
+        this.doorMask = this.doorShape.createGeometryMask();
+        this.doorMask.invertAlpha = true;
+        this.doorMasked = false;
 
         // Scratch, so draw() allocates nothing. The corners the track is laid
         // through, the track itself, and the arc length reached at each of its
@@ -313,6 +326,7 @@ export class Convoy {
             art.visible = true;
             art.x = vehicle.x;
             art.y = vehicle.y;
+            art.depth = vehicle.y;
             art.rotation = vehicle.heading - vehicle.facing;
             art.setScale(this.scale * (door ? this.doorScale(vehicle, door) : 1));
         }
@@ -821,10 +835,28 @@ export class Convoy {
         this.links.visible = visible;
     }
 
+    /** Put the door cut on the vehicles and couplings, or take it off. */
+    maskDoor(on) {
+        if (on === this.doorMasked) return;
+
+        this.doorMasked = on;
+
+        for (let i = 0; i < this.vehicles.length; i++) {
+            const art = this.vehicles[i].art;
+
+            if (on) art.setMask(this.doorMask);
+            else art.clearMask();
+        }
+
+        if (on) this.links.setMask(this.doorMask);
+        else this.links.clearMask();
+    }
+
     destroy() {
         for (let i = 0; i < this.vehicles.length; i++) this.vehicles[i].art.destroy();
 
         this.links.destroy();
+        this.doorShape.destroy();
         this.vehicles.length = 0;
     }
 }

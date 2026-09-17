@@ -5,40 +5,20 @@ import { Convoy } from './convoy.js';
 import { Garage } from './garage.js';
 import levelData from '../data/level-data.js';
 
-// The board is laid out in square cells, so a level that is taller than it is
-// wide comes out taller on the screen rather than squashed back into a square.
-// These are the most room it may take in the portrait layout: it fills whichever
-// of the two it runs out of first.
 const BOARD_WIDTH = 500;
 const BOARD_HEIGHT = 615;
 
-// The share of the screen's height the board may fill once it is stood on it,
-// which is what pulls it in again in landscape. The rest is the room the HUD and
-// the boosters sit in.
 const BOARD_SCREEN = 0.5;
 
-// Pace the tractor keeps when it is under the finger, and the pace it winds up
-// to as the finger pulls ahead of it. Both in cells per second.
 const DRAG_SPEED = 3.5;
 const CHASE_SPEED = 8;
 const SETTLE_SPEED = 5.5;
 
-// The finger has to get this far ahead before the chase starts winding up, and
-// this much further again before it is running flat out.
 const CHASE_SLACK = 0.5;
 const CHASE_SPAN = 4;
 
-// How close a touch has to land to a vehicle to take hold of the convoy.
 const GRAB_REACH = 0.75;
 
-// Running into an obstacle. Only an obstacle: a board edge, a wall, or another
-// convoy all stop it just as dead, but none of them are something it has hit, so
-// none of them are worth a knock.
-//
-// The convoy comes to rest a whole cell short of the obstacle, which is too far
-// off to read as a collision on its own. So it noses the rest of the way in
-// until it is up against the thing, takes the knock back past where it started,
-// and rolls forward to rest. In cells, along the track: in first, back after.
 const BUMP_INTO = 0.28;
 const BUMP_BACK = 0.16;
 
@@ -46,43 +26,20 @@ const BUMP_IN_TIME = 90;
 const BUMP_BACK_TIME = 90;
 const BUMP_REST_TIME = 300;
 
-// Trail kept behind the last cart, in cells. It has to cover what the rig reads
-// past the end of the convoy plus the furthest a bump shunts it back.
 const TRAIL_TAIL = 1.5;
 
-// The last step into a garage is taken faster than a driven one - the convoy
-// commits to the door. The reel-in after it is quicker still than a driven step
-// but well short of that dive, which is the margin the vehicles are seen to file
-// in one at a time over rather than all vanishing at once. A long convoy is the
-// one to judge it by: it has the most carts to pull through the door, so it is
-// the one left waiting if this is set too gently.
 const DOOR_SPEED = 16;
 const PULL_SPEED = 9;
 
-// Cells of the routed road handed to the rig so it can curve the corner the
-// tractor is coming up to, not just the ones it has already been round.
 const LOOK_AHEAD_CELLS = 2;
 
-// Past the back wall of a garage's doorway, a vehicle is cut away: it has gone
-// as far into the room as the art has room for it.
-//
-// The slab that does it is wider than a vehicle - wider than the opening, which
-// is narrower than the vehicles that go through it - and runs well past the back
-// of the building, so the back wall is the only edge of it a vehicle is ever cut
-// against. It is only drawn for a convoy actually on its way in, so it can never
-// take a bite out of one driving past.
 const DOOR_HALF = 0.75;
 const DOOR_DEPTH = 12;
 
-/**
- * The board and the convoys on it.
- *
- * A convoy is held as a run of cells, tractor first, plus a trail of pixel
- * points running back from the tractor. Dragging routes the tractor cell by
- * cell towards the finger and the trail records where it went; the vehicles are
- * then read back off that trail by arc length, so each one drives over the
- * ground the one ahead of it covered and turns where it turned.
- */
+// Everything standing on the board is drawn in order of depth, which each
+// thing sets from its own y: further down the screen is nearer the viewer.
+const byDepth = (a, b) => a.depth - b.depth;
+
 export class GamePlay extends Phaser.GameObjects.Container {
     constructor(scene, x, y) {
         super(scene, x, y);
@@ -148,8 +105,14 @@ export class GamePlay extends Phaser.GameObjects.Container {
             this.tiles[row][col].obstacle = true;
         }
 
+        // One layer for everything that stands on the board - obstacles,
+        // vehicles, couplings and garages - sorted by depth, so whatever is
+        // further down the screen is drawn over what stands behind it.
+        this.stage = this.scene.add.container();
+
         this.board = new Board(this.scene, {
             parent: this,
+            props: this.stage,
             pattern: this.pattern,
             obstacles: this.obstacles,
             rows: this.rows,
@@ -160,41 +123,22 @@ export class GamePlay extends Phaser.GameObjects.Container {
             startY: this.startY
         });
 
-        // The rooms the vehicles drive into, under the convoys; the buildings
-        // themselves go over them, further down.
+        // The rooms the vehicles drive into, under everything on the stage.
         this.garageBackGroup = this.scene.add.container();
         this.add(this.garageBackGroup);
 
-        this.convoyGroup = this.scene.add.container();
-        this.add(this.convoyGroup);
+        this.add(this.stage);
 
-        // Over the convoys: one nosing into an obstacle has run up against the
-        // thing, not over the top of it.
-        this.add(this.board.props);
+        // Cuts each garage's doorway out of its building, so a vehicle behind
+        // the building is seen through the opening. Held in world space, which
+        // is why it is redrawn through the board's own transform. The cut past
+        // the back wall is each convoy's own, kept by its rig.
+        this.mouthShape = this.scene.make.graphics({ add: false });
+        this.mouthMask = this.mouthShape.createGeometryMask();
+        this.mouthMask.invertAlpha = true;
 
-        // Cut the doorways out of the convoys, so a vehicle driving into a
-        // garage goes out of sight inside it. The shape is held in world space,
-        // which is why it is redrawn through the board's own transform.
-        this.doorShape = this.scene.make.graphics({ add: false });
         this.doorMatrix = new Phaser.GameObjects.Components.TransformMatrix();
         this.doorParent = new Phaser.GameObjects.Components.TransformMatrix();
-
-        const doors = this.doorShape.createGeometryMask();
-
-        doors.invertAlpha = true;
-        this.convoyGroup.setMask(doors);
-
-        // Above the convoys, so a vehicle at a garage is behind the building
-        // everywhere but the doorway, which is cut out of this layer.
-        this.garageGroup = this.scene.add.container();
-        this.add(this.garageGroup);
-
-        this.mouthShape = this.scene.make.graphics({ add: false });
-
-        const mouths = this.mouthShape.createGeometryMask();
-
-        mouths.invertAlpha = true;
-        this.garageGroup.setMask(mouths);
 
         // The clock the level is played against. It does not start until the
         // home screen is out of the way, and it stops the moment the level is
@@ -208,6 +152,11 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.dragPoint = null;
         this.convoys = [];
         this.garages = [];
+
+        // Set by any vehicle being moved, cleared by the sort at the end of the
+        // frame. The convoys are drawn where the level parked them before the
+        // first frame runs, so the layer starts out needing one.
+        this.stackDirty = true;
 
         for (let i = 0; i < levelData.convoys.length; i++) {
             this.convoys.push(this.createConvoy(levelData.convoys[i], i));
@@ -373,13 +322,19 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 size: this.cellSize,
                 facing: this.garageFacing(convoy),
                 behind: this.garageBackGroup,
-                parent: this.garageGroup
+                parent: this.stage,
+                mask: this.mouthMask
             });
 
             this.garages.push(convoy.garage);
 
             this.validateGarage(convoy);
         }
+    }
+
+    sortStage() {
+        this.stage.sort("depth", byDepth);
+        this.stackDirty = false;
     }
 
     /**
@@ -502,7 +457,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             key: convoy.key,
             count: convoy.count,
             cellSize: this.cellSize,
-            parent: this.convoyGroup
+            parent: this.stage
         });
 
         this.updateConvoyView(convoy, 0);
@@ -961,15 +916,13 @@ export class GamePlay extends Phaser.GameObjects.Container {
      */
     updateDoors() {
         const mouths = this.mouthShape;
-        const doors = this.doorShape;
 
-        if (!mouths || !doors) return;
+        if (!mouths) return;
 
         const at = this.getWorldTransformMatrix(this.doorMatrix, this.doorParent)
             .decomposeMatrix();
 
         this.placeShape(mouths, at);
-        this.placeShape(doors, at);
 
         for (let i = 0; i < this.convoys.length; i++) {
             const convoy = this.convoys[i];
@@ -990,14 +943,23 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 garage.doorMouth, garage.doorBack, garage.doorHalf
             );
 
-            if (convoy.escaped) continue;
-            if (!convoy.swallowing && !this.enteringGarage(convoy)) continue;
+            // The cut past the back wall is only on a convoy actually going in,
+            // so it can never take a bite out of one driving past.
+            const going = !convoy.escaped &&
+                (convoy.swallowing || this.enteringGarage(convoy));
 
-            this.fillSlab(
-                doors, spot, outX, outY,
-                garage.doorBack, garage.doorBack - DOOR_DEPTH * this.cellSize,
-                DOOR_HALF * this.cellSize
-            );
+            if (going) {
+                const doors = convoy.rig.doorShape;
+
+                this.placeShape(doors, at);
+                this.fillSlab(
+                    doors, spot, outX, outY,
+                    garage.doorBack, garage.doorBack - DOOR_DEPTH * this.cellSize,
+                    DOOR_HALF * this.cellSize
+                );
+            }
+
+            convoy.rig.maskDoor(going);
         }
     }
 
@@ -1130,6 +1092,12 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
     updateConvoyView(convoy, delta) {
         convoy.drawnRecoil = convoy.recoil;
+
+        // A vehicle has been moved, so the layer is out of order until it is
+        // sorted again. Raised here because this is the one place a vehicle is
+        // ever moved, and read once at the end of the frame - a convoy being
+        // redrawn twice in a frame is still only worth the one sort.
+        this.stackDirty = true;
 
         convoy.rig.draw(convoy.trail, {
             recoil: convoy.recoil,
@@ -1342,6 +1310,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
             }
         }
 
+        if (this.stackDirty) this.sortStage();
+
         this.board.step(step);
         this.updateDoors();
     }
@@ -1395,11 +1365,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         for (let i = 0; i < this.convoys.length; i++) this.scene.tweens.killTweensOf(this.convoys[i].rig);
 
-        // The masks are built off graphics kept out of the display list, so
-        // removing the container's children leaves them behind.
-        this.convoyGroup.clearMask(true);
-        this.garageGroup.clearMask(true);
-        this.doorShape.destroy();
+        // The mask shapes are kept out of the display list, so removing the
+        // container's children would leave them behind.
+        for (let i = 0; i < this.convoys.length; i++) this.convoys[i].rig.destroy();
+        for (let i = 0; i < this.garages.length; i++) this.garages[i].destroy();
         this.mouthShape.destroy();
 
         this.removeAll(true);
@@ -1432,6 +1401,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         for (let i = 0; i < this.convoys.length; i++) this.convoys[i].rig.destroy();
         for (let i = 0; i < this.garages.length; i++) this.garages[i].destroy();
+        this.mouthShape.destroy();
 
         super.destroy(fromScene);
     }

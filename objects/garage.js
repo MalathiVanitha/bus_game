@@ -22,6 +22,13 @@ const GAPE_SCALE = 1.1;
 const GAPE_TIME = 200;
 const SHUT_TIME = 320;
 
+// Where the building stands among the things stacked by depth, in cells down
+// from the middle of its cell: at its foot. A doorway that looks down the
+// screen pushes that out by the reach of a vehicle's nose, so one driving up
+// to the door is behind the wall from the moment it touches it, not drawn over.
+const FOOT = 0.5;
+const NOSE = 0.5;
+
 /**
  * A convoy's own garage. It holds a cell nobody else may route through, and the
  * matching convoy driving onto that cell is pulled inside.
@@ -29,10 +36,11 @@ const SHUT_TIME = 320;
  * Turned so the doorway looks out the way a convoy reaches it from, which is
  * what lets a vehicle drive in through the opening rather than into a wall.
  *
- * Drawn twice, once under the convoys and once over them, with the doorway cut
- * out of the copy on top. A vehicle at the garage is then behind the building
- * everywhere except the opening, and seen through the opening - which is what
- * makes it read as driving inside rather than behind.
+ * Drawn twice: the room, under everything, and the building, stacked by depth
+ * with the vehicles and with the doorway cut out of it. A vehicle at the garage
+ * is then behind the building everywhere except the opening, and seen through
+ * the opening - which is what makes it read as driving inside rather than
+ * behind.
  */
 export class Garage {
     constructor(scene, config) {
@@ -47,9 +55,13 @@ export class Garage {
         this.baseScale = (config.size * GARAGE_FIT) / ART_CELL;
 
         // The room behind a vehicle, and the building in front of it. The one in
-        // front has the doorway cut out of it by the mask the board keeps.
+        // front has the doorway cut out of it by the mask handed in.
         this.back = this.drawing(scene, config, config.behind);
         this.front = this.drawing(scene, config, config.parent);
+
+        this.front.setMask(config.mask);
+        this.front.depth = config.y +
+            config.size * (FOOT + Math.max(0, Math.sin(config.facing)) * NOSE);
 
         // The doorway in pixels, for the board to cut out and to hide vehicles
         // past: how far out the mouth and the back wall stand from the middle of
