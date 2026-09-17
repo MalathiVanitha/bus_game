@@ -3,6 +3,10 @@ export default {
     rows: 8,
     columns: 8,
 
+    // Seconds on the clock. Running it out is what loses the level, and what
+    // the end card's fail face offers to put more of back.
+    time: 90,
+
     // 1 is tarmac a convoy can drive over. 0 is a gap in the board - nothing is
     // drawn there and nothing can be routed through it.
     pattern: [

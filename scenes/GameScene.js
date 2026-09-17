@@ -14,8 +14,13 @@ export default class GameScene extends Phaser.Scene {
     // Vars
     handlerScene = null
 
-    // Coins the end of level blasts are worth.
-    static BONUS_COINS = 10;
+    // What clearing a level pays. The end card's win face is written around
+    // it, and doubling it is what the video on that card is worth.
+    static LEVEL_COINS = 100;
+
+    // Long enough for the last convoy to be out of sight, or the clock to have
+    // read zero, before the card covers it.
+    static END_CARD_WAIT = 500;
 
     constructor() {
         super('GameScene')
@@ -63,9 +68,6 @@ export default class GameScene extends Phaser.Scene {
         this.gamePlay = new GamePlay(this, 0, 0);
         this.gameGroup.add(this.gamePlay);
 
-        this.cta = new CTA(this, 0, 0, this);
-        this.gameGroup.add(this.cta)
-
         // Over the board, which it covers until Play is pressed.
         this.home = new Home(this, 0, 0, () => this.enterGame());
         this.gameGroup.add(this.home);
@@ -81,75 +83,79 @@ export default class GameScene extends Phaser.Scene {
 
         this.events.on('store:open', () => this.storePanel.show());
 
-        // Last in, so the gear and the card it opens sit over everything else.
         this.settings = new Settings(this, 0, 0);
         this.gameGroup.add(this.settings);
+
+        // Last in, so the end card covers the board, the gear, and whatever
+        // else happens to be on the screen when a level lands.
+        this.cta = new CTA(this, 0, 0);
+        this.gameGroup.add(this.cta);
+
+        this.wireEndCard();
 
         this.setPositions();
         this.showHome();
 
         if (location.search.indexOf('replay') !== -1) window.__replayHome = () => this.showHome();
 
+        // ?endcard=win / ?endcard=fail puts the card straight up, without
+        // having to play a level out to see it. ?endcard on its own just hands
+        // the scene over, for driving the run from the console.
+        const preview = new URLSearchParams(location.search).get('endcard');
+
+        if (preview !== null) {
+            window.__scene = this;
+
+            if (preview) this.showEndCard(preview !== 'fail');
+        }
+
         // this.startGamePlay();
     }
 
-    checkWin(gameWin = false) {
-
-        // The bonus round runs the ending itself, coins and all. A settle
-        // inside it, or the move counter hitting zero as it spends them, must
-        // not race the end card.
-        if (this.board.bonusActive) return;
-        if (this.gameOver) return;
-
-        // A level won with moves to spare spends them on the board first: a
-        // power up sown per move, the lot set off, and the coins that shakes
-        // loose flown into the counter. Then the card.
-        if (gameWin && !this.bonusPlayed && this.board.hasBonusMoves()) {
-
-            this.bonusPlayed = true;
-            this.board.runBonusRound((fired) => {
-
-                if (!fired) {
-                    this.showEndCard(true);
-                    return;
-                }
-
-                this.awardBonusCoins(() => {
-                    this.showEndCard(true);
-                });
-            });
-            return;
-        }
-
-        this.showEndCard(gameWin);
+    /**
+     * What the end card asks for. Nothing here runs a video - a press on one of
+     * the card's video buttons is taken as paid, the same way the store's is.
+     */
+    wireEndCard() {
+        this.events.on('cta:double', (offer) => this.nextLevel(offer.coins));
+        this.events.on('cta:next', (offer) => this.nextLevel(offer.coins));
+        this.events.on('cta:continue', (offer) => this.gamePlay.addTime(offer.seconds));
+        this.events.on('cta:retry', () => this.restartLevel());
+        this.events.on('cta:home', () => this.leaveGame());
     }
 
-    // The blasts pay out: coins fly off the middle of the board into the
-    // counter, and the end card waits for the last one to land.
-    awardBonusCoins(onComplete) {
-
-        let matrix = this.board.getWorldTransformMatrix();
-        this.coin.collect(matrix.tx, matrix.ty, GameScene.BONUS_COINS, GameScene.BONUS_COINS, onComplete);
-    }
-
+    /** The level is over, one way or the other. Called by the board itself. */
     showEndCard(gameWin = false) {
-        if (this.gameOver) return;
-        this.gameOver = true;
-        this.board.gameEnded = true;
-        this.board.bonusActive = false;
+        this.cta.userWon = gameWin;
 
-        if (gameWin) {
-            this.cta.userWon = true;
-        } else {
-            this.cta.userWon = false;
-        }
-        this.board.canClick = false;
-        this.time.addEvent({
-            delay: 500,
-            callback: () => {
-                this.cta.show();
-            }
-        });
+        if (gameWin) this.cta.setValue(GameScene.LEVEL_COINS);
+
+        this.time.delayedCall(GameScene.END_CARD_WAIT, () => this.cta.show());
+    }
+
+    /** Pays the level out and moves on. */
+    nextLevel(coins) {
+        if (coins > 0) this.coin.award(coins);
+
+        this.level++;
+        this.home.setLevel(this.level);
+
+        this.restartLevel();
+    }
+
+    // Only the one level so far, so the next one and a retry are the same
+    // board laid out again.
+    restartLevel() {
+        this.gamePlay.reset();
+        this.gamePlay.adjust();
+        this.gamePlay.start();
+    }
+
+    leaveGame() {
+        this.gamePlay.reset();
+        this.gamePlay.adjust();
+
+        this.showHome();
     }
 
     // The home screen and the counter over it come on together.
@@ -163,6 +169,8 @@ export default class GameScene extends Phaser.Scene {
     enterGame() {
         this.home.hide();
         this.coin.hide();
+
+        this.gamePlay.start();
     }
 
     startGamePlay() {
@@ -286,7 +294,7 @@ export default class GameScene extends Phaser.Scene {
 
         if (this.graphics) this.graphics.destroy();
 
-        this.graphics = this.make.graphics().fillStyle(0x98ddfc, 1).fillRect(dimensions.leftOffset, dimensions.topOffset, dimensions.actualWidth, dimensions.actualHeight);
+        this.graphics = this.make.graphics().fillStyle(0xb6defd, 1).fillRect(dimensions.leftOffset, dimensions.topOffset, dimensions.actualWidth, dimensions.actualHeight);
         this.graphicsGrp.add(this.graphics);
 
         this.gamePlay.adjust();

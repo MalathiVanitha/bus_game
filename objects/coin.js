@@ -1,11 +1,3 @@
-// The coin counter: a white pill in the top right of the home screen, level
-// with the gear on the left, holding the coin art and the balance. The end of a
-// level pays into it, so coins flown off the board have somewhere to land.
-//
-// The art is the home pack's, drawn at a quarter of its 2x size and placed
-// where the pack's manifest asks for it on the 1080 x 1920 canvas the game's
-// 540 x 960 is half of.
-
 const PILL = 'home/coin-base';
 const PILL_X = 107;
 const PILL_Y = 62;
@@ -19,8 +11,6 @@ const COUNT_X = 28;
 const COUNT_SIZE = 34;
 const INK = '#283085';
 
-// A coin on its way in: thrown clear of where it started, then run into the
-// pill, with the balance ticking up as each one lands.
 const FLY_SCATTER = 30;
 const FLY_OUT_TIME = 180;
 const FLY_TIME = 520;
@@ -30,13 +20,10 @@ const FLY_END_SCALE = 0.62;
 const POP_SCALE = 1.1;
 const POP_TIME = 110;
 
-// Slides in past the corner it lives in when the home screen comes on.
 const INTRO_X = 150;
 const INTRO_TIME = 540;
 const INTRO_DELAY = 260;
 
-// The balance the storyboard shows. Nothing spends coins yet, so a fresh
-// player is started on it rather than on nothing.
 const START_COINS = 850;
 
 const STORE_KEY = 'baggage-out.coins';
@@ -61,10 +48,6 @@ function writeStore(value) {
     }
 }
 
-/**
- * The pill itself - the art, the coin and the count - which the counter puts in
- * the corner of the screen and the store puts in its header.
- */
 export function makeCoinPill(scene, value, textRes) {
     const pill = scene.add.container(0, 0);
 
@@ -111,18 +94,15 @@ export class Coin extends Phaser.GameObjects.Container {
         this.add(pill);
     }
 
-    /** Sets the balance outright, counter and store both. */
     set(value) {
         this.value = Math.max(0, Math.floor(value));
         this.count.setText(String(this.value));
 
         writeStore(this.value);
 
-        // Anything else showing the balance - the store header - follows it.
         this.scene.events.emit('coin:changed', this.value);
     }
 
-    /** Pays in, with the pill giving a little under the weight of it. */
     award(amount) {
         this.set(this.value + amount);
         this.pop();
@@ -141,11 +121,6 @@ export class Coin extends Phaser.GameObjects.Container {
         });
     }
 
-    /**
-     * Flies coins in from somewhere on the screen - the middle of the board,
-     * usually - and pays the balance up as they land. The start is given in
-     * world pixels, which is what a game object's transform hands back.
-     */
     collect(worldX, worldY, count = 1, value = count, onComplete = null) {
         if (count <= 0) {
             if (onComplete) onComplete();
@@ -167,8 +142,6 @@ export class Coin extends Phaser.GameObjects.Container {
             this.add(coin);
             this.flights.push(coin);
 
-            // Thrown clear first, so a handful leaving the same spot does not
-            // travel as one lump.
             this.scene.tweens.add({
                 targets: coin,
                 x: from.x + Phaser.Math.Between(-FLY_SCATTER, FLY_SCATTER),
@@ -187,8 +160,6 @@ export class Coin extends Phaser.GameObjects.Container {
                         onComplete: () => {
                             landed++;
 
-                            // The last coin carries whatever the split left
-                            // over, so the payout always comes to the total.
                             const share = landed === count ? value - paid : Math.round(each);
 
                             paid += share;
@@ -205,7 +176,6 @@ export class Coin extends Phaser.GameObjects.Container {
         }
     }
 
-    /** Drops a landed coin out of the flight list and off the screen. */
     land(coin) {
         const at = this.flights.indexOf(coin);
 
@@ -214,7 +184,6 @@ export class Coin extends Phaser.GameObjects.Container {
         coin.destroy();
     }
 
-    /** Slides the counter in, for the home screen coming on behind it. */
     intro() {
         this.show();
 

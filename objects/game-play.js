@@ -178,6 +178,14 @@ export class GamePlay extends Phaser.GameObjects.Container {
         mouths.invertAlpha = true;
         this.garageGroup.setMask(mouths);
 
+        // The clock the level is played against. It does not start until the
+        // home screen is out of the way, and it stops the moment the level is
+        // settled either way.
+        this.levelTime = levelData.time || 0;
+        this.timeLeft = this.levelTime;
+        this.running = false;
+        this.finished = false;
+
         this.drag = null;
         this.dragPoint = null;
         this.convoys = [];
@@ -926,6 +934,13 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         this.releaseCells(convoy);
         convoy.rig.setVisible(false);
+
+        // The last one out is the level won.
+        for (let i = 0; i < this.convoys.length; i++) {
+            if (!this.convoys[i].escaped) return;
+        }
+
+        this.finish(true);
     }
 
     releaseCells(convoy) {
@@ -1172,6 +1187,15 @@ export class GamePlay extends Phaser.GameObjects.Container {
     update(time, delta) {
         const step = Math.min(delta || 16, 50);
 
+        if (this.running) {
+            this.timeLeft -= step / 1000;
+
+            if (this.timeLeft <= 0) {
+                this.timeLeft = 0;
+                this.finish(false);
+            }
+        }
+
         // The finger can be held still over a cell the convoy could not reach
         // when the route was last worked out. Once it has moved out of the way
         // of itself, ask again.
@@ -1205,6 +1229,69 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         this.board.step(step);
         this.updateDoors();
+    }
+
+    // ---- the run --------------------------------------------------------
+
+    /** Hands the level over to the player and starts its clock. */
+    start() {
+        this.finished = false;
+        this.running = true;
+
+        this.attachInput();
+    }
+
+    /** Puts the level down, whichever way it went, and tells the scene. */
+    finish(won) {
+        if (this.finished) return;
+
+        this.finished = true;
+        this.running = false;
+
+        this.detachInput();
+        this.dropDrag();
+
+        this.scene.showEndCard(won);
+    }
+
+    /** More seconds, and the level picked back up where it was left. */
+    addTime(seconds) {
+        this.timeLeft += seconds;
+        this.finished = false;
+        this.running = true;
+
+        this.attachInput();
+    }
+
+    /** Lets go of whatever the finger was on, so it is not still held next frame. */
+    dropDrag() {
+        if (this.drag) this.settleConvoy(this.drag.convoy);
+
+        this.drag = null;
+        this.dragPoint = null;
+    }
+
+    /**
+     * Tears the level down and lays it out again - for a retry, and for the
+     * next level, which is the same board until there is more than one.
+     */
+    reset() {
+        this.detachInput();
+
+        for (let i = 0; i < this.convoys.length; i++) this.scene.tweens.killTweensOf(this.convoys[i].rig);
+
+        // The masks are built off graphics kept out of the display list, so
+        // removing the container's children leaves them behind.
+        this.convoyGroup.clearMask(true);
+        this.garageGroup.clearMask(true);
+        this.doorShape.destroy();
+        this.mouthShape.destroy();
+
+        this.removeAll(true);
+        this.board = null;
+        this.searchGraph = null;
+
+        this.init();
     }
 
     adjust() {

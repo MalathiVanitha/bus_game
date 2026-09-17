@@ -10,7 +10,7 @@ import { makeCoinPill } from './coin.js';
 
 // Packed at the size the home pack lays it out at on its 1080 x 1920 canvas,
 // which is twice the 540 x 960 the game is laid out in.
-const ART_SCALE = 0.5;
+const ART_SCALE = 0.645;
 
 const FACE = 'home/store-button';
 
@@ -23,8 +23,8 @@ const ICON_Y = -4;
 
 const LABEL = 'Store';
 const LABEL_X = 34;
-const LABEL_Y = -4;
-const LABEL_SIZE = 46;
+const LABEL_Y = ICON_Y;
+const LABEL_SIZE = 75 * ART_SCALE;
 
 // ---- the card --------------------------------------------------------------
 
@@ -154,7 +154,7 @@ export class Store extends Phaser.GameObjects.Container {
     build() {
         this.textRes = Math.min(3, Math.max(1, Math.ceil(this.scene.gameScale || 1)));
 
-        const button = this.scene.add.container(0, 0);
+        const button = this.scene.add.container(0, 19);
 
         const face = this.scene.add.sprite(0, 0, 'sheet', FACE);
         face.setScale(ART_SCALE);
@@ -167,7 +167,9 @@ export class Store extends Phaser.GameObjects.Container {
         const label = this.scene.add.text(LABEL_X, LABEL_Y, LABEL, {
             fontFamily: 'FredokaOne_Regular',
             fontSize: LABEL_SIZE,
-            color: '#ffffff'
+            color: '#ffffff',
+            stroke: '#077efc',
+            strokeThickness: 4,
         });
         label.setOrigin(.5);
         label.setResolution(this.textRes);
