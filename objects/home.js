@@ -62,8 +62,6 @@ const CONTENT_W = 540;
 const CONTENT_H = 960;
 const CONTENT_MARGIN = 12;
 
-const SHUT_TIME = 220;
-
 const PUSH_FROM = 1.06;
 const PUSH_TIME = 900;
 
@@ -93,6 +91,42 @@ const INTRO_FADE = 240;
 const INTRO_SETTLE = 170;
 
 const INTRO_CLOUD_TIME = 900;
+
+// Once the intro has settled the screen keeps a little life in it: the Play
+// button breathes, the convoy idles on its springs, the logo sways. All slow
+// and slight - it is a screen at rest, not one asking for attention.
+const IDLE_DELAY = 1250;
+
+const PLAY_BREATH = 1.035;
+const PLAY_BREATH_TIME = 780;
+
+const CONVOY_BOB = 3;
+const CONVOY_BOB_TIME = 900;
+
+const LOGO_SWAY = 1.2;
+const LOGO_SWAY_TIME = 2400;
+
+// Play pressed: the screen leaves the way it came, in reverse and quicker.
+// The buttons sweep off first, the convoy squats and drives off, the logo
+// lifts away, and the sky thins out to show the board waiting underneath.
+const OUTRO = [
+    { piece: 'store', dx: -SWEEP, duration: 340, delay: 0 },
+    { piece: 'playButton', dx: SWEEP, duration: 340, delay: 50 },
+    { piece: 'plate', dx: -SWEEP, duration: 340, delay: 100 },
+    { piece: 'convoy', dx: 640, duration: 420, delay: 120, ease: 'Quart.easeIn', squat: true },
+    { piece: 'logo', dy: -60, scale: 0.8, angle: 6, duration: 380, delay: 200, ease: 'Back.easeIn' }
+];
+
+const OUTRO_EASE = 'Back.easeIn';
+const OUTRO_FADE = 200;
+
+const OUTRO_SQUAT = 0.9;
+const OUTRO_SQUAT_TIME = 110;
+
+const OUTRO_PUSH = 1.04;
+const OUTRO_SKY_TIME = 380;
+const OUTRO_SKY_DELAY = 220;
+const OUTRO_CLOUD_TIME = 320;
 
 export class Home extends Phaser.GameObjects.Container {
     constructor(scene, x = 0, y = 0, onPlay = null) {
@@ -185,13 +219,19 @@ export class Home extends Phaser.GameObjects.Container {
     buildPlay() {
         const play = this.scene.add.container(0, PLAY_Y);
 
+        // The face and its label sit in their own container, so the idle
+        // breath and the press - which scales the button itself - never
+        // tread on each other.
+        const body = this.scene.add.container(0, 0);
+        play.add(body);
+
         const face = this.scene.add.sprite(0, 0, 'sheet', PLAY_FACE);
         face.setScale(ART_SCALE);
-        play.add(face);
+        body.add(face);
 
         const icon = this.scene.add.sprite(PLAY_ICON_X, PLAY_ICON_Y, 'sheet', PLAY_ICON);
         icon.setScale(PLAY_ICON_SCALE);
-        play.add(icon);
+        body.add(icon);
 
         const label = this.scene.add.text(PLAY_LABEL_X, PLAY_LABEL_Y, 'Play', {
             fontFamily: 'FredokaOne_Regular',
@@ -202,10 +242,11 @@ export class Home extends Phaser.GameObjects.Container {
         });
         label.setOrigin(.5);
         label.setResolution(this.textRes);
-        play.add(label);
+        body.add(label);
 
         pressable(this.scene, play, PLAY_HIT_W, PLAY_HIT_H, () => this.play());
 
+        this.playBody = body;
         this.playButton = play;
         this.content.add(play);
     }
@@ -242,6 +283,59 @@ export class Home extends Phaser.GameObjects.Container {
         this.halo.outerStrength = 0;
     }
 
+    /** The slow life the screen keeps once it has settled. */
+    startIdle() {
+        this.stopIdle();
+
+        this.idleTimer = this.scene.time.delayedCall(IDLE_DELAY, () => {
+            this.idleTimer = null;
+
+            if (!this.visible || this.leaving) return;
+
+            this.idle = [
+                this.scene.tweens.add({
+                    targets: this.playBody,
+                    scale: PLAY_BREATH,
+                    duration: PLAY_BREATH_TIME,
+                    ease: 'Sine.easeInOut',
+                    yoyo: true,
+                    repeat: -1
+                }),
+                this.scene.tweens.add({
+                    targets: this.convoy,
+                    y: this.convoy.restY - CONVOY_BOB,
+                    duration: CONVOY_BOB_TIME,
+                    ease: 'Sine.easeInOut',
+                    yoyo: true,
+                    repeat: -1
+                }),
+                this.scene.tweens.add({
+                    targets: this.logo,
+                    angle: { from: -LOGO_SWAY, to: LOGO_SWAY },
+                    duration: LOGO_SWAY_TIME,
+                    ease: 'Sine.easeInOut',
+                    yoyo: true,
+                    repeat: -1
+                })
+            ];
+        });
+    }
+
+    stopIdle() {
+        if (this.idleTimer) {
+            this.idleTimer.remove();
+            this.idleTimer = null;
+        }
+
+        if (this.idle) {
+            for (let i = 0; i < this.idle.length; i++) this.idle[i].remove();
+
+            this.idle = null;
+        }
+
+        this.playBody.setScale(1);
+    }
+
     update(time, delta) {
         if (!this.visible) return;
 
@@ -260,18 +354,108 @@ export class Home extends Phaser.GameObjects.Container {
     }
 
     play() {
-        if (!this.visible) return;
+        if (!this.visible || this.leaving) return;
 
-        this.scene.tweens.killTweensOf(this);
+        this.leaving = true;
+        this.introRun = (this.introRun || 0) + 1;
 
+        this.stopIdle();
+        this.scene.events.emit('home:leaving');
+
+        const fit = this.fitScale || 1;
+
+        let last = 0;
+
+        for (let i = 0; i < OUTRO.length; i++) {
+            const step = OUTRO[i];
+            const piece = this[step.piece];
+
+            this.scene.tweens.killTweensOf(piece);
+
+            if (piece.hops) {
+                piece.hops.destroy();
+                piece.hops = null;
+            }
+
+            // Wherever the intro had got to, the piece leaves from its place.
+            piece.x = piece.restX;
+            piece.y = piece.restY;
+            piece.angle = 0;
+            piece.alpha = 1;
+            piece.setScale(piece.introScale);
+
+            const go = {
+                targets: piece,
+                x: piece.restX + (step.dx || 0),
+                y: piece.restY + (step.dy || 0),
+                angle: step.angle || 0,
+                duration: step.duration,
+                delay: step.delay,
+                ease: step.ease || OUTRO_EASE
+            };
+
+            if (step.scale) go.scale = piece.introScale * step.scale;
+
+            // The convoy sits down on its springs before it pulls away.
+            if (step.squat) {
+                go.delay += OUTRO_SQUAT_TIME;
+
+                this.scene.tweens.add({
+                    targets: piece,
+                    scaleY: piece.introScale * OUTRO_SQUAT,
+                    scaleX: piece.introScale * (2 - OUTRO_SQUAT),
+                    duration: OUTRO_SQUAT_TIME,
+                    delay: step.delay,
+                    ease: 'Quad.easeOut',
+                    yoyo: true
+                });
+            }
+
+            this.scene.tweens.add(go);
+
+            // Gone by the end of its move, not before: the fade only starts
+            // once it is well on its way.
+            this.scene.tweens.add({
+                targets: piece,
+                alpha: 0,
+                duration: OUTRO_FADE,
+                delay: go.delay + go.duration - OUTRO_FADE,
+                ease: 'Quad.easeIn'
+            });
+
+            last = Math.max(last, go.delay + go.duration);
+        }
+
+        for (let i = 0; i < this.clouds.length; i++) {
+            this.scene.tweens.killTweensOf(this.clouds[i]);
+            this.scene.tweens.add({
+                targets: this.clouds[i],
+                alpha: 0,
+                duration: OUTRO_CLOUD_TIME,
+                delay: OUTRO_SKY_DELAY,
+                ease: 'Quad.easeIn'
+            });
+        }
+
+        // The screen as a whole is pushed away a touch as it empties, and the
+        // sky thins out over the board waiting underneath.
+        this.scene.tweens.killTweensOf(this.content);
         this.scene.tweens.add({
-            targets: this,
+            targets: this.content,
+            scale: fit * OUTRO_PUSH,
+            duration: last,
+            ease: 'Sine.easeIn'
+        });
+
+        this.scene.tweens.killTweensOf(this.sky);
+        this.scene.tweens.add({
+            targets: this.sky,
             alpha: 0,
-            duration: SHUT_TIME,
+            duration: OUTRO_SKY_TIME,
+            delay: OUTRO_SKY_DELAY,
             ease: 'Quad.easeIn',
             onComplete: () => {
                 this.hide();
-                this.alpha = 1;
 
                 if (this.onPlay) this.onPlay();
             }
@@ -284,6 +468,9 @@ export class Home extends Phaser.GameObjects.Container {
         this.introRun = (this.introRun || 0) + 1;
 
         const run = this.introRun;
+
+        this.scene.tweens.killTweensOf(this.sky);
+        this.sky.alpha = 1;
 
         this.scene.tweens.killTweensOf(this.content);
         this.content.setScale(fit * PUSH_FROM);
@@ -360,6 +547,7 @@ export class Home extends Phaser.GameObjects.Container {
         }
 
         this.startGleam();
+        this.startIdle();
     }
 
     hopIn(piece, step, run) {
@@ -428,6 +616,7 @@ export class Home extends Phaser.GameObjects.Container {
     show() {
         this.visible = true;
         this.alpha = 1;
+        this.leaving = false;
 
         this.intro();
     }
@@ -436,10 +625,12 @@ export class Home extends Phaser.GameObjects.Container {
         this.visible = false;
 
         this.stopGleam();
+        this.stopIdle();
     }
 
     destroy(fromScene) {
         this.stopGleam();
+        this.stopIdle();
 
         super.destroy(fromScene);
     }

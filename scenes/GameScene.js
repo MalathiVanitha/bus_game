@@ -83,6 +83,9 @@ export default class GameScene extends Phaser.Scene {
 
         this.events.on('store:open', () => this.storePanel.show());
 
+        // Play pressed: the counter leaves in step with the home screen.
+        this.events.on('home:leaving', () => this.coin.outro());
+
         this.settings = new Settings(this, 0, 0);
         this.gameGroup.add(this.settings);
 

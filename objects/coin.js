@@ -24,6 +24,9 @@ const INTRO_X = 150;
 const INTRO_TIME = 540;
 const INTRO_DELAY = 260;
 
+// Leaving with the home screen: back out the way it came in, quicker.
+const OUTRO_TIME = 300;
+
 const START_COINS = 850;
 
 const STORE_KEY = 'baggage-out.coins';
@@ -199,6 +202,22 @@ export class Coin extends Phaser.GameObjects.Container {
             duration: INTRO_TIME,
             delay: INTRO_DELAY,
             ease: 'Back.easeOut'
+        });
+    }
+
+    /** Slides off with the home screen rather than cutting out with it. */
+    outro() {
+        if (!this.visible) return;
+
+        this.scene.tweens.killTweensOf(this.pill);
+
+        this.scene.tweens.add({
+            targets: this.pill,
+            x: INTRO_X,
+            alpha: 0,
+            duration: OUTRO_TIME,
+            ease: 'Back.easeIn',
+            onComplete: () => this.hide()
         });
     }
 

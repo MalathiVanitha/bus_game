@@ -28,8 +28,30 @@ const BUMP_REST_TIME = 300;
 
 const TRAIL_TAIL = 1.5;
 
-const DOOR_SPEED = 16;
-const PULL_SPEED = 9;
+// Going into the garage is one run, from the doorstep to the last cart gone:
+// the tractor keeps whatever pace it arrived at the door with, and the whole
+// convoy winds smoothly from there to PULL_SPEED, in cells a second, over
+// PULL_WIND cells of the run. Nothing is stepped up or down on the way, so
+// the convoy is seen to drive in rather than be snatched.
+const PULL_SPEED = 5.5;
+const PULL_WIND = 1.5;
+
+// The least pace it sets off from the doorstep at, in cells a second, for a
+// tractor that was barely moving when it got there.
+const PULL_FLOOR = 3;
+
+// The burst thrown out of the doorway once the whole convoy is in.
+const BURST_COUNT = 18;
+const BURST_SPREAD = 0.9;
+const BURST_DRAG = 4;
+const SPARK_TEXTURE = "convoy-spark";
+
+// The colour each convoy bursts in, by its key. White for one not listed.
+const CONVOY_SPLASH = {
+    yellow: "#ffd400",
+    red: "#ff5252",
+    cyan: "#3ae4ff"
+};
 
 const LOOK_AHEAD_CELLS = 2;
 
@@ -128,6 +150,11 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.add(this.garageBackGroup);
 
         this.add(this.stage);
+
+        // Bursts and the like, over everything on the board.
+        this.effectGroup = this.scene.add.container();
+        this.add(this.effectGroup);
+        this.effects = [];
 
         // Cuts each garage's doorway out of its building, so a vehicle behind
         // the building is seen through the opening. Held in world space, which
@@ -435,6 +462,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
             // Set the moment the tractor sets off for its own garage: from then
             // on the dive is paid for and the drag cannot steer it back out.
             diving: false,
+            entryStart: 0,
+            entered: 0,
             swallowing: false,
             swallowed: 0,
             escaped: false,
@@ -733,7 +762,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
     // chaseSpeed as the finger pulls ahead. Squared, so short careful drags keep
     // their fine control and only a real flick makes the convoy run.
     leadSpeed(convoy) {
-        if (this.enteringGarage(convoy)) return this.cellSize * DOOR_SPEED;
+        if (this.enteringGarage(convoy)) return this.entrySpeed(convoy);
 
         if (!this.drag || this.drag.convoy !== convoy || !this.dragPoint) return this.settleSpeed;
 
@@ -749,7 +778,9 @@ export class GamePlay extends Phaser.GameObjects.Container {
      * cell centre to the next and laying the trail down behind it.
      */
     updateConvoy(convoy, delta) {
-        let budget = this.leadSpeed(convoy) * (delta / 1000);
+        const travel = this.leadSpeed(convoy) * (delta / 1000);
+
+        let budget = travel;
         let moved = false;
         let guard = 0;
 
@@ -788,6 +819,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 moved = true;
             }
         }
+
+        // The run in is measured from the doorstep, through the dive and on
+        // through the swallow, so its pace carries across the two unbroken.
+        if (convoy.diving) convoy.entered += travel - budget;
 
         convoy.trail.trim(convoy.bodyLength + this.cellSize * TRAIL_TAIL);
         convoy.moving = moved;
@@ -875,17 +910,36 @@ export class GamePlay extends Phaser.GameObjects.Container {
         if (convoy.diving || convoy.swallowing || convoy.escaped) return;
         if (!this.canEnter(convoy, convoy.exit[0], convoy.exit[1])) return;
 
-        convoy.diving = true;
+        this.beginEntry(convoy);
         convoy.settle = null;
         convoy.queue.length = 0;
         convoy.queue.push({ col: convoy.exit[0], row: convoy.exit[1] });
     }
 
     commitToGarage(convoy) {
-        convoy.diving = true;
+        this.beginEntry(convoy);
         convoy.queue.length = 1;
 
         if (convoy.garage) convoy.garage.gape();
+    }
+
+    /**
+     * The tractor sets off for the door. The pace it has right now is where the
+     * run in starts from, read before it is marked as diving - from then on it
+     * is the run itself that sets the pace.
+     */
+    beginEntry(convoy) {
+        convoy.entryStart = Math.max(this.leadSpeed(convoy), this.cellSize * PULL_FLOOR);
+        convoy.entered = 0;
+        convoy.diving = true;
+    }
+
+    /** The pace of the run in, for how far along it the convoy has got. */
+    entrySpeed(convoy) {
+        const wind = Phaser.Math.Clamp(convoy.entered / (PULL_WIND * this.cellSize), 0, 1);
+        const eased = wind * wind * (3 - 2 * wind);
+
+        return convoy.entryStart + (this.cellSize * PULL_SPEED - convoy.entryStart) * eased;
     }
 
     /** Tractor is through the door. Reel the rest of the convoy in after it. */
@@ -906,6 +960,9 @@ export class GamePlay extends Phaser.GameObjects.Container {
         }
 
         if (convoy.garage) convoy.garage.gape();
+
+        // Carts seen through the mouth so far, for the garage to gulp at each.
+        convoy.gulped = 0;
 
         if (this.drag && this.drag.convoy === convoy) {
             this.drag = null;
@@ -1037,7 +1094,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
     updateSwallow(convoy, delta) {
-        convoy.swallowed += this.cellSize * PULL_SPEED * (delta / 1000);
+        const step = this.entrySpeed(convoy) * (delta / 1000);
+
+        convoy.swallowed += step;
+        convoy.entered += step;
 
         if (convoy.swallowed >= convoy.bodyLength + this.cellSize) {
             convoy.swallowed = convoy.bodyLength + this.cellSize;
@@ -1045,7 +1105,29 @@ export class GamePlay extends Phaser.GameObjects.Container {
             return;
         }
 
+        this.gulpCarts(convoy);
         this.updateConvoyView(convoy, delta);
+    }
+
+    /**
+     * The garage gulps as each cart reaches its mouth. Cart `i` stands `i`
+     * cells back from the tractor, which is at the garage's cell once the
+     * swallow starts, so it is at the mouth when that much less than `i` cells
+     * of the convoy has been taken.
+     */
+    gulpCarts(convoy) {
+        const garage = convoy.garage;
+
+        if (!garage) return;
+
+        const past = convoy.swallowed + garage.doorMouth - this.cellSize;
+        const taken = Math.min(convoy.count - 1, Math.floor(past / this.cellSize));
+
+        while (convoy.gulped < taken) {
+            convoy.gulped++;
+            garage.gulp();
+            this.board.pulseCell(convoy.exit[0], convoy.exit[1]);
+        }
     }
 
     onConvoyEscaped(convoy) {
@@ -1057,8 +1139,22 @@ export class GamePlay extends Phaser.GameObjects.Container {
         convoy.settle = null;
         convoy.settling = false;
 
+        if (convoy.bumpTween) {
+            convoy.bumpTween.remove();
+            convoy.bumpTween = null;
+        }
+
+        convoy.recoil = 0;
+
         this.releaseCells(convoy);
         convoy.rig.setVisible(false);
+
+        // The last cart is in: the garage bounces on it and throws a burst of
+        // the convoy's colour out of the doorway.
+        if (convoy.garage) {
+            convoy.garage.cheer();
+            this.burstFrom(convoy.garage, CONVOY_SPLASH[convoy.key] || "#ffffff");
+        }
 
         // The last one out is the level won.
         for (let i = 0; i < this.convoys.length; i++) {
@@ -1112,6 +1208,107 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
 
+    // ---- effects --------------------------------------------------------
+
+    /** A white disc, drawn once, for the burst blobs to be tinted from. */
+    sparkTexture() {
+        const key = SPARK_TEXTURE;
+
+        if (this.scene.textures.exists(key)) return key;
+
+        const size = 32;
+        const canvas = this.scene.textures.createCanvas(key, size, size);
+
+        if (!canvas) return "";
+
+        const ctx = canvas.getContext();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
+        ctx.fill();
+        canvas.refresh();
+
+        return key;
+    }
+
+    /**
+     * Throw a spray of blobs out through a garage's doorway, the way it looks.
+     * Seen from above there is no up for them to fall back from, so they fly
+     * out, slow, shrink and fade instead.
+     */
+    burstFrom(garage, color) {
+        const key = this.sparkTexture();
+
+        if (!key) return;
+
+        const tint = Phaser.Display.Color.HexStringToColor(color).color;
+        const outX = Math.cos(garage.facing);
+        const outY = Math.sin(garage.facing);
+        const x = garage.x + outX * garage.doorMouth * 0.5;
+        const y = garage.y + outY * garage.doorMouth * 0.5;
+
+        for (let i = 0; i < BURST_COUNT; i++) {
+            const angle = garage.facing + (Math.random() - 0.5) * 2 * BURST_SPREAD;
+            const speed = this.cellSize * (3 + Math.random() * 5);
+            const size = this.cellSize * (0.1 + Math.random() * 0.14);
+            const blob = this.scene.add.image(x, y, key);
+
+            blob.setTint(tint);
+            blob.setDisplaySize(size, size);
+            this.effectGroup.add(blob);
+
+            this.effects.push({
+                blob: blob,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 0,
+                span: 0.4 + Math.random() * 0.3,
+                size: size
+            });
+        }
+    }
+
+    updateEffects(delta) {
+        const dt = delta / 1000;
+        const drag = Math.max(0, 1 - BURST_DRAG * dt);
+
+        for (let i = this.effects.length - 1; i >= 0; i--) {
+            const p = this.effects[i];
+
+            p.life += dt;
+
+            if (p.life >= p.span) {
+                p.blob.destroy();
+                this.effects.splice(i, 1);
+                continue;
+            }
+
+            p.vx *= drag;
+            p.vy *= drag;
+            p.blob.x += p.vx * dt;
+            p.blob.y += p.vy * dt;
+
+            const t = p.life / p.span;
+            const size = p.size * (1 - t * 0.6);
+
+            p.blob.alpha = 1 - t * t;
+            p.blob.setDisplaySize(size, size);
+        }
+    }
+
+    /**
+     * Throw away every live blob at once. They only ever go one at a time as
+     * they run out, so anything still in flight when the board goes has to be
+     * dropped by hand.
+     */
+    clearEffects() {
+        for (let i = 0; i < this.effects.length; i++) this.effects[i].blob.destroy();
+
+        this.effects.length = 0;
+    }
+
+
     // ---- view -----------------------------------------------------------
 
     /**
@@ -1138,6 +1335,19 @@ export class GamePlay extends Phaser.GameObjects.Container {
         return door;
     }
 
+    /**
+     * Standing still with nothing to do: not under the finger, not walking a
+     * step through or back out of one, not being taken in by its garage. A
+     * parked convoy is drawn square on its cells, one vehicle to each, rather
+     * than left leaning through whatever corner it stopped on.
+     */
+    isParked(convoy) {
+        if (this.drag && this.drag.convoy === convoy) return false;
+
+        return !convoy.queue.length && !convoy.settle && !convoy.diving &&
+            !convoy.swallowing && !convoy.escaped;
+    }
+
     updateConvoyView(convoy, delta) {
         convoy.drawnRecoil = convoy.recoil;
 
@@ -1149,6 +1359,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         convoy.rig.draw(convoy.trail, {
             headFirst: convoy.leadIsHead,
+            parked: this.isParked(convoy),
             recoil: convoy.recoil,
             swallow: convoy.swallowed,
             ahead: this.roadAhead(convoy),
@@ -1394,6 +1605,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         if (this.stackDirty) this.sortStage();
 
         this.board.step(step);
+        this.updateEffects(step);
         this.updateDoors();
     }
 
@@ -1451,6 +1663,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         for (let i = 0; i < this.convoys.length; i++) this.convoys[i].rig.destroy();
         for (let i = 0; i < this.garages.length; i++) this.garages[i].destroy();
         this.mouthShape.destroy();
+        this.clearEffects();
 
         this.removeAll(true);
         this.board = null;
@@ -1483,6 +1696,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         for (let i = 0; i < this.convoys.length; i++) this.convoys[i].rig.destroy();
         for (let i = 0; i < this.garages.length; i++) this.garages[i].destroy();
         this.mouthShape.destroy();
+        this.clearEffects();
 
         super.destroy(fromScene);
     }

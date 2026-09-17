@@ -119,7 +119,7 @@ const DOOR_REACH = 0.45;
 
 // Where the swell crests, over that whole run: around the mouth, which is where
 // the vehicle is being taken hold of. Nothing at either end of the run.
-const DOOR_LIFT = 0.12;
+const DOOR_LIFT = 0.06;
 const DOOR_LIFT_AT = 0.55;
 
 // The couplings, drawn between vehicle centres and covered at both ends by the
@@ -249,6 +249,13 @@ export class Convoy {
         // faced away from the way it is going.
         this.headFirst = true;
 
+        // Standing still, with the track laid square through its corners so
+        // every vehicle sits in the middle of its own cell. The curve comes
+        // back the moment the convoy sets off, and the difference either way is
+        // eased through as slip, so it swings out into the bend as it goes and
+        // straightens up into its cells as it comes to rest.
+        this.parked = false;
+
         // Room for the longest track that ever gets laid: the trail behind, plus
         // the road ahead - which on the way into a garage runs the length of the
         // convoy again rather than the couple of cells a look-ahead needs.
@@ -273,19 +280,18 @@ export class Convoy {
      * garage doorway. `door` is where that doorway stands, so a vehicle going
      * through it can be drawn smaller the further in it gets. `headFirst` says
      * which end of the trail the tractor is at: false and the convoy is being
-     * reversed, last cart leading.
+     * reversed, last cart leading. `parked` says it is standing still, and is
+     * to be drawn square on its cells.
      *
-     * The corners are laid at the same radius every frame, moving or stopped.
-     * The track is what the convoy is standing on, so anything that reshapes it
-     * moves vehicles that are not driving anywhere: straightening a stopped
-     * convoy back onto its cells would walk it off its corner every time it came
-     * to rest and back around it the moment it set off again.
-     *
-     * What the track cannot avoid is changing when the road does - letting go
-     * drops the corner the tractor was leaning into, and asking for a new route
-     * lays a different one. That change is measured and taken up as slip rather
-     * than shown, so the convoy eases onto the new track instead of jumping onto
-     * it.
+     * The corners are laid curved while the convoy is on the move and square
+     * once it is parked, so a stopped convoy stands one vehicle to a cell
+     * rather than leaning through whatever bend it stopped on. The track is
+     * what the convoy is standing on, so laying it differently moves vehicles
+     * that are not driving anywhere: that move, like the one when the road
+     * changes under it - letting go drops the corner the tractor was leaning
+     * into, asking for a new route lays a different one - is measured and
+     * taken up as slip rather than shown, so the convoy eases onto the new
+     * track instead of jumping onto it.
      */
     draw(trail, opts) {
         const settings = opts || {};
@@ -305,6 +311,12 @@ export class Convoy {
 
         this.headFirst = settings.headFirst !== false;
 
+        // Coming to rest or setting off: the corners go square or come back
+        // round, and the vehicles on them move. Measured the same way as any
+        // other change of track - laid again as it was, curved as it was.
+        const parked = !!settings.parked;
+        const wasParked = this.parked;
+
         // Cells the front has reached move from the road ahead to the trail
         // behind, which changes both lists and the track not at all.
         if (this.roadKnown && !turned) this.catchUp(trail);
@@ -313,7 +325,8 @@ export class Convoy {
         // with the front where it is now, so its own travel does not count -
         // and read off where each vehicle stood, to measure against where the
         // new track puts them.
-        const shifted = this.roadKnown && (turned || this.trackChanged(trail, road));
+        const shifted = this.roadKnown &&
+            (turned || parked !== wasParked || this.trackChanged(trail, road));
 
         if (turned) {
             for (let i = 0; i < this.count; i++) {
@@ -325,14 +338,15 @@ export class Convoy {
             this.trailWas[0].x = trail.points[0].x;
             this.trailWas[0].y = trail.points[0].y;
 
-            this.layTrack(this.wasTrail, this.roadWas, radius);
+            this.layTrack(this.wasTrail, this.roadWas, wasParked ? 0 : radius);
 
             for (let i = 0; i < this.count; i++) {
                 this.trackAt(i, offset, tangent, this.was[i]);
             }
         }
 
-        this.layTrack(trail, road, radius);
+        this.parked = parked;
+        this.layTrack(trail, road, parked ? 0 : radius);
         this.remember(trail, road);
 
         // Cleared by any vehicle still turning or still winding off slip, so the
@@ -817,10 +831,31 @@ export class Convoy {
         return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
     }
 
-    /** Which way the track runs at that arc length. */
+    /**
+     * Which way the track runs at that arc length, read across a short length
+     * of it either side.
+     *
+     * Parked, the corners are square, and a vehicle standing on one would read
+     * the diagonal across it. It is read off one side only instead - the leg
+     * its nose is on - so it stands square to the way it is pointing, in its
+     * cell, the same as the vehicles either side of it.
+     */
     headingAt(along, tangent) {
-        const ahead = this.pointAt(along - tangent);
-        const behind = this.pointAt(along + tangent);
+        let front = along - tangent;
+        let back = along + tangent;
+
+        if (this.parked) {
+            if (this.headFirst) {
+                front = along - tangent * 2;
+                back = along;
+            } else {
+                front = along;
+                back = along + tangent * 2;
+            }
+        }
+
+        const ahead = this.pointAt(front);
+        const behind = this.pointAt(back);
 
         return Math.atan2(ahead.y - behind.y, ahead.x - behind.x);
     }
