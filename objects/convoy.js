@@ -232,7 +232,22 @@ export class Convoy {
         this.was = [];
         this.spot = { x: 0, y: 0, heading: 0 };
 
-        for (let i = 0; i < this.count; i++) this.was.push({ x: 0, y: 0, heading: 0 });
+        // Where the track put each vehicle the last time it was drawn, before
+        // any slip. The one baseline that still holds when the convoy is turned
+        // round to be driven from its other end: the old track cannot be laid
+        // again from a front it no longer has.
+        this.last = [];
+
+        for (let i = 0; i < this.count; i++) {
+            this.was.push({ x: 0, y: 0, heading: 0 });
+            this.last.push({ x: 0, y: 0, heading: 0 });
+        }
+
+        // Which end of the track the tractor is at. Driven forwards it is at
+        // the front, with the carts strung out behind it; backing up, the last
+        // cart is at the front and the tractor is last, and every vehicle is
+        // faced away from the way it is going.
+        this.headFirst = true;
 
         // Room for the longest track that ever gets laid: the trail behind, plus
         // the road ahead - which on the way into a garage runs the length of the
@@ -256,7 +271,9 @@ export class Convoy {
      * back down the track without moving it off it, which is how the nudge off a
      * wall is drawn; `swallow` slides it the other way, driving it on through a
      * garage doorway. `door` is where that doorway stands, so a vehicle going
-     * through it can be drawn smaller the further in it gets.
+     * through it can be drawn smaller the further in it gets. `headFirst` says
+     * which end of the trail the tractor is at: false and the convoy is being
+     * reversed, last cart leading.
      *
      * The corners are laid at the same radius every frame, moving or stopped.
      * The track is what the convoy is standing on, so anything that reshapes it
@@ -280,17 +297,31 @@ export class Convoy {
         const road = settings.ahead;
         const door = settings.door;
 
-        // Cells the tractor has reached move from the road ahead to the trail
+        // Taken hold of by its other end: the trail now runs the other way, and
+        // the old track has no front to be laid again from. Where each vehicle
+        // stood is taken from the last draw instead, so the convoy eases round
+        // onto its new footing the same as it would onto any other new track.
+        const turned = this.roadKnown && (settings.headFirst !== false) !== this.headFirst;
+
+        this.headFirst = settings.headFirst !== false;
+
+        // Cells the front has reached move from the road ahead to the trail
         // behind, which changes both lists and the track not at all.
-        if (this.roadKnown) this.catchUp(trail);
+        if (this.roadKnown && !turned) this.catchUp(trail);
 
         // The track has changed shape under the convoy. Lay it again as it was -
-        // with the tractor where it is now, so its own travel does not count -
+        // with the front where it is now, so its own travel does not count -
         // and read off where each vehicle stood, to measure against where the
         // new track puts them.
-        const shifted = this.roadKnown && this.trackChanged(trail, road);
+        const shifted = this.roadKnown && (turned || this.trackChanged(trail, road));
 
-        if (shifted) {
+        if (turned) {
+            for (let i = 0; i < this.count; i++) {
+                this.was[i].x = this.last[i].x;
+                this.was[i].y = this.last[i].y;
+                this.was[i].heading = this.last[i].heading;
+            }
+        } else if (shifted) {
             this.trailWas[0].x = trail.points[0].x;
             this.trailWas[0].y = trail.points[0].y;
 
@@ -311,6 +342,10 @@ export class Convoy {
         for (let i = 0; i < this.count; i++) {
             const vehicle = this.vehicles[i];
             const here = this.trackAt(i, offset, tangent, this.spot);
+
+            this.last[i].x = here.x;
+            this.last[i].y = here.y;
+            this.last[i].heading = here.heading;
 
             if (shifted) this.takeUpSlip(vehicle, this.was[i], here);
 
@@ -369,14 +404,23 @@ export class Convoy {
         return 1 + (DOOR_SHRINK - 1) * Math.pow(deep, DOOR_DRAW_OFF) + lift;
     }
 
-    /** Where the track puts vehicle `i`, and which way it faces there. */
+    /**
+     * Where the track puts vehicle `i`, and which way it faces there. Vehicle 0
+     * is the tractor, and it is at the front of the track driving forwards or
+     * the back of it reversing. Reversing, every vehicle also points the other
+     * way from the way the track runs: it is being pushed backwards along it,
+     * not turned round.
+     */
     trackAt(i, offset, tangent, out) {
-        const along = this.leadArc + offset + i * this.cellSize;
+        const slot = this.headFirst ? i : this.count - 1 - i;
+        const along = this.leadArc + offset + slot * this.cellSize;
         const here = this.pointAt(along);
 
         out.x = here.x;
         out.y = here.y;
         out.heading = this.headingAt(along, tangent);
+
+        if (!this.headFirst) out.heading = Phaser.Math.Angle.Wrap(out.heading + Math.PI);
 
         return out;
     }

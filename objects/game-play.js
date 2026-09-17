@@ -407,7 +407,12 @@ export class GamePlay extends Phaser.GameObjects.Container {
             cells: cells,
             count: cells.length,
 
-            // Cells the tractor still has to drive through, nearest first.
+            // Which end is out in front. cells[0] is always the end being
+            // driven, so a convoy taken by its last cart has its cells turned
+            // round and is reversed down the board, tractor last.
+            leadIsHead: true,
+
+            // Cells the end being driven still has to go through, nearest first.
             queue: [],
 
             // The board and goal the queue was worked out for. Pointer moves
@@ -513,6 +518,49 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
     leadCell(convoy) {
         return convoy.cells[0];
+    }
+
+    headCell(convoy) {
+        return convoy.leadIsHead ? convoy.cells[0] : convoy.cells[convoy.cells.length - 1];
+    }
+
+    tailCell(convoy) {
+        return convoy.leadIsHead ? convoy.cells[convoy.cells.length - 1] : convoy.cells[0];
+    }
+
+    /**
+     * Drive the convoy from the end that was taken hold of. Taken by the tractor
+     * it goes forwards; taken by the last cart it backs up, the whole convoy
+     * reversing down the same track. Turning it round turns the cells round,
+     * so cells[0] is still the end being driven and nothing else has to know.
+     *
+     * A step the old front had part taken is given up rather than finished:
+     * the new front cannot be steered into a cell the other end had booked.
+     */
+    setLeadingEnd(convoy, end) {
+        const wantHead = end === "head";
+
+        if (wantHead === convoy.leadIsHead) return;
+
+        this.cancelStep(convoy);
+        convoy.settle = null;
+        convoy.settling = false;
+        convoy.hitObstacle = false;
+
+        // A knock still playing out was measured down the old track from the
+        // old front, and would run the convoy the wrong way from the new one.
+        if (convoy.bumpTween) {
+            convoy.bumpTween.remove();
+            convoy.bumpTween = null;
+        }
+
+        convoy.recoil = 0;
+
+        convoy.cells.reverse();
+        convoy.leadIsHead = wantHead;
+        convoy.routeStamp = "";
+
+        this.rebuildTrail(convoy);
     }
 
     /** Hand back the cell the tractor had reserved but never reached. */
@@ -1100,6 +1148,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.stackDirty = true;
 
         convoy.rig.draw(convoy.trail, {
+            headFirst: convoy.leadIsHead,
             recoil: convoy.recoil,
             swallow: convoy.swallowed,
             ahead: this.roadAhead(convoy),
@@ -1143,13 +1192,15 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
     onPointerDown() {
         const p = this.localPointer();
-        const grabbed = this.pickConvoy(p.x, p.y);
+        const grabbed = this.pickEnd(p.x, p.y);
 
         if (!grabbed) return;
 
-        this.finishSettle(grabbed);
+        this.finishSettle(grabbed.convoy);
+        this.setLeadingEnd(grabbed.convoy, grabbed.end);
+        this.updateConvoyView(grabbed.convoy, 0);
 
-        this.drag = { convoy: grabbed };
+        this.drag = { convoy: grabbed.convoy };
         this.routeDrag(p);
     }
 
@@ -1169,10 +1220,12 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
     /**
-     * A convoy is towed from its tractor, so a touch anywhere along it takes
-     * hold of the same end. Nearest vehicle within reach wins.
+     * Which convoy the finger has taken hold of, and by which end. The tractor
+     * or the last cart within reach wins, nearest first, so a touch on either
+     * end drives the convoy from that end. A touch on a cart in between takes
+     * whichever end it is nearer to - and, on a cart exactly halfway, the front.
      */
-    pickConvoy(x, y) {
+    pickEnd(x, y) {
         const reach = this.cellSize * GRAB_REACH;
 
         let best = null;
@@ -1181,20 +1234,48 @@ export class GamePlay extends Phaser.GameObjects.Container {
         for (let i = 0; i < this.convoys.length; i++) {
             const convoy = this.convoys[i];
 
-            if (convoy.escaped || convoy.swallowing || this.enteringGarage(convoy)) continue;
+            if (!this.canGrab(convoy)) continue;
 
-            for (let k = 0; k < convoy.cells.length; k++) {
-                const p = this.cellToPixel(convoy.cells[k].col, convoy.cells[k].row);
+            const ends = [
+                { end: "head", cell: this.headCell(convoy) },
+                { end: "tail", cell: this.tailCell(convoy) }
+            ];
+
+            for (let e = 0; e < 2; e++) {
+                const p = this.cellToPixel(ends[e].cell.col, ends[e].cell.row);
                 const d = Math.hypot(p.x - x, p.y - y);
 
                 if (d < bestDist) {
                     bestDist = d;
-                    best = convoy;
+                    best = { convoy: convoy, end: ends[e].end };
                 }
             }
         }
 
-        return best;
+        if (best) return best;
+
+        for (let i = 0; i < this.convoys.length; i++) {
+            const convoy = this.convoys[i];
+
+            if (!this.canGrab(convoy)) continue;
+
+            for (let k = 0; k < convoy.cells.length; k++) {
+                const p = this.cellToPixel(convoy.cells[k].col, convoy.cells[k].row);
+
+                if (Math.hypot(p.x - x, p.y - y) >= reach) continue;
+
+                // Nearer the end being driven now than the other one.
+                const front = k * 2 < convoy.cells.length;
+
+                return { convoy: convoy, end: (front === convoy.leadIsHead) ? "head" : "tail" };
+            }
+        }
+
+        return null;
+    }
+
+    canGrab(convoy) {
+        return !convoy.escaped && !convoy.swallowing && !this.enteringGarage(convoy);
     }
 
     /**
