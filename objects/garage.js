@@ -1,6 +1,6 @@
 // The art is drawn on the same 220px canvas the vehicles use.
-const ART_CELL = 220;
-const GARAGE_FIT = 1.02;
+const ART_CELL = 170;
+const GARAGE_FIT = 1;
 
 // Which way the doorway points in the art: the opening is drawn at the foot of
 // the frame, so it faces the way y grows. Everything else is worked out as a

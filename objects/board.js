@@ -4,7 +4,7 @@ const RIM = 0xffffff;
 const WELL = 0x2b2e37;
 
 const TILE = 'board/tile_road';
-const TILE_ART = 96;
+const TILE_ART = 85;
 
 const SHADOW = 0x000000;
 

@@ -15,7 +15,7 @@ const BOARD_HEIGHT = 615;
 // The share of the screen's height the board may fill once it is stood on it,
 // which is what pulls it in again in landscape. The rest is the room the HUD and
 // the boosters sit in.
-const BOARD_SCREEN = 0.72;
+const BOARD_SCREEN = 0.5;
 
 // Pace the tractor keeps when it is under the finger, and the pace it winds up
 // to as the finger pulls ahead of it. Both in cells per second.
@@ -270,15 +270,24 @@ export class GamePlay extends Phaser.GameObjects.Container {
      * The cell a garage's doorway looks out on - the one the convoy drives in
      * from. Worked out off the way the building is turned, so the two can never
      * disagree: wherever the art's opening points, that is the way in.
+     *
+     * The way in is a whole cell, so the angle is read as whichever of the four
+     * it lies nearest. A garage turned off the square - set at a slant for the
+     * look of it - still has the one cell in front of it as its step, rather
+     * than a diagonal no convoy could drive out of.
      */
     doorstep(convoy) {
         const garage = convoy.garage;
 
         if (!garage) return null;
 
+        const outX = Math.cos(garage.facing);
+        const outY = Math.sin(garage.facing);
+        const along = Math.abs(outX) >= Math.abs(outY);
+
         return {
-            col: convoy.exit[0] + Math.round(Math.cos(garage.facing)),
-            row: convoy.exit[1] + Math.round(Math.sin(garage.facing))
+            col: convoy.exit[0] + (along ? Math.sign(outX) : 0),
+            row: convoy.exit[1] + (along ? 0 : Math.sign(outY))
         };
     }
 
@@ -296,6 +305,26 @@ export class GamePlay extends Phaser.GameObjects.Container {
         }
 
         return null;
+    }
+
+    /**
+     * Which way a garage's doorway is turned.
+     *
+     * A level may say so itself, in degrees turned the way the screen is: 0
+     * looks right, 90 down, 180 left, 270 up. That is the last word on it -
+     * the doorway, the dive and the opening cut out of the building are all
+     * read off this one angle, so an angle the level gives turns the whole
+     * garage and not just its art.
+     *
+     * Left out, it falls back to where the building stands, which is what
+     * every garage did before a level could speak up.
+     */
+    garageFacing(convoy) {
+        if (typeof convoy.facing !== "number") {
+            return this.wayIn(convoy.exit[0], convoy.exit[1]);
+        }
+
+        return Phaser.Math.DegToRad(convoy.facing);
     }
 
     /**
@@ -342,12 +371,37 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 x: spot.x,
                 y: spot.y,
                 size: this.cellSize,
-                facing: this.wayIn(convoy.exit[0], convoy.exit[1]),
+                facing: this.garageFacing(convoy),
                 behind: this.garageBackGroup,
                 parent: this.garageGroup
             });
 
             this.garages.push(convoy.garage);
+
+            this.validateGarage(convoy);
+        }
+    }
+
+    /**
+     * A garage turned by hand can be turned to face a wall. The doorway is the
+     * whole of the way in, so that is a level nobody can finish - said out loud
+     * here rather than left to be discovered by driving at it.
+     */
+    validateGarage(convoy) {
+        if (typeof convoy.facing !== "number") return;
+
+        const step = this.doorstep(convoy);
+
+        if (!this.isFloor(step.col, step.row)) {
+            console.warn(
+                "Garage '" + convoy.key + "' is turned towards a cell no convoy can stand on:",
+                step.col, step.row
+            );
+        } else if (this.tiles[step.row][step.col].obstacle) {
+            console.warn(
+                "Garage '" + convoy.key + "' is turned towards an obstacle:",
+                step.col, step.row
+            );
         }
     }
 
@@ -390,6 +444,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
             key: data.key,
             index: index,
             exit: data.exit,
+
+            // Degrees, or left out for the garage to be turned by where it
+            // stands. See garageFacing().
+            facing: data.facing,
             garage: null,
             cells: cells,
             count: cells.length,

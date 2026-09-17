@@ -1,7 +1,7 @@
 // The art is drawn on a 220px canvas with the vehicle sitting inside it, so a
 // vehicle drawn at cell size ends up a little under a cell wide - which is the
 // gap the storyboard leaves between two carts.
-const ART_CELL = 220;
+const ART_CELL = 200;
 const VEHICLE_FIT = 1.06;
 
 // Each vehicle is one sprite, and the frame it is drawn with never changes. A

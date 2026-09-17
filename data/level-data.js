@@ -1,79 +1,70 @@
+// A small square board to learn the game on: every cell is road, the three
+// garages sit in the middle of three edges so each doorway looks straight in
+// at the board, and the convoys are short enough to read at a glance.
+//
+// The one thing it asks for is an order. Yellow is parked across red's
+// doorstep, so red cannot be driven home until yellow is out of the way; cyan
+// is clear from the start and can go whenever.
+//
+// Each garage is turned by hand here, in degrees the way the screen turns: 0
+// looks right, 90 down, 180 left, 270 up. The doorway, and so the cell the
+// convoy drives in from, follows the angle. Drop the field and the garage goes
+// back to being turned by where it stands.
 export default {
 
-    rows: 12,
-    columns: 10,
+    rows: 7,
+    columns: 7,
 
-    time: 90,
+    time: 60,
 
     pattern: [
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1]
     ],
+
+    // Off to the sides of the three routes, so they dress the board and narrow
+    // it without ever standing in the way of a convoy that is driven sensibly.
     obstacles: [
-        [3, 0, "planter"],
-        [2, 4, "cargo_container"],
-        [7, 4, "service_cabinet"],
-        [8, 6],
-        [3, 9, "cargo_pallet"],
-        [4, 9, "cargo_pallet"]
+        [5, 1, "cone"],
+        [4, 3, "planter"],
+        [1, 5, "cargo_pallet"]
     ],
 
     convoys: [{
-        key: "purple",
-        exit: [9, 0],
-        cells: [
-            [0, 7],
-            [0, 6],
-            [0, 5],
-            [0, 4],
-            [0, 3],
-            [0, 2]
-        ]
-    }, {
-        key: "red",
-        exit: [9, 11],
-        cells: [
-            [4, 3],
-            [4, 4],
-            [4, 5],
-            [4, 6],
-            [4, 7],
-            [5, 7],
-            [6, 7],
-            [7, 7]
-        ]
-    }, {
+        // Straight down the second column and in through the left-hand door.
         key: "yellow",
-        exit: [0, 11],
+        exit: [0, 3],
+        facing: 0,
         cells: [
-            [8, 5],
-            [9, 5],
-            [9, 4],
-            [9, 3],
-            [9, 2],
-            [9, 1]
+            [1, 1],
+            [2, 1],
+            [3, 1]
         ]
     }, {
-        key: "cyan",
-        exit: [0, 0],
+        // Up the third column and across the top - the long way round, and only
+        // once yellow has pulled its last cart off the top row.
+        key: "red",
+        exit: [3, 0],
+        facing: 90,
         cells: [
-            [4, 11],
-            [5, 11],
-            [6, 11],
-            [7, 11],
-            [8, 11],
-            [8, 10],
-            [8, 9]
+            [2, 4],
+            [3, 4],
+            [4, 4]
+        ]
+    }, {
+        // Two cells up and in through the right-hand door.
+        key: "cyan",
+        exit: [6, 3],
+        facing: 180,
+        cells: [
+            [5, 5],
+            [4, 5],
+            [3, 5]
         ]
     }]
 }
