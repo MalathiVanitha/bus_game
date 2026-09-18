@@ -1,15 +1,8 @@
-/**
- * The path the tractor leaves behind it. points[0] is the live leading point, the
- * one the drag pulls around; every later point is a corner the tractor already
- * drove through. The carts are read off it by arc length, so each one runs over
- * exactly the ground the vehicle in front of it covered.
- */
 export class Trail {
     constructor(points) {
         this.points = points.map((p) => ({ x: p.x, y: p.y }));
     }
 
-    /** Drop everything further than `maxLen` behind the leading point. */
     trim(maxLen) {
         let len = 0;
 
@@ -30,7 +23,6 @@ export class Trail {
         }
     }
 
-    /** Position at arc length `s` measured back from the leading point. */
     pointAt(s) {
         if (s <= 0) return { x: this.points[0].x, y: this.points[0].y };
 
@@ -54,21 +46,12 @@ export class Trail {
         return { x: last.x, y: last.y };
     }
 
-    /**
-     * Fill `out` with `count` evenly spaced positions between arc lengths s0 and
-     * s1. One walk of the polyline instead of one per sample, because this runs
-     * for every convoy on every frame.
-     */
+
     sampleInto(out, count, s0, s1) {
         return samplePolyline(this.points, out, count, s0, s1);
     }
 }
 
-/**
- * The same even spacing over any run of points, not just a Trail's own. The rig
- * lays the road the convoy is about to drive onto the front of the trail it has
- * already left, and needs that joined-up run walked the same way.
- */
 export function samplePolyline(pts, out, count, s0, s1) {
     const step = count > 1 ? (s1 - s0) / (count - 1) : 0;
 
@@ -97,13 +80,6 @@ export function samplePolyline(pts, out, count, s0, s1) {
     return out;
 }
 
-/**
- * In-place binomial smoothing. The trail turns a hard 90 degrees at every grid
- * corner, and a vehicle reading its heading straight off that would snap round
- * in one frame, so the sampled points get rounded off first - that rounding is
- * the whole of the turn the convoy is seen to make. Both ends stay put, which
- * keeps the tractor exactly on the path the drag routed it along.
- */
 export function smoothTrailPoints(pts, passes) {
     const n = pts.length;
 

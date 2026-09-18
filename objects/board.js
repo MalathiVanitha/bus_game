@@ -1,5 +1,3 @@
-// Sampled off the storyboard: a white rounded tray and a near-black well cut
-// into it. The tarmac tiles sitting in the well are art.
 const RIM = 0xffffff;
 const WELL = 0x2b2e37;
 
@@ -8,8 +6,6 @@ const TILE_ART = 85;
 
 const SHADOW = 0x000000;
 
-// Everything below is a fraction of a cell, so the board holds its proportions
-// whatever size the screen gives it.
 const ART_CELL = 55;
 
 const RIM_PAD = 16 / ART_CELL;
@@ -19,34 +15,19 @@ const WELL_CORNER = 16 / ART_CELL;
 const TILE_GAP = 3 / ART_CELL;
 const TILE_CORNER = 9 / ART_CELL;
 
-// A tile lights up as a convoy takes it and sinks back to nothing on its own
-// clock - it does not wait for the vehicles to move off, so a convoy left parked
-// on its track ends up sitting on plain tarmac again.
 const LIFT = 0xffffff;
 
-// Bright enough to read against the tarmac, short of the white of the rim.
 const LIFT_ALPHA = 0.38;
 
-// Kept inside the tile, on top of the seam the tiles are already drawn with, so
-// that seam still reads between two lit neighbours.
 const LIFT_INSET = 1.5 / ART_CELL;
 
-// Up fast, a breath at full, then a long sink - so the convoy leaves a trail
-// that reads as one thing rather than a row of separate tiles blinking out.
 const LIFT_RISE = 120;
 const LIFT_HOLD = 70;
 const LIFT_FALL = 320;
 
-// A lit tile opens out from this much of its size, with a touch of overshoot
-// past full before it settles.
 const LIFT_FROM = 0.8;
 const LIFT_OVER = 0.06;
 
-// Every piece of the obstacle art is drawn inside a box of this size, and each
-// one is already sized within that box to read against the others - a barrier
-// low and wide, a cone tall and narrow. So the box is what gets fitted to the
-// cell, and one scale covers the lot of them; fitting each piece to the cell in
-// its own right would flatten those differences out.
 const OBSTACLE_ART = 200;
 const OBSTACLE_FIT = 1;
 
@@ -63,30 +44,21 @@ const OBSTACLE_OFFSET = {
 
 const OBSTACLE_OFFSET_DEFAULT = { x: 0, y: 0 };
 
-// Seen from straight above, a piece's shadow is its own outline laid on the
-// tarmac, pushed out a little away from a light high up to the top left. It is
-// the art itself filled black, so it always has the piece's own shape. The
-// offset is a fraction of a cell.
 const SHADOW_ALPHA = 0.42;
 const SHADOW_X = 0.07;
 const SHADOW_Y = 0.1;
 
-// Walls are laid a cell at a time from one set of art per style, fitted to the
-// cell. Each style has a piece for every way a cell can join its neighbours,
-// all drawn joined the one way round - an end open to the north, a straight
-// running north-south, a corner joining north and east, a tee joining west,
-// north and east - and turned to suit.
 const WALL_SHEET = 'walls';
 const WALL_ART = 384;
 
-// Which neighbours of the same wall a cell joins, as bits.
+const WALL_MARGIN = 30;
+const WALL_BLEED = 0.04;
+
 const WALL_N = 1;
 const WALL_E = 2;
 const WALL_S = 4;
 const WALL_W = 8;
 
-// The piece for each set of joins, and how many quarter turns clockwise it is
-// laid from the way it is drawn.
 const WALL_PIECES = {
     0: ['isolated', 0],
     [WALL_N]: ['end', 0],
@@ -108,13 +80,6 @@ const WALL_PIECES = {
 
 const DEFAULT_WALL = 'concrete-wall';
 
-/**
- * The tarmac the convoys drive on. The board itself is drawn once and only
- * redrawn when it is rebuilt, since nothing on it moves.
- *
- * The tiles a convoy is standing on light up over the top of it, on a layer of
- * their own that is redrawn every frame there is anything lit to draw.
- */
 export class Board {
     constructor(scene, config) {
         this.scene = scene;
@@ -132,27 +97,18 @@ export class Board {
         this.g = scene.add.graphics();
         config.parent.add(this.g);
 
-        // The tarmac itself, a piece of art to a cell, over the well it sits in.
         this.tileLayer = scene.add.container();
         config.parent.add(this.tileLayer);
 
-        // The pools under the obstacles lie on the tarmac, so they are drawn
-        // over the tiles rather than on the tray underneath them.
         this.shadowLayer = scene.add.container();
         config.parent.add(this.shadowLayer);
 
-        // The walls lie flat on the tarmac, over their own shadows. Nothing
-        // ever stands on a wall, so they need no place in the depth stack.
         this.wallLayer = scene.add.container();
         config.parent.add(this.wallLayer);
 
-        // Over the tarmac and under everything the board's parent adds after it,
-        // so a lit tile reads beneath the convoys rather than over them.
         this.liftG = scene.add.graphics();
         config.parent.add(this.liftG);
 
-        // The layer the obstacles stand on, handed in by the parent: they are
-        // stacked by depth there with everything else standing on the board.
         this.props = config.props;
         this.pieces = [];
 
@@ -207,8 +163,6 @@ export class Board {
 
         const gap = TILE_GAP * this.cell;
 
-        // A tile is laid a seam short of its cell, which is the gap the board
-        // was drawn with before the art took over.
         this.tileLayer.removeAll(true);
 
         for (let row = 0; row < this.rows; row++) {
@@ -233,7 +187,7 @@ export class Board {
     }
 
     placeWalls() {
-        const scale = this.cell / WALL_ART;
+        const scale = (this.cell * (1 + WALL_BLEED)) / (WALL_ART - WALL_MARGIN * 2);
 
         this.wallLayer.removeAll(true);
 
@@ -271,22 +225,15 @@ export class Board {
                 shadow.setAlpha(SHADOW_ALPHA);
                 this.shadowLayer.add(shadow);
 
-                const tile = this.scene.add.sprite(at.x, at.y, WALL_SHEET, frame);
+                const block = this.scene.add.sprite(at.x, at.y, WALL_SHEET, frame);
 
-                tile.setScale(scale);
-                tile.setRotation(turn);
-                this.wallLayer.add(tile);
+                block.setScale(scale);
+                block.setRotation(turn);
+                this.wallLayer.add(block);
             }
         }
     }
 
-    /**
-     * Stands the obstacle art on the cells that carry one, and lays each piece's
-     * shadow down on the tarmac under it.
-     *
-     * The shadows go on a layer of their own over the tiles, since they never move; the
-     * pieces themselves are sprites, on the layer the parent has placed.
-     */
     placeObstacles() {
         const scale = (this.cell * OBSTACLE_FIT) / OBSTACLE_ART;
 
@@ -318,10 +265,6 @@ export class Board {
         }
     }
 
-    /**
-     * The nudge a piece gets within its cell: its own kind's, and on top of
-     * that whatever the level says for this one piece in particular.
-     */
     obstacleOffset(name, own) {
         const kind = OBSTACLE_OFFSET[name] || OBSTACLE_OFFSET_DEFAULT;
 
@@ -331,10 +274,7 @@ export class Board {
         };
     }
 
-    /** Falls back to a cone rather than the missing-texture box. */
     obstacleFrame(name) {
-        // The art is packed under hyphenated names, while a level names its
-        // obstacles the way the rest of the data does.
         const frame = 'obstacles/obstacle-' + String(name || DEFAULT_OBSTACLE).replace(/_/g, '-');
 
         if (this.scene.textures.getFrame('sheet', frame)) return frame;
@@ -342,14 +282,11 @@ export class Board {
         return 'obstacles/obstacle-' + DEFAULT_OBSTACLE;
     }
 
-    /** A convoy is standing on the tile - light it, or top it back up. */
     pulseCell(col, row) {
         if (!this.isFloor(col, row)) return;
 
         const i = row * this.columns + col;
 
-        // A tile still lit from a moment ago is only topped back up, so a convoy
-        // doubling back over its own track does not pop it open from nothing.
         if (this.liftLevel[i] <= 0) this.liftRise[i] = 0;
 
         this.liftLevel[i] = 1;
@@ -376,7 +313,6 @@ export class Board {
             live = true;
         }
 
-        // One idle frame still has to run, to wipe the last tile off the layer.
         if (!live && !this.liftDrawn) return;
 
         this.drawLifts();
@@ -412,7 +348,6 @@ export class Board {
         }
     }
 
-    /** Opens out to full size with a bump past it, then settles on the tile. */
     liftScale(t) {
         const ease = 1 - Math.pow(1 - t, 3);
 

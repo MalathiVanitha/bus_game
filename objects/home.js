@@ -13,15 +13,10 @@ const LOGO_SCALE = 0.525;
 
 const GLEAM_WARM = 0xfff4d8;
 
-// The pulse: up, a beat at the top, then the same way back down, straight
-// into the next one. It never stops, so it is slower than it would be if it
-// only came round every few seconds — a breath rather than a throb.
 const GLEAM_TIME = 1100;
 const GLEAM_HOLD = 140;
 const GLEAM_DELAY = 1250;
 
-// The halo standing off the edges of the artwork. It is the whole of the
-// shine: the logo itself is left exactly as drawn.
 const HALO_STRENGTH = 2.4;
 const HALO_QUALITY = 0.16;
 const HALO_DISTANCE = 16;
@@ -92,9 +87,6 @@ const INTRO_SETTLE = 170;
 
 const INTRO_CLOUD_TIME = 900;
 
-// Once the intro has settled the screen keeps a little life in it: the Play
-// button breathes, the convoy idles on its springs, the logo sways. All slow
-// and slight - it is a screen at rest, not one asking for attention.
 const IDLE_DELAY = 1250;
 
 const PLAY_BREATH = 1.035;
@@ -106,9 +98,6 @@ const CONVOY_BOB_TIME = 900;
 const LOGO_SWAY = 1.2;
 const LOGO_SWAY_TIME = 2400;
 
-// Play pressed: the screen leaves the way it came, in reverse and quicker.
-// The buttons sweep off first, the convoy squats and drives off, the logo
-// lifts away, and the sky thins out to show the board waiting underneath.
 const OUTRO = [
     { piece: 'store', dx: -SWEEP, duration: 340, delay: 0 },
     { piece: 'playButton', dx: SWEEP, duration: 340, delay: 50 },
@@ -219,9 +208,6 @@ export class Home extends Phaser.GameObjects.Container {
     buildPlay() {
         const play = this.scene.add.container(0, PLAY_Y);
 
-        // The face and its label sit in their own container, so the idle
-        // breath and the press - which scales the button itself - never
-        // tread on each other.
         const body = this.scene.add.container(0, 0);
         play.add(body);
 
@@ -252,17 +238,12 @@ export class Home extends Phaser.GameObjects.Container {
     }
 
     buildGleam() {
-        // A real glow standing off the edges of the artwork, rather than a
-        // second copy of it pretending to be one.
         this.halo = this.logo.postFX.addGlow(GLEAM_WARM, 0, 0, false, HALO_QUALITY, HALO_DISTANCE);
     }
 
     startGleam() {
         this.stopGleam();
 
-        // One tween, played out and back on a loop: the first pulse lands once
-        // the intro has settled, and from there the logo keeps breathing for
-        // as long as the home screen is up.
         this.gleam = this.scene.tweens.add({
             targets: this.halo,
             outerStrength: HALO_STRENGTH,
@@ -283,7 +264,6 @@ export class Home extends Phaser.GameObjects.Container {
         this.halo.outerStrength = 0;
     }
 
-    /** The slow life the screen keeps once it has settled. */
     startIdle() {
         this.stopIdle();
 
@@ -377,7 +357,6 @@ export class Home extends Phaser.GameObjects.Container {
                 piece.hops = null;
             }
 
-            // Wherever the intro had got to, the piece leaves from its place.
             piece.x = piece.restX;
             piece.y = piece.restY;
             piece.angle = 0;
@@ -396,7 +375,6 @@ export class Home extends Phaser.GameObjects.Container {
 
             if (step.scale) go.scale = piece.introScale * step.scale;
 
-            // The convoy sits down on its springs before it pulls away.
             if (step.squat) {
                 go.delay += OUTRO_SQUAT_TIME;
 
@@ -413,8 +391,6 @@ export class Home extends Phaser.GameObjects.Container {
 
             this.scene.tweens.add(go);
 
-            // Gone by the end of its move, not before: the fade only starts
-            // once it is well on its way.
             this.scene.tweens.add({
                 targets: piece,
                 alpha: 0,
@@ -437,8 +413,6 @@ export class Home extends Phaser.GameObjects.Container {
             });
         }
 
-        // The screen as a whole is pushed away a touch as it empties, and the
-        // sky thins out over the board waiting underneath.
         this.scene.tweens.killTweensOf(this.content);
         this.scene.tweens.add({
             targets: this.content,
@@ -590,7 +564,6 @@ export class Home extends Phaser.GameObjects.Container {
         });
     }
 
-    /** The bit of give at the end of a big move. */
     settle(piece, step) {
         if (step.pulse) {
             this.scene.tweens.add({
@@ -639,8 +612,6 @@ export class Home extends Phaser.GameObjects.Container {
         this.x = dimensions.gameWidth / 2;
         this.y = dimensions.gameHeight / 2;
 
-        // The sky has to reach the edges of whatever screen the game is on,
-        // not just the box the screen is laid out in.
         this.sky.setSize(dimensions.actualWidth, dimensions.actualHeight);
 
         this.fitScale = Math.min(

@@ -1,164 +1,51 @@
-// Each piece of art is drawn on its own square canvas with the vehicle sitting
-// inside it - the tractor's 220 across, the cart's 314. What gets fitted to the
-// cell is the box the vehicle is drawn within rather than the canvas around it,
-// so the same margin is left round each and a tractor and a cart come out the
-// same size as one another however big their canvases happen to be.
-//
-// Kept as a fraction of the canvas rather than as two loose numbers: the art is
-// what says how big the box is, and both pieces are drawn to fill the same
-// share of their own.
 const ART_MARGIN = 200 / 220;
 const TRACTOR_ART_CELL = 220 * ART_MARGIN;
 const CART_ART_CELL = 314 * ART_MARGIN;
 
-// A vehicle drawn at cell size ends up a little under a cell wide - which is
-// the gap the storyboard leaves between two carts.
 const VEHICLE_FIT = 1.06;
 
-// Each vehicle is one sprite, and the frame it is drawn with never changes. A
-// vehicle turns by turning: there is no second render swapped or faded in when
-// it changes direction, so it is never two half-drawn vehicles at once.
 const TRACTOR_ART = "tractor_front";
 const CART_ART = "luggage_cart";
 
-// The vehicles and the garages are packed together in their own atlas, one set
-// of frames per colour, keyed by the colour alone.
 const VEHICLE_SHEET = "luggages";
 
-// Which way each render is already pointing, so a vehicle's heading only has to
-// make up the difference. Read off the art itself, where a vehicle is drawn
-// longer along the way it drives: both are drawn looking straight down at them
-// with their length running away from the viewer - the tractor 170 wide by 191
-// tall, the cart 169 by 191 - so both already point along a column.
-//
-// The two point opposite ways down it. The tractor is drawn nose towards the
-// bottom of its frame, headlights at the foot and the seat back at the head, so
-// it points the way y grows; the cart is drawn the other way about.
-//
-// Kept apart rather than shared for exactly this reason: it is a fact about
-// each piece of art and not about vehicles. The cart art was once drawn side
-// on, and pointed along a row instead.
 const TRACTOR_FACING = Math.PI / 2;
 const CART_FACING = -Math.PI / 2;
 
-// The radius the track curves through at a corner, in cells.
-//
-// Half a cell is measured off the turning animation, and it is also the most a
-// grid of whole cells can take: the curve then runs from exactly half a cell
-// before a corner to exactly half a cell after it, which is the span the
-// animation turns through, and two corners a single cell apart still each get
-// their own curve with nothing left over between them.
 const TURN_RADIUS = 0.5;
 
-// Straight segments the curve at a corner is drawn with. Enough that a vehicle
-// running along it is never seen to step between them. Even, because the arc
-// length halfway along the curve is read off the middle one.
 const TURN_SEGMENTS = 16;
 
-// Road ahead of the tractor taken into the reckoning, in cells, read off the
-// cells it has been routed through. Without it the tractor meets every corner
-// blind and snaps round once it is past; with it the corner is already curved
-// before it arrives, so the turn sits centred on the corner the way the
-// animation has it rather than trailing behind it.
 const LOOK_AHEAD = 2;
 
-// Track laid past the last vehicle, in cells. Curving a corner shortens the
-// track across it, so there has to be enough slack here that the last cart
-// never reaches the end of what has been laid.
 const TAIL_PAD = 2.5;
 
-// Half the length of track a vehicle reads its heading across, in cells. Short,
-// because the track is already curved - this only has to give a steady
-// direction along it, not do any smoothing of its own.
 const TANGENT = 0.1;
 
-// A vehicle winds onto the heading the track gives it, as a critically damped
-// spring. The track already turns it through the right angles in the right
-// places, so this is stiff - a frame or two of give.
-//
-// Its one real job is the frame a route the player has just asked for first
-// appears in: the track gains a corner the tractor may already be standing on,
-// and the heading it should be at jumps. Slack enough to take the worst of that
-// down to about twice an ordinary frame's turn, tight enough not to drag the
-// whole turn along behind where the vehicle actually is.
 const TURN_STIFFNESS = 34;
 const TURN_REST = 0.002;
 const TURN_REST_RATE = 0.01;
 
-// The road ahead is part of the track, and it can change under a convoy that is
-// standing on it: letting go drops the corner the tractor was leaning into, and
-// asking for a new route lays a different one. Either way the track moves out
-// from under the vehicles, and the ground they are drawn on has to keep up.
-//
-// So the move is measured and taken up as slip - how far each vehicle is drawn
-// from where the track now puts it - and wound off as a critically damped
-// spring. The vehicle does not move at all on the frame the road changes, and
-// eases onto the new track over about a fifth of a second.
-//
-// Slacker than the heading spring below because it has a real distance to
-// cover rather than a frame or two of give: a convoy let go on the approach to
-// a corner has to give up most of a turn.
 const SLIP_STIFFNESS = 26;
 const SLIP_REST = 0.05;
 const SLIP_REST_RATE = 0.5;
 
-// How small a vehicle is drawn by the time the doorway has taken all of it. It
-// is driving away from the viewer into the room, so it draws off with distance
-// the way anything does - flat to the end and it would read as sliding behind
-// the doorway rather than going away into it.
 const DOOR_SHRINK = 0.34;
 
-// How the drawing off is paced. Held a little past straight, so a vehicle keeps
-// its size while it is being lifted and then falls away, which is what reads as
-// being pulled in rather than driving in at its own steady pace. Not much past
-// it, or the whole of the shrinking piles into the last frame or two.
 const DOOR_DRAW_OFF = 1.35;
 
-// The vehicle goes on drawing off past the back wall, because it goes on being
-// seen past it: the wall takes its nose first and the rest of it is still out in
-// the room behind. In cells, past the wall, for the shrinking to finish over.
 const DOOR_DEEP = 0.28;
 
-// A vehicle does not drive in under its own power - the garage takes hold of it
-// at the mouth and draws it inside. It is picked up a little as that happens,
-// and looking straight down on it there is nowhere for a lift to go but towards
-// the viewer, so it is drawn as a swell over full size. The board lifts its
-// tiles the same way.
-//
-// How far out in front of the doorway the garage reaches to take a vehicle, in
-// cells. The painted room is only a third of a cell deep, which at the pace the
-// convoy is reeled in is three or four frames - too few to see anything happen
-// in. Reaching out past the mouth gives the lift somewhere to play out, and
-// reads as the garage taking hold of the vehicle rather than waiting for it.
 const DOOR_REACH = 0.45;
 
-// Where the swell crests, over that whole run: around the mouth, which is where
-// the vehicle is being taken hold of. Nothing at either end of the run.
 const DOOR_LIFT = 0.06;
 const DOOR_LIFT_AT = 0.55;
 
-// The couplings, drawn between vehicle centres and covered at both ends by the
-// art they join.
 const LINK_COLOR = 0x23262d;
 const LINK_WIDTH = 0.11;
 
 const STRAIGHT = 1e-6;
 
-/**
- * The vehicles of one convoy and the couplings between them.
- *
- * Every frame a length of track is laid: the cells the tractor is routed onto
- * next, the point it has reached, and the trail running back from it, with
- * every corner curved rather than square. The track is then measured by its own
- * arc length and a vehicle set down every cell of it, facing along it.
- *
- * Measuring along the curve rather than along the cells is what makes the
- * convoy read as one thing: each vehicle runs over exactly the track the one in
- * front of it ran over, and draws up a little through a bend the way anything
- * on a rope does, rather than each turning on the spot as it reaches a corner.
- */
-// Where the couplings stand among the things stacked by depth: under every
-// vehicle, whichever way round the two they join are standing.
 const LINK_DEPTH = -Number.MAX_VALUE;
 
 export class Convoy {
@@ -169,9 +56,6 @@ export class Convoy {
         this.count = config.count;
         this.settled = false;
 
-        // One scale per kind of art, since the two are drawn on canvases of
-        // different sizes. Held on the vehicle rather than on the convoy: it is
-        // a fact about the piece of art a vehicle is drawn with.
         const tractorScale = (this.cellSize * VEHICLE_FIT) / TRACTOR_ART_CELL;
         const cartScale = (this.cellSize * VEHICLE_FIT) / CART_ART_CELL;
 
@@ -179,8 +63,6 @@ export class Convoy {
         this.links.depth = LINK_DEPTH;
         config.parent.add(this.links);
 
-        // Built back to front, which is only where they start: once drawn, each
-        // vehicle stands at its own depth and the layer is sorted by it.
         this.vehicles = [];
 
         for (let i = this.count - 1; i >= 0; i--) {
@@ -217,18 +99,11 @@ export class Convoy {
             };
         }
 
-        // Cuts a vehicle away past the back wall of its garage. The shape is
-        // stood on the board by the owner, which knows the board's transform,
-        // and is only put on the vehicles while the convoy is going in - a mask
-        // costs the renderer a pass whether or not anything is drawn in it.
         this.doorShape = scene.make.graphics({ add: false });
         this.doorMask = this.doorShape.createGeometryMask();
         this.doorMask.invertAlpha = true;
         this.doorMasked = false;
 
-        // Scratch, so draw() allocates nothing. The corners the track is laid
-        // through, the track itself, and the arc length reached at each of its
-        // points.
         this.corners = [];
         this.road = [];
         this.arc = [];
@@ -236,28 +111,14 @@ export class Convoy {
         this.leadArc = 0;
         this.extended = { x: 0, y: 0 };
 
-        // The track as it was last laid: the road ahead, and the corners behind.
-        // Kept so a track that has changed shape can be laid again as it was and
-        // measured against the one replacing it.
-        //
-        // The tractor's own leading point is left out of it. That point moves
-        // every frame, and its movement is the convoy driving rather than the
-        // track changing - so the old track is always relaid with the tractor
-        // where it is now, and what comes out is the change alone.
         this.roadWas = [];
         this.trailWas = [{ x: 0, y: 0 }];
         this.wasTrail = { points: this.trailWas };
         this.roadKnown = false;
 
-        // Where each vehicle stood on that track, and scratch for where it
-        // stands on this one.
         this.was = [];
         this.spot = { x: 0, y: 0, heading: 0 };
 
-        // Where the track put each vehicle the last time it was drawn, before
-        // any slip. The one baseline that still holds when the convoy is turned
-        // round to be driven from its other end: the old track cannot be laid
-        // again from a front it no longer has.
         this.last = [];
 
         for (let i = 0; i < this.count; i++) {
@@ -265,22 +126,10 @@ export class Convoy {
             this.last.push({ x: 0, y: 0, heading: 0 });
         }
 
-        // Which end of the track the tractor is at. Driven forwards it is at
-        // the front, with the carts strung out behind it; backing up, the last
-        // cart is at the front and the tractor is last, and every vehicle is
-        // faced away from the way it is going.
         this.headFirst = true;
 
-        // Standing still, with the track laid square through its corners so
-        // every vehicle sits in the middle of its own cell. The curve comes
-        // back the moment the convoy sets off, and the difference either way is
-        // eased through as slip, so it swings out into the bend as it goes and
-        // straightens up into its cells as it comes to rest.
         this.parked = false;
 
-        // Room for the longest track that ever gets laid: the trail behind, plus
-        // the road ahead - which on the way into a garage runs the length of the
-        // convoy again rather than the couple of cells a look-ahead needs.
         const ahead = Math.max(LOOK_AHEAD, this.count + 1);
         const most = (this.count + ahead + TAIL_PAD + 4) * (TURN_SEGMENTS + 2);
 
@@ -294,27 +143,6 @@ export class Convoy {
         return this.key + "/" + name;
     }
 
-    /**
-     * `ahead` is the road the tractor is routed onto next, so the corner it is
-     * coming up to is curved before it gets there. `recoil` slides the convoy
-     * back down the track without moving it off it, which is how the nudge off a
-     * wall is drawn; `swallow` slides it the other way, driving it on through a
-     * garage doorway. `door` is where that doorway stands, so a vehicle going
-     * through it can be drawn smaller the further in it gets. `headFirst` says
-     * which end of the trail the tractor is at: false and the convoy is being
-     * reversed, last cart leading. `parked` says it is standing still, and is
-     * to be drawn square on its cells.
-     *
-     * The corners are laid curved while the convoy is on the move and square
-     * once it is parked, so a stopped convoy stands one vehicle to a cell
-     * rather than leaning through whatever bend it stopped on. The track is
-     * what the convoy is standing on, so laying it differently moves vehicles
-     * that are not driving anywhere: that move, like the one when the road
-     * changes under it - letting go drops the corner the tractor was leaning
-     * into, asking for a new route lays a different one - is measured and
-     * taken up as slip rather than shown, so the convoy eases onto the new
-     * track instead of jumping onto it.
-     */
     draw(trail, opts) {
         const settings = opts || {};
         const offset = (settings.recoil || 0) - (settings.swallow || 0);
@@ -325,28 +153,15 @@ export class Convoy {
         const road = settings.ahead;
         const door = settings.door;
 
-        // Taken hold of by its other end: the trail now runs the other way, and
-        // the old track has no front to be laid again from. Where each vehicle
-        // stood is taken from the last draw instead, so the convoy eases round
-        // onto its new footing the same as it would onto any other new track.
         const turned = this.roadKnown && (settings.headFirst !== false) !== this.headFirst;
 
         this.headFirst = settings.headFirst !== false;
 
-        // Coming to rest or setting off: the corners go square or come back
-        // round, and the vehicles on them move. Measured the same way as any
-        // other change of track - laid again as it was, curved as it was.
         const parked = !!settings.parked;
         const wasParked = this.parked;
 
-        // Cells the front has reached move from the road ahead to the trail
-        // behind, which changes both lists and the track not at all.
         if (this.roadKnown && !turned) this.catchUp(trail);
 
-        // The track has changed shape under the convoy. Lay it again as it was -
-        // with the front where it is now, so its own travel does not count -
-        // and read off where each vehicle stood, to measure against where the
-        // new track puts them.
         const shifted = this.roadKnown &&
             (turned || parked !== wasParked || this.trackChanged(trail, road));
 
@@ -371,8 +186,6 @@ export class Convoy {
         this.layTrack(trail, road, parked ? 0 : radius);
         this.remember(trail, road);
 
-        // Cleared by any vehicle still turning or still winding off slip, so the
-        // board knows to keep drawing until the convoy has properly come to rest.
         this.settled = true;
 
         for (let i = 0; i < this.count; i++) {
@@ -405,14 +218,6 @@ export class Convoy {
         this.drawLinks();
     }
 
-    /**
-     * How to draw a vehicle for how far into a doorway it has got: full size out
-     * on the tarmac, lifted as the garage takes hold of it at the mouth, then
-     * drawing away to DOOR_SHRINK by the back wall of the room.
-     *
-     * Measured along the way the door looks, so it holds however the garage is
-     * turned - there is no up or down on the board to lift a vehicle towards.
-     */
     doorScale(vehicle, door) {
         const along = (vehicle.x - door.x) * door.outX + (vehicle.y - door.y) * door.outY;
         const reach = door.mouth + DOOR_REACH * this.cellSize;
@@ -421,16 +226,9 @@ export class Convoy {
         if (along >= reach) return 1;
         if (along <= door.mouth - room) return DOOR_SHRINK;
 
-        // Two runs, not one. The vehicle only draws away once it is at the mouth,
-        // where the art has depth to show it going into; the lift runs over the
-        // longer stretch from where the garage first takes hold of it, so it
-        // still holds its size on the way to the door.
         const deep = Math.min(1, Math.max(0, (door.mouth - along) / room));
         const taken = Math.min(1, (reach - along) / (reach - door.back));
 
-        // Up to the crest and back down again: nothing where the garage takes
-        // hold, nothing again by the back wall. A quarter turn of a sine either
-        // side rather than a straight rise and fall, so it is flat at the top.
         const crest = taken < DOOR_LIFT_AT ?
             taken / DOOR_LIFT_AT :
             (1 - taken) / (1 - DOOR_LIFT_AT);
@@ -440,13 +238,6 @@ export class Convoy {
         return 1 + (DOOR_SHRINK - 1) * Math.pow(deep, DOOR_DRAW_OFF) + lift;
     }
 
-    /**
-     * Where the track puts vehicle `i`, and which way it faces there. Vehicle 0
-     * is the tractor, and it is at the front of the track driving forwards or
-     * the back of it reversing. Reversing, every vehicle also points the other
-     * way from the way the track runs: it is being pushed backwards along it,
-     * not turned round.
-     */
     trackAt(i, offset, tangent, out) {
         const slot = this.headFirst ? i : this.count - 1 - i;
         const along = this.leadArc + offset + slot * this.cellSize;
@@ -461,30 +252,15 @@ export class Convoy {
         return out;
     }
 
-    /**
-     * Take up the move from `was` to `now` as slip, so the vehicle is drawn
-     * exactly where it was drawn last frame and the new track is eased onto
-     * rather than snapped to.
-     */
     takeUpSlip(vehicle, was, now) {
         vehicle.slipX += was.x - now.x;
         vehicle.slipY += was.y - now.y;
         vehicle.slipTurn += Phaser.Math.Angle.Wrap(was.heading - now.heading);
     }
 
-    /**
-     * Wind the slip off towards nothing. Critically damped, and starting from
-     * rest, so a vehicle eases out of the offset rather than setting off at full
-     * tilt the frame the road changes. Solved implicitly, the same as the
-     * heading spring and for the same reason.
-     */
     easeSlip(vehicle, delta) {
         const step = delta / 1000;
 
-        // A frame of no time winds nothing off, but it must still say whether
-        // there is slip left to wind off: the convoy is redrawn once with no
-        // time on it as it comes to rest, and reporting itself settled there
-        // would stop the board redrawing and leave the slip standing.
         if (step > 0) {
             const w = SLIP_STIFFNESS;
             const damp = 1 + 2 * w * step + w * w * step * step;
@@ -519,17 +295,6 @@ export class Convoy {
         vehicle.slipRateTurn = 0;
     }
 
-    /**
-     * Move the cells the tractor has reached since the last frame from the
-     * remembered road ahead to the remembered trail behind.
-     *
-     * Handing a cell from one list to the other leaves the track itself exactly
-     * as it was - it is the same run of corners, split in a different place. But
-     * it is the split that says which leg of the track the tractor is on, so
-     * without this the track would be relaid with the tractor still short of a
-     * corner it has already driven through, and the convoy would be shown
-     * jumping the difference.
-     */
     catchUp(trail) {
         const road = this.roadWas;
         const past = this.trailWas;
@@ -539,8 +304,6 @@ export class Convoy {
 
         let reached = 0;
 
-        // The road is held nearest first, so a cell that is now the newest
-        // corner behind the tractor takes every cell before it with it.
         for (let i = 0; i < road.length; i++) {
             if (road[i].x === at.x && road[i].y === at.y) {
                 reached = i + 1;
@@ -557,16 +320,6 @@ export class Convoy {
         road.splice(0, reached);
     }
 
-    /**
-     * Would the track come out differently from the one last laid? Only the road
-     * ahead and the corners behind are compared - the tractor's leading point is
-     * left out, because it moves every frame and that is the convoy driving
-     * rather than the track changing.
-     *
-     * A cell handed over from the road to the trail as the tractor reaches it
-     * changes both lists at once and the track not at all, which is why they
-     * have to be compared together rather than one at a time.
-     */
     trackChanged(trail, road) {
         return this.listChanged(this.roadWas, road, 0) ||
             this.listChanged(this.trailWas, trail.points, 1);
@@ -604,19 +357,6 @@ export class Convoy {
         }
     }
 
-    /**
-     * Lay the track: the cells the convoy is routed onto next, furthest first,
-     * then the cells behind it, with every corner curved through `radius`. The
-     * tractor's own place along it is worked out afterwards, into `leadArc`.
-     *
-     * The tractor is deliberately not laid down as one of the corners. It is not
-     * a bend - it only marks how far down the track the convoy has got - and
-     * putting it on the track spikes it: within half a cell of a corner the
-     * tractor stands inside that corner's curve, and a track made to pass
-     * through it has to leave the curve, double back to the square corner and
-     * pick the curve up again. That spike sits exactly where the convoy is
-     * rounding the bend, which is the one place it must not.
-     */
     layTrack(trail, ahead, radius) {
         const corners = this.corners;
         const lead = trail.points[0];
@@ -627,17 +367,8 @@ export class Convoy {
             for (let i = ahead.length - 1; i >= 0; i--) corners.push(ahead[i]);
         }
 
-        // Nothing routed - the tractor has stopped, or is walking back off a
-        // step it never finished. The cell it would be driving onto is put in
-        // anyway, so the corner behind it still has a whole leg to curve into
-        // rather than one that ends wherever the tractor happens to have got to,
-        // and so the track does not change shape under a convoy the moment its
-        // route runs out.
         if (!corners.length) this.carryOn(trail);
 
-        // Where the corner behind the tractor lands, and so which leg of the
-        // track the tractor is somewhere along: the one from there to the point
-        // before it.
         const leg = corners.length;
 
         for (let i = 1; i < trail.points.length; i++) corners.push(trail.points[i]);
@@ -652,9 +383,6 @@ export class Convoy {
         this.laid = 0;
         this.push(corners[0]);
 
-        // Arc length at the two ends of that leg. A curved corner is not on the
-        // track itself, so each stands at the middle of its own curve, which is
-        // where a vehicle parked on that cell belongs.
         let frontArc = 0;
         let backArc = 0;
 
@@ -669,23 +397,10 @@ export class Convoy {
 
         if (leg === corners.length - 1) backArc = this.arc[this.laid - 1];
 
-        // No leg at all: nothing was routed and the tractor has no direction to
-        // carry on in, so it is standing on the front of the track.
         this.leadArc = leg < 1 ? 0 :
             backArc + (frontArc - backArc) * this.alongLeg(lead, corners, leg);
     }
 
-    /**
-     * Put in the cell the tractor would be driving onto, a cell on from the
-     * corner behind it in the direction it is travelling.
-     *
-     * That is exactly the cell a route would have handed over, so a convoy whose
-     * route runs out - or which is walking back off a step it never finished -
-     * keeps the very same track under it rather than having its front redrawn.
-     * The direction comes from how far it has got off that corner, and from the
-     * corner before it when it is sitting on one: a resting convoy has its
-     * leading point and the corner beneath it in the same place.
-     */
     carryOn(trail) {
         const points = trail.points;
 
@@ -711,16 +426,6 @@ export class Convoy {
         this.corners.push(this.extended);
     }
 
-    /**
-     * How far the tractor has got along its leg, from the corner behind it to
-     * the point ahead of it, as a fraction.
-     *
-     * Read off the square cells and spent on the curved track, so a convoy
-     * cutting a corner covers a shade less ground than the grid says it does -
-     * the same as anything running on rails. The carts are spaced off this
-     * point along that same curved track, so it has to be measured the way they
-     * are or they would crowd or stretch through every bend.
-     */
     alongLeg(lead, corners, leg) {
         const from = corners[leg];
         const to = corners[leg - 1];
@@ -731,16 +436,6 @@ export class Convoy {
         return Math.min(1, Math.hypot(lead.x - from.x, lead.y - from.y) / span);
     }
 
-    /**
-     * Put the corner at `i` onto the track, curved if it turns. The curve leaves
-     * each leg `reach` short of the corner and runs from one leg to the other,
-     * so the track meets both running exactly along them - nothing turns until
-     * the curve starts, and it is square again the moment it ends.
-     *
-     * Hands back the arc length standing for the corner itself, which is where a
-     * vehicle parked on that cell belongs: the middle of the curve where it
-     * turns, the corner itself where it does not.
-     */
     curveThrough(corners, i, radius) {
         const prev = corners[i - 1];
         const at = corners[i];
@@ -772,9 +467,6 @@ export class Convoy {
             return this.arc[this.laid - 1];
         }
 
-        // How far back down each leg the curve has to start to come round at
-        // this radius, kept inside half of either leg so two corners a cell
-        // apart never fight over the same stretch of track.
         const turn = Math.atan2(Math.abs(cross), dot);
         const reach = Math.min(
             radius / Math.tan((Math.PI - turn) / 2),
@@ -786,21 +478,6 @@ export class Convoy {
 
         let midArc = 0;
 
-        // Run a point along each leg's own line - the incoming one from where
-        // the curve starts on through the corner, the outgoing one from short of
-        // the corner out to where the curve ends - and hand the track over from
-        // the first to the second.
-        //
-        // What matters is how the handover is paced. Paced evenly the track
-        // would be a plain quadratic through the corner: it meets both legs
-        // pointing the right way, but it takes up its full bend the instant it
-        // leaves the straight, so a vehicle reaching the curve starts turning at
-        // full rate in one frame and stops dead at the far end. Eased in and out
-        // instead - flat in value, slope and curvature at both ends - the bend
-        // is taken up and given back over the length of the curve, so a vehicle
-        // winds into the turn and out of it. That easing is the whole of what
-        // makes a corner read as track rather than as a hinge, and the path
-        // either way runs through the same points, so nothing else shifts.
         for (let s = 1; s <= TURN_SEGMENTS; s++) {
             const t = s / TURN_SEGMENTS;
             const hand = t * t * t * (t * (t * 6 - 15) + 10);
@@ -834,7 +511,6 @@ export class Convoy {
         this.laid = at + 1;
     }
 
-    /** Position `along` of arc length down the track from its leading end. */
     pointAt(along) {
         const road = this.road;
         const arc = this.arc;
@@ -853,15 +529,6 @@ export class Convoy {
         return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
     }
 
-    /**
-     * Which way the track runs at that arc length, read across a short length
-     * of it either side.
-     *
-     * Parked, the corners are square, and a vehicle standing on one would read
-     * the diagonal across it. It is read off one side only instead - the leg
-     * its nose is on - so it stands square to the way it is pointing, in its
-     * cell, the same as the vehicles either side of it.
-     */
     headingAt(along, tangent) {
         let front = along - tangent;
         let back = along + tangent;
@@ -882,10 +549,6 @@ export class Convoy {
         return Math.atan2(ahead.y - behind.y, ahead.x - behind.x);
     }
 
-    /**
-     * Wind a vehicle round towards `target`. Solved implicitly - the frame step
-     * is not small enough for the plain form to stay put at this stiffness.
-     */
     turnTowards(vehicle, target, delta) {
         if (vehicle.heading === null) {
             vehicle.heading = target;
@@ -896,8 +559,6 @@ export class Convoy {
         const step = delta / 1000;
         const w = TURN_STIFFNESS;
 
-        // As in easeSlip: a frame of no time turns the vehicle nowhere, but it
-        // still has to report a turn left to make.
         if (step > 0) {
             const gap = Phaser.Math.Angle.Wrap(target - vehicle.heading);
             const damp = 1 + 2 * w * step + w * w * step * step;
@@ -936,7 +597,6 @@ export class Convoy {
         this.links.visible = visible;
     }
 
-    /** Put the door cut on the vehicles and couplings, or take it off. */
     maskDoor(on) {
         if (on === this.doorMasked) return;
 

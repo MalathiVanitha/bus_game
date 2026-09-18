@@ -1,15 +1,6 @@
-// The Store: the button under Play on the home screen, and the card it opens.
-//
-// Nothing in here talks to a payments or an ad SDK. A press only says what was
-// asked for on the scene - 'store:buy' with the offer, 'store:video',
-// 'store:restore' - and whatever is wired to those is free to charge for it and
-// pay it out.
-
 import { pressable } from '../utils/buttons.js';
 import { makeCoinPill } from './coin.js';
 
-// Packed at the size the home pack lays it out at on its 1080 x 1920 canvas,
-// which is twice the 540 x 960 the game is laid out in.
 const ART_SCALE = 0.645;
 
 const FACE = 'home/store-button';
@@ -25,8 +16,6 @@ const LABEL = 'Store';
 const LABEL_X = 34;
 const LABEL_Y = ICON_Y;
 const LABEL_SIZE = 75 * ART_SCALE;
-
-// ---- the card --------------------------------------------------------------
 
 const PANEL_W = 470;
 const PANEL_H = 670;
@@ -61,8 +50,6 @@ const CLOSE_Y = -287;
 const CLOSE_SCALE = 0.72;
 const CLOSE_HIT = 78;
 
-// The two tinted blocks are drawn rather than dressed: a flat fill with the
-// card's own corner is all the storyboard asks of them.
 const BLOCK_W = 436;
 const BLOCK_CORNER = 26;
 const ADS_FILL = 0xfdeceb;
@@ -87,7 +74,6 @@ const ADS_BUY_W = 257;
 const ADS_BUY_H = 62;
 const ADS_BUY_SIZE = 40;
 
-// A coin pack is a plain row, with no block behind it.
 const PACK_Y = [23, 108];
 const PACK_ICON_X = -180;
 const PACK_ICON_SCALE = [0.42, 0.52];
@@ -119,8 +105,6 @@ const RESTORE_HIT_W = 300;
 const RESTORE_HIT_H = 56;
 const RESTORE_LINE = 0x4a5578;
 
-// The green buttons are stretched to each size they are wanted at, so the
-// rounded ends keep their shape whatever is written on them.
 const GREEN = 'button_green';
 const GREEN_SCALE = 0.35;
 const GREEN_CORNER_X = 120;
@@ -181,7 +165,6 @@ export class Store extends Phaser.GameObjects.Container {
         this.add(button);
     }
 
-    /** Whoever is listening puts the card on the screen. */
     open() {
         this.scene.events.emit('store:open');
 
@@ -197,10 +180,6 @@ export class Store extends Phaser.GameObjects.Container {
     }
 }
 
-/**
- * The card the button opens. It belongs to the scene rather than to the home
- * screen, so it covers everything and outlives whatever opened it.
- */
 export class StorePanel extends Phaser.GameObjects.Container {
     constructor(scene, x = 0, y = 0) {
         super(scene, x, y);
@@ -212,7 +191,6 @@ export class StorePanel extends Phaser.GameObjects.Container {
 
         this.build();
 
-        // The balance is on the screen twice while this is up.
         this.scene.events.on('coin:changed', (value) => this.setBalance(value));
     }
 
@@ -237,8 +215,6 @@ export class StorePanel extends Phaser.GameObjects.Container {
             PANEL_CORNER_X, PANEL_CORNER_X, PANEL_CORNER_Y, PANEL_CORNER_Y
         ).setScale(PANEL_SCALE));
 
-        // The card eats what lands on it, so only a tap beside it reaches the
-        // dim behind and shuts the shop.
         const catcher = this.scene.add.zone(0, 0, PANEL_W, PANEL_H);
         catcher.setInteractive();
         this.card.add(catcher);
@@ -330,14 +306,12 @@ export class StorePanel extends Phaser.GameObjects.Container {
 
         restore.add(label);
 
-        // Phaser has no underline of its own, so the link is given one.
         restore.add(this.scene.add.rectangle(0, label.height / 2 - 2, label.width, 2, RESTORE_LINE));
 
         pressable(this.scene, restore, RESTORE_HIT_W, RESTORE_HIT_H, () => this.restore());
         this.card.add(restore);
     }
 
-    /** One of the tinted blocks a row stands on, with the row's own space in it. */
     block(y, height, fill) {
         const block = this.scene.add.container(0, y);
         const back = this.scene.add.graphics();
@@ -351,7 +325,6 @@ export class StorePanel extends Phaser.GameObjects.Container {
         return block;
     }
 
-    /** A green button at whatever size the row it sits in wants. */
     green(x, y, width, height, label, size, onPress) {
         const button = this.scene.add.container(x, y);
 
@@ -390,8 +363,6 @@ export class StorePanel extends Phaser.GameObjects.Container {
     setBalance(value) {
         if (this.pill) this.pill.count.setText(String(value));
     }
-
-    // ---- what the buttons ask for -------------------------------------------
 
     buy(offer) {
         this.scene.events.emit('store:buy', offer);

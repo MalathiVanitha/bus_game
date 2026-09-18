@@ -24,7 +24,6 @@ const INTRO_X = 150;
 const INTRO_TIME = 540;
 const INTRO_DELAY = 260;
 
-// Leaving with the home screen: back out the way it came in, quicker.
 const OUTRO_TIME = 300;
 
 const START_COINS = 850;
@@ -205,7 +204,6 @@ export class Coin extends Phaser.GameObjects.Container {
         });
     }
 
-    /** Slides off with the home screen rather than cutting out with it. */
     outro() {
         if (!this.visible) return;
 
