@@ -42,10 +42,26 @@ const CONFETTI_COUNT = 36;
 const CONFETTI_POP_COUNT = 16;
 const CONFETTI_GRAVITY = 9;
 const CONFETTI_DRAG = 1.6;
-const CONFETTI_TEXTURE = "convoy-confetti";
+const CONFETTI_TEXTURE = "convoy-confetti-pill";
+// Soft candy tones, as in the reference: pink, periwinkle, green, amber, orange.
 const CONFETTI_COLORS = [
-    "#ff5252", "#ffd400", "#3ae4ff", "#7cff6b", "#ff7ae0", "#ffffff", "#ff9f1a"
+    "#ff6b8e", "#5f73f0", "#9fd86a", "#ffb534", "#ff8a3d"
 ];
+// The convoy's own colour, toned to sit with the palette above.
+const CONFETTI_TINT = {
+    yellow: "#ffc53d",
+    red: "#ff6b8e",
+    cyan: "#4cc9f5"
+};
+// Pill texture, drawn upright; the long side is the piece's length.
+const CONFETTI_ART_W = 24;
+const CONFETTI_ART_H = 72;
+// Length of a piece in cells, and how thick it is against that length.
+const CONFETTI_LENGTH = 0.34;
+const CONFETTI_LENGTH_RANGE = 0.14;
+const CONFETTI_THICK = 0.36;
+// How short a piece gets when it tumbles end-on, so it never thins to a line.
+const CONFETTI_TUMBLE_MIN = 0.45;
 
 const CONVOY_SPLASH = {
     yellow: "#ffd400",
@@ -57,6 +73,13 @@ const LOOK_AHEAD_CELLS = 2;
 
 const DOOR_HALF = 0.75;
 const DOOR_DEPTH = 12;
+
+// The board rises into place from a little small and low once the home screen
+// has gone.
+const INTRO_TIME = 640;
+const INTRO_FADE = 320;
+const INTRO_FROM = 0.84;
+const INTRO_DROP = 70;
 
 const byDepth = (a, b) => a.depth - b.depth;
 
@@ -973,13 +996,14 @@ export class GamePlay extends Phaser.GameObjects.Container {
         if (convoy.garage) {
             const garage = convoy.garage;
             const splash = CONVOY_SPLASH[convoy.key] || "#ffffff";
+            const tint = CONFETTI_TINT[convoy.key] || null;
 
             this.burstFrom(garage, splash);
-            this.confettiFrom(garage.x, garage.y, CONFETTI_COUNT, splash);
+            this.confettiFrom(garage.x, garage.y, CONFETTI_COUNT, tint);
 
             garage.cheer(() => {
                 garage.vanish(() => {
-                    this.confettiFrom(garage.x, garage.y, CONFETTI_POP_COUNT, splash);
+                    // this.confettiFrom(garage.x, garage.y, CONFETTI_POP_COUNT, tint);
                     this.boardStamp++;
                 });
             });
@@ -1083,14 +1107,30 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         if (this.scene.textures.exists(key)) return key;
 
-        const canvas = this.scene.textures.createCanvas(key, 12, 20);
+        const w = CONFETTI_ART_W;
+        const h = CONFETTI_ART_H;
+        const canvas = this.scene.textures.createCanvas(key, w, h);
 
         if (!canvas) return "";
 
         const ctx = canvas.getContext();
+        const pill = (x, y, pw, ph) => {
+            const r = pw / 2;
+
+            ctx.beginPath();
+            ctx.arc(x + r, y + r, r, Math.PI, 0);
+            ctx.lineTo(x + pw, y + ph - r);
+            ctx.arc(x + r, y + ph - r, r, 0, Math.PI);
+            ctx.closePath();
+            ctx.fill();
+        };
+
+        ctx.fillStyle = "#d9d9d9";
+        pill(1, 1, w - 2, h - 2);
 
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, 12, 20);
+        pill(3, 3, (w - 2) * 0.62, h - 8);
+
         canvas.refresh();
 
         return key;
@@ -1105,10 +1145,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         for (let i = 0; i < count; i++) {
             const pick = i % 3 === 0 && color ?
-                color : CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+                color : Phaser.Utils.Array.GetRandom(CONFETTI_COLORS);
             const angle = -Math.PI / 2 + (Math.random() - 0.5) * 2.2;
             const speed = cell * (4 + Math.random() * 6);
-            const size = cell * (0.16 + Math.random() * 0.1);
+            const size = cell * (CONFETTI_LENGTH + Math.random() * CONFETTI_LENGTH_RANGE);
             const piece = this.scene.add.image(x, y, key);
 
             piece.setTint(Phaser.Display.Color.HexStringToColor(pick).color);
@@ -1122,7 +1162,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 vy: Math.sin(angle) * speed,
                 spin: (Math.random() - 0.5) * 14,
                 flip: Math.random() * Math.PI * 2,
-                flipRate: 8 + Math.random() * 10,
+                flipRate: 4 + Math.random() * 6,
                 sway: Math.random() * Math.PI * 2,
                 life: 0,
                 span: 1.1 + Math.random() * 0.7,
@@ -1144,8 +1184,11 @@ export class GamePlay extends Phaser.GameObjects.Container {
         piece.y += p.vy * dt;
         piece.rotation += p.spin * dt;
 
-        const w = p.size * 0.6;
-        const h = p.size * Math.max(0.08, Math.abs(Math.cos(p.flip)));
+        // Tumbles end over end: the length shortens and grows back while the
+        // thickness holds, so the piece always reads as a pill.
+        const tumble = CONFETTI_TUMBLE_MIN + (1 - CONFETTI_TUMBLE_MIN) * Math.abs(Math.cos(p.flip));
+        const w = p.size * CONFETTI_THICK;
+        const h = Math.max(w, p.size * tumble);
 
         piece.setDisplaySize(w, h);
 
@@ -1449,6 +1492,65 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.updateDoors();
     }
 
+    /**
+     * Takes the board out of sight in its starting pose, so it does not show
+     * through the home screen's sky as that fades. Input stays off until the
+     * intro has landed, so nothing can be grabbed mid-flight.
+     */
+    readyIntro() {
+        this.stopIntro();
+        this.detachInput();
+
+        this.alpha = 0;
+        this.setScale((this.fitScale || 1) * INTRO_FROM);
+        this.y = this.restY + INTRO_DROP;
+    }
+
+    /** Brings the board on, then hands over to onDone. */
+    intro(onDone = null) {
+        this.readyIntro();
+
+        const fit = this.fitScale || 1;
+
+        this.introDone = onDone;
+        this.introTweens = [
+            this.scene.tweens.add({
+                targets: this,
+                alpha: 1,
+                duration: INTRO_FADE,
+                ease: 'Quad.easeOut'
+            }),
+            this.scene.tweens.add({
+                targets: this,
+                scale: fit,
+                y: this.restY,
+                duration: INTRO_TIME,
+                ease: 'Back.easeOut',
+                onComplete: () => this.stopIntro()
+            })
+        ];
+    }
+
+    // Lands the board where it belongs and hands over, whether the intro ran
+    // its course or was cut short by a resize.
+    stopIntro() {
+        if (!this.introTweens) return;
+
+        for (let i = 0; i < this.introTweens.length; i++) this.introTweens[i].remove();
+
+        this.introTweens = null;
+
+        this.alpha = 1;
+        this.setScale(this.fitScale || 1);
+        this.y = this.restY;
+
+        const done = this.introDone;
+
+        this.introDone = null;
+
+        if (done) done();
+    }
+
     start() {
         this.finished = false;
         this.running = true;
@@ -1502,17 +1604,23 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
     adjust() {
         this.x = dimensions.gameWidth / 2;
-        this.y = dimensions.gameHeight / 2;
+        this.restY = dimensions.gameHeight / 2;
+        this.y = this.restY;
 
         const room = Math.min(
             dimensions.gameWidth / this.boardWidth,
             (dimensions.gameHeight * BOARD_SCREEN) / this.boardHeight
         );
 
-        this.setScale(Math.min(1, room));
+        this.fitScale = Math.min(1, room);
+        this.setScale(this.fitScale);
+
+        this.stopIntro();
     }
 
     destroy(fromScene) {
+        this.introDone = null;
+        this.stopIntro();
         this.detachInput();
 
         for (let i = 0; i < this.convoys.length; i++) this.convoys[i].rig.destroy();

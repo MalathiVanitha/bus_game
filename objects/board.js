@@ -19,7 +19,7 @@ const LIFT = 0xffffff;
 
 const LIFT_ALPHA = 0.38;
 
-const LIFT_INSET = 1.5 / ART_CELL;
+const LIFT_INSET = 1.25 / ART_CELL;
 
 const LIFT_RISE = 120;
 const LIFT_HOLD = 70;

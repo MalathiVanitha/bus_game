@@ -582,13 +582,25 @@ export class Home extends Phaser.GameObjects.Container {
         this.leaving = true;
         this.introRun = (this.introRun || 0) + 1;
 
+        // Out of reach while it flies off: the press's own pointerout would
+        // otherwise kill its tweens and leave it stuck where it was tapped.
+        this.playButton.disableInteractive();
+
         this.stopIdle();
         this.stopGlints();
         this.scene.events.emit('home:leaving');
 
         const fit = this.fitScale || 1;
+        const run = this.introRun;
 
         let last = 0;
+
+        // Whichever fade ends last: the piece fades, then the sky's below.
+        let final = { delay: 0, duration: 0 };
+
+        const fadesLater = (delay, duration) => {
+            if (delay + duration >= final.delay + final.duration) final = { delay, duration };
+        };
 
         for (let i = 0; i < OUTRO.length; i++) {
             const step = OUTRO[i];
@@ -636,6 +648,8 @@ export class Home extends Phaser.GameObjects.Container {
                 ease: 'Quad.easeIn'
             });
 
+            fadesLater(go.delay + go.duration - OUTRO_FADE, OUTRO_FADE);
+
             last = Math.max(last, go.delay + go.duration);
         }
 
@@ -664,8 +678,25 @@ export class Home extends Phaser.GameObjects.Container {
             alpha: 0,
             duration: OUTRO_SKY_TIME,
             delay: OUTRO_SKY_DELAY,
-            ease: 'Quad.easeIn',
+            ease: 'Quad.easeIn'
+        });
+
+        fadesLater(OUTRO_SKY_DELAY, OUTRO_SKY_TIME);
+
+        // Hands over once the last piece and the sky have faded right out. A
+        // tween of its own, rather than a timer (which runs on a separate
+        // clock and can fire early) or one of the pieces' tweens (which
+        // anything touching that piece could kill). It copies the last fade's
+        // delay as well as its length, since a delayed tween can end a frame
+        // behind an undelayed one of the same total time.
+        this.scene.tweens.addCounter({
+            from: 0,
+            to: 1,
+            delay: final.delay,
+            duration: final.duration,
             onComplete: () => {
+                if (run !== this.introRun || !this.leaving) return;
+
                 this.hide();
 
                 if (this.onPlay) this.onPlay();
@@ -790,6 +821,8 @@ export class Home extends Phaser.GameObjects.Container {
         this.visible = true;
         this.alpha = 1;
         this.leaving = false;
+
+        this.playButton.setInteractive();
 
         this.intro();
     }

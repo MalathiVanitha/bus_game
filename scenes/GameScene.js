@@ -83,8 +83,10 @@ export default class GameScene extends Phaser.Scene {
 
         this.events.on('store:open', () => this.storePanel.show());
 
-        // Play pressed: the counter leaves in step with the home screen.
-        this.events.on('home:leaving', () => this.coin.outro());
+        this.events.on('home:leaving', () => {
+            this.coin.outro();
+            this.gamePlay.readyIntro();
+        });
 
         this.settings = new Settings(this, 0, 0);
         this.gameGroup.add(this.settings);
@@ -167,13 +169,11 @@ export default class GameScene extends Phaser.Scene {
         this.coin.intro();
     }
 
-    // The board is built and waiting underneath, so entering a game is only a
-    // matter of the home screen and its counter getting out of the way.
     enterGame() {
         this.home.hide();
         this.coin.hide();
 
-        this.gamePlay.start();
+        this.gamePlay.intro(() => this.gamePlay.start());
     }
 
     startGamePlay() {
