@@ -148,8 +148,8 @@ export default class GameScene extends Phaser.Scene {
         this.restartLevel();
     }
 
-    // Only the one level so far, so the next one and a retry are the same
-    // board laid out again.
+    // The board lays out whichever level this.level is on, so the next level
+    // and a retry are the same call.
     restartLevel() {
         this.gamePlay.reset();
         this.gamePlay.adjust();

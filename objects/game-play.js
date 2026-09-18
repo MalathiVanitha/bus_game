@@ -3,7 +3,7 @@ import { Trail } from './trail.js';
 import { Board } from './board.js';
 import { Convoy } from './convoy.js';
 import { Garage } from './garage.js';
-import levelData from '../data/level-data.js';
+import levels from '../data/level-data.js';
 
 const BOARD_WIDTH = 500;
 const BOARD_HEIGHT = 615;
@@ -51,7 +51,10 @@ const CONFETTI_COLORS = [
 const CONFETTI_TINT = {
     yellow: "#ffc53d",
     red: "#ff6b8e",
-    cyan: "#4cc9f5"
+    cyan: "#4cc9f5",
+    pink: "#ff8fc8",
+    blue: "#5f8df0",
+    orange: "#ff9a3d"
 };
 // Pill texture, drawn upright; the long side is the piece's length.
 const CONFETTI_ART_W = 24;
@@ -66,7 +69,10 @@ const CONFETTI_TUMBLE_MIN = 0.45;
 const CONVOY_SPLASH = {
     yellow: "#ffd400",
     red: "#ff5252",
-    cyan: "#3ae4ff"
+    cyan: "#3ae4ff",
+    pink: "#ff5fb4",
+    blue: "#3d7bff",
+    orange: "#ff8a1f"
 };
 
 const LOOK_AHEAD_CELLS = 2;
@@ -94,6 +100,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
     init() {
+        const levelData = levels[((this.scene.level || 1) - 1) % levels.length];
+
         this.rows = levelData.rows;
         this.columns = levelData.columns;
         this.pattern = levelData.pattern;

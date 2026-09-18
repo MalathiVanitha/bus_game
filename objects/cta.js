@@ -188,11 +188,11 @@ export class CTA extends Phaser.GameObjects.Container {
     buildWin() {
         const card = this.card(WIN_H);
 
-        for (let i = 0; i < WIN_SPRINKLES.length; i++) {
-            const bit = WIN_SPRINKLES[i];
+        // for (let i = 0; i < WIN_SPRINKLES.length; i++) {
+        //     const bit = WIN_SPRINKLES[i];
 
-            card.add(this.sprinkle(bit[0], bit[1], bit[2], CONFETTI[bit[3]]));
-        }
+        //     card.add(this.sprinkle(bit[0], bit[1], bit[2], CONFETTI[bit[3]]));
+        // }
 
         this.stars = this.scene.add.sprite(0, STARS_Y, STARS);
         this.stars.setScale(STARS_SCALE);
