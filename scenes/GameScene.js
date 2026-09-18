@@ -5,6 +5,7 @@ import AnimationManager from '../objects/AnimationManager.js';
 import { GamePlay } from '../objects/game-play.js';
 import { Settings } from '../objects/settings.js';
 import { Home } from '../objects/home.js';
+import { LevelScreen } from '../objects/levelScreen.js';
 import { StorePanel } from '../objects/store.js';
 import { Coin } from '../objects/coin.js';
 import data from '../data/data.js';
@@ -71,6 +72,17 @@ export default class GameScene extends Phaser.Scene {
         // Over the board, which it covers until Play is pressed.
         this.home = new Home(this, 0, 0, () => this.enterGame());
         this.gameGroup.add(this.home);
+
+        // Home's Play opens the level card, and the card's Play sets the
+        // home screen off into the level with the boosters picked on it.
+        this.boosters = {};
+        this.levelScreen = new LevelScreen(this, 0, 0, (boosters) => {
+            this.boosters = boosters;
+            this.home.play();
+        });
+        this.gameGroup.add(this.levelScreen);
+
+        this.home.onPlayPress = () => this.levelScreen.show(this.level);
 
         // The counter outlives the home screen: the end of a level pays coins
         // into it off the board.
@@ -303,6 +315,7 @@ export default class GameScene extends Phaser.Scene {
         this.gamePlay.adjust();
         this.cta.adjust();
         this.home.adjust();
+        this.levelScreen.adjust();
         this.coin.adjust();
         this.storePanel.adjust();
         this.settings.adjust();

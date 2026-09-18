@@ -1,8 +1,9 @@
 const RIM = 0xffffff;
-const WELL = 0x2b2e37;
+const WELL = 0x5f6979;
 
-const TILE = 'board/tile_road';
-const TILE_ART = 85;
+const TILE_FACE = 0x7c8697;
+const TILE_LIGHT = 0x8f99a9;
+const TILE_SHADE = 0x6b7585;
 
 const SHADOW = 0x000000;
 
@@ -10,10 +11,11 @@ const ART_CELL = 55;
 
 const RIM_PAD = 16 / ART_CELL;
 const RIM_CORNER = 26 / ART_CELL;
-const WELL_PAD = 5 / ART_CELL;
+const WELL_PAD = 3 / ART_CELL;
 const WELL_CORNER = 16 / ART_CELL;
-const TILE_GAP = 3 / ART_CELL;
-const TILE_CORNER = 9 / ART_CELL;
+const TILE_GAP = 1.5 / ART_CELL;
+const TILE_CORNER = 5 / ART_CELL;
+const TILE_BEVEL = 1.5 / ART_CELL;
 
 const LIFT = 0xffffff;
 
@@ -163,23 +165,35 @@ export class Board {
 
         const gap = TILE_GAP * this.cell;
 
+        const corner = TILE_CORNER * this.cell;
+        const bevel = TILE_BEVEL * this.cell;
+        const w = this.tileWidth - gap;
+        const h = this.tileHeight - gap;
+
         this.tileLayer.removeAll(true);
+
+        const tiles = this.scene.add.graphics();
 
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.columns; col++) {
                 if (!this.isFloor(col, row)) continue;
 
                 const spot = this.cellToPixel(col, row);
-                const tile = this.scene.add.sprite(spot.x, spot.y, 'sheet', TILE);
+                const x = spot.x - w / 2;
+                const y = spot.y - h / 2;
 
-                tile.setScale(
-                    (this.tileWidth - gap) / TILE_ART,
-                    (this.tileHeight - gap) / TILE_ART
-                );
+                tiles.fillStyle(TILE_SHADE, 1);
+                tiles.fillRoundedRect(x, y, w, h, corner);
 
-                this.tileLayer.add(tile);
+                tiles.fillStyle(TILE_LIGHT, 1);
+                tiles.fillRoundedRect(x, y, w, h - bevel, corner);
+
+                tiles.fillStyle(TILE_FACE, 1);
+                tiles.fillRoundedRect(x, y + bevel, w, h - bevel * 2, corner);
             }
         }
+
+        this.tileLayer.add(tiles);
 
         this.shadowLayer.removeAll(true);
         this.placeWalls();

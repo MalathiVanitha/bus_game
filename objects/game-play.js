@@ -243,38 +243,32 @@ export class GamePlay extends Phaser.GameObjects.Container {
         return this.onBoard(col, row) && this.tiles[row][col].obstacle;
     }
 
-    canEnter(convoy, col, row) {
+    // Routing lets a convoy plan through its own garage from any side; the
+    // actual step in is only taken from a cell right next to it.
+    canEnter(convoy, col, row, routing) {
         if (!this.isFloor(col, row)) return false;
 
         const garage = this.garageAt(col, row);
 
         if (garage) {
             if (garage.convoyIndex !== convoy.index) return false;
-            if (!this.atDoorstep(convoy, this.leadCell(convoy))) return false;
+            if (!routing && !this.atDoorstep(convoy, this.leadCell(convoy))) return false;
         }
 
         return this.tiles[row][col].owner === -1;
     }
 
-    doorstep(convoy) {
-        const garage = convoy.garage;
+    // Any cell beside the garage is a way in: it is open on all four sides.
+    atDoorstep(convoy, cell) {
+        if (!convoy.exit || !cell) return false;
 
-        if (!garage) return null;
-
-        const outX = Math.cos(garage.facing);
-        const outY = Math.sin(garage.facing);
-        const along = Math.abs(outX) >= Math.abs(outY);
-
-        return {
-            col: convoy.exit[0] + (along ? Math.sign(outX) : 0),
-            row: convoy.exit[1] + (along ? 0 : Math.sign(outY))
-        };
+        return Math.abs(cell.col - convoy.exit[0]) + Math.abs(cell.row - convoy.exit[1]) === 1;
     }
 
-    atDoorstep(convoy, cell) {
-        const step = this.doorstep(convoy);
+    faceGarage(convoy, from) {
+        if (!convoy.garage || !from) return;
 
-        return !!step && !!cell && step.col === cell.col && step.row === cell.row;
+        convoy.garage.openTo(Math.atan2(from.row - convoy.exit[1], from.col - convoy.exit[0]));
     }
 
     garageAt(col, row) {
@@ -352,21 +346,17 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
     validateGarage(convoy) {
-        if (typeof convoy.facing !== "number") return;
+        const [col, row] = convoy.exit;
+        const sides = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
-        const step = this.doorstep(convoy);
+        for (let i = 0; i < sides.length; i++) {
+            const c = col + sides[i][0];
+            const r = row + sides[i][1];
 
-        if (!this.isFloor(step.col, step.row)) {
-            console.warn(
-                "Garage '" + convoy.key + "' is turned towards a cell no convoy can stand on:",
-                step.col, step.row
-            );
-        } else if (this.tiles[step.row][step.col].obstacle) {
-            console.warn(
-                "Garage '" + convoy.key + "' is turned towards an obstacle:",
-                step.col, step.row
-            );
+            if (this.isFloor(c, r) && !this.tiles[r][c].obstacle) return;
         }
+
+        console.warn("Garage '" + convoy.key + "' has no open cell beside it:", col, row);
     }
 
     lightConvoy(convoy) {
@@ -565,7 +555,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         for (let col = 0; col < this.columns; col++) {
             for (let row = 0; row < this.rows; row++) {
-                this.searchGraph.grid[col][row].weight = this.canEnter(convoy, col, row) ? 1 : 0;
+                this.searchGraph.grid[col][row].weight = this.canEnter(convoy, col, row, true) ? 1 : 0;
             }
         }
 
@@ -585,14 +575,6 @@ export class GamePlay extends Phaser.GameObjects.Container {
         return route.map((node) => ({ col: node.x, row: node.y }));
     }
 
-    routeGoal(convoy, goal) {
-        if (!this.isExitCell(convoy, goal.col, goal.row)) return goal;
-
-        const step = this.doorstep(convoy);
-
-        return (step && this.isFloor(step.col, step.row)) ? step : goal;
-    }
-
     routeDrag(point) {
         const convoy = this.drag && this.drag.convoy;
 
@@ -605,7 +587,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             return;
         }
 
-        const goal = this.routeGoal(convoy, this.pixelToCell(point.x, point.y));
+        const goal = this.pixelToCell(point.x, point.y);
 
         if (!this.isFloor(goal.col, goal.row)) {
             this.noteObstacleHit(convoy, point);
@@ -759,6 +741,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 return null;
             }
 
+            if (this.isExitCell(convoy, cell.col, cell.row)) {
+                this.faceGarage(convoy, this.leadCell(convoy));
+            }
+
             this.occupy(convoy, cell.col, cell.row);
 
             this.board.pulseCell(cell.col, cell.row);
@@ -807,6 +793,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         if (convoy.diving || convoy.swallowing || convoy.escaped) return;
         if (!this.canEnter(convoy, convoy.exit[0], convoy.exit[1])) return;
 
+        this.faceGarage(convoy, this.leadCell(convoy));
         this.beginEntry(convoy);
         convoy.settle = null;
         convoy.queue.length = 0;

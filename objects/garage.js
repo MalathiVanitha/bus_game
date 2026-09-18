@@ -5,7 +5,9 @@ const GARAGE_FIT = 1;
 
 const DOOR_FACING = Math.PI / 2;
 
-const DOOR_BACK = 20;
+// How far out from the middle the roof reaches (art pixels): vehicles are cut
+// off here, so they slide in under the roof edge on whichever side they came.
+const DOOR_BACK = 76;
 const DOOR_MOUTH = 192;
 const DOOR_HALF = 48;
 
@@ -45,8 +47,7 @@ export class Garage {
         this.front = this.drawing(scene, config, config.parent);
 
         this.front.setMask(config.mask);
-        this.front.depth = config.y +
-            config.size * (FOOT + Math.max(0, Math.sin(config.facing)) * NOSE);
+        this.front.depth = config.y + config.size * (FOOT + NOSE);
 
         this.doorBack = DOOR_BACK * this.baseScale;
         this.doorMouth = DOOR_MOUTH * this.baseScale;
@@ -71,6 +72,12 @@ export class Garage {
         parent.add(art);
 
         return art;
+    }
+
+    // Turns the doorway to the side a convoy is coming in from. The art stays
+    // as it is: the garage is open on all four sides.
+    openTo(facing) {
+        this.facing = facing;
     }
 
     gape() {

@@ -331,7 +331,12 @@ export class Home extends Phaser.GameObjects.Container {
         label.setResolution(this.textRes);
         body.add(label);
 
-        pressable(this.scene, play, PLAY_HIT_W, PLAY_HIT_H, () => this.play());
+        // With onPlayPress set, the press asks first (the level card) and play()
+        // is left to whatever it opens.
+        pressable(this.scene, play, PLAY_HIT_W, PLAY_HIT_H, () => {
+            if (this.onPlayPress) this.onPlayPress();
+            else this.play();
+        });
 
         this.playBody = body;
         this.playButton = play;
