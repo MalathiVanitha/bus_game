@@ -1,7 +1,18 @@
-// The art is drawn on a 220px canvas with the vehicle sitting inside it, so a
-// vehicle drawn at cell size ends up a little under a cell wide - which is the
-// gap the storyboard leaves between two carts.
-const ART_CELL = 200;
+// Each piece of art is drawn on its own square canvas with the vehicle sitting
+// inside it - the tractor's 220 across, the cart's 314. What gets fitted to the
+// cell is the box the vehicle is drawn within rather than the canvas around it,
+// so the same margin is left round each and a tractor and a cart come out the
+// same size as one another however big their canvases happen to be.
+//
+// Kept as a fraction of the canvas rather than as two loose numbers: the art is
+// what says how big the box is, and both pieces are drawn to fill the same
+// share of their own.
+const ART_MARGIN = 200 / 220;
+const TRACTOR_ART_CELL = 220 * ART_MARGIN;
+const CART_ART_CELL = 314 * ART_MARGIN;
+
+// A vehicle drawn at cell size ends up a little under a cell wide - which is
+// the gap the storyboard leaves between two carts.
 const VEHICLE_FIT = 1.06;
 
 // Each vehicle is one sprite, and the frame it is drawn with never changes. A
@@ -9,6 +20,10 @@ const VEHICLE_FIT = 1.06;
 // it changes direction, so it is never two half-drawn vehicles at once.
 const TRACTOR_ART = "tractor_front";
 const CART_ART = "luggage_cart";
+
+// The vehicles and the garages are packed together in their own atlas, one set
+// of frames per colour, keyed by the colour alone.
+const VEHICLE_SHEET = "luggages";
 
 // Which way each render is already pointing, so a vehicle's heading only has to
 // make up the difference. Read off the art itself, where a vehicle is drawn
@@ -154,7 +169,11 @@ export class Convoy {
         this.count = config.count;
         this.settled = false;
 
-        this.scale = (this.cellSize * VEHICLE_FIT) / ART_CELL;
+        // One scale per kind of art, since the two are drawn on canvases of
+        // different sizes. Held on the vehicle rather than on the convoy: it is
+        // a fact about the piece of art a vehicle is drawn with.
+        const tractorScale = (this.cellSize * VEHICLE_FIT) / TRACTOR_ART_CELL;
+        const cartScale = (this.cellSize * VEHICLE_FIT) / CART_ART_CELL;
 
         this.links = scene.add.graphics();
         this.links.depth = LINK_DEPTH;
@@ -166,17 +185,20 @@ export class Convoy {
 
         for (let i = this.count - 1; i >= 0; i--) {
             const tractor = i === 0;
+            const scale = tractor ? tractorScale : cartScale;
+
             const art = scene.add.sprite(
-                0, 0, "sheet",
+                0, 0, VEHICLE_SHEET,
                 this.frameFor(tractor ? TRACTOR_ART : CART_ART)
             );
 
             art.setOrigin(0.5);
-            art.setScale(this.scale);
+            art.setScale(scale);
             config.parent.add(art);
 
             this.vehicles[i] = {
                 art: art,
+                scale: scale,
                 facing: tractor ? TRACTOR_FACING : CART_FACING,
                 x: 0,
                 y: 0,
@@ -269,7 +291,7 @@ export class Convoy {
     }
 
     frameFor(name) {
-        return "bus/" + this.key + "/" + name;
+        return this.key + "/" + name;
     }
 
     /**
@@ -377,7 +399,7 @@ export class Convoy {
             art.y = vehicle.y;
             art.depth = vehicle.y;
             art.rotation = vehicle.heading - vehicle.facing;
-            art.setScale(this.scale * (door ? this.doorScale(vehicle, door) : 1));
+            art.setScale(vehicle.scale * (door ? this.doorScale(vehicle, door) : 1));
         }
 
         this.drawLinks();

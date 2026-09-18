@@ -47,21 +47,21 @@ const LIFT_OVER = 0.06;
 // low and wide, a cone tall and narrow. So the box is what gets fitted to the
 // cell, and one scale covers the lot of them; fitting each piece to the cell in
 // its own right would flatten those differences out.
-const OBSTACLE_ART = 96;
+const OBSTACLE_ART = 200;
 const OBSTACLE_FIT = 1;
 
 const DEFAULT_OBSTACLE = 'cone';
 
 const OBSTACLE_OFFSET = {
-    cone: { x: 0, y: -0.225 },
-    planter: { x: 0, y: -0.225 },
-    cargo_pallet: { x: 0, y: -0.2 },
-    barrier: { x: 0, y: 0.11 },
-    cargo_container: { x: 0, y: -0.04 },
-    service_cabinet: { x: 0, y: -0.04 }
+    cone: { x: 0, y: 0 },
+    planter: { x: 0, y: 0 },
+    cargo_pallet: { x: 0, y: 0 },
+    barrier: { x: 0, y: 0 },
+    cargo_container: { x: 0, y: 0 },
+    service_cabinet: { x: 0, y: 0 }
 };
 
-const OBSTACLE_OFFSET_DEFAULT = { x: 0, y: -0.04 };
+const OBSTACLE_OFFSET_DEFAULT = { x: 0, y: 0 };
 
 // A soft pool under each piece, sat where the art's own feet are rather than at
 // a fixed depth, so a barrier gets its shadow at its legs and a cone at its base.

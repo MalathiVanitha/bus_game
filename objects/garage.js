@@ -1,4 +1,7 @@
-// The art is drawn on the same 220px canvas the vehicles use.
+// The art is drawn on the same 220px canvas the vehicles use, and packed into
+// the same atlas beside them, keyed by the convoy's colour.
+const VEHICLE_SHEET = "luggages";
+
 const ART_CELL = 170;
 const GARAGE_FIT = 1;
 
@@ -88,8 +91,8 @@ export class Garage {
         const art = scene.add.sprite(
             config.x,
             config.y,
-            "sheet",
-            "bus/" + config.key + "/garage"
+            VEHICLE_SHEET,
+            config.key + "/garage"
         );
 
         art.setOrigin(0.5);
