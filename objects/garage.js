@@ -36,6 +36,13 @@ const CHEER_SPREAD = 1.16;
 const CHEER_IN = 90;
 const CHEER_OUT = 420;
 
+// Once it has bounced, the building is done with: it pops up a touch, then
+// shrinks away to nothing and is gone for good.
+const VANISH_DELAY = 120;
+const VANISH_POP = 1.15;
+const VANISH_POP_TIME = 110;
+const VANISH_TIME = 260;
+
 // Where the building stands among the things stacked by depth, in cells down
 // from the middle of its cell: at its foot. A doorway that looks down the
 // screen pushes that out by the reach of a vehicle's nose, so one driving up
@@ -85,6 +92,9 @@ export class Garage {
         this.doorHalf = DOOR_HALF * this.baseScale;
 
         this.gapeTween = null;
+
+        // Set once the building has been taken away, for good.
+        this.gone = false;
     }
 
     drawing(scene, config, parent) {
@@ -144,8 +154,9 @@ export class Garage {
     /**
      * The whole convoy is in. The building takes it with a bounce: pressed
      * down along the doorway and out across it, then springing back.
+     * `then` runs once it has settled.
      */
-    cheer() {
+    cheer(then) {
         this.stopTween();
 
         const both = [this.back, this.front];
@@ -166,6 +177,43 @@ export class Garage {
                     easeParams: [1.1, 0.5],
                     onComplete: () => {
                         this.gapeTween = null;
+                        if (then) then();
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * The garage has done its job: a small pop, then it shrinks and fades to
+     * nothing and is hidden. `then` runs once it is out of sight.
+     */
+    vanish(then) {
+        if (this.gone) return;
+
+        this.stopTween();
+        this.gone = true;
+
+        const both = [this.back, this.front];
+
+        this.gapeTween = this.scene.tweens.add({
+            targets: both,
+            scale: this.baseScale * VANISH_POP,
+            delay: VANISH_DELAY,
+            duration: VANISH_POP_TIME,
+            ease: "Quad.easeOut",
+            onComplete: () => {
+                this.gapeTween = this.scene.tweens.add({
+                    targets: both,
+                    scale: 0,
+                    alpha: 0,
+                    duration: VANISH_TIME,
+                    ease: "Back.easeIn",
+                    onComplete: () => {
+                        this.gapeTween = null;
+                        this.back.setVisible(false);
+                        this.front.setVisible(false);
+                        if (then) then();
                     }
                 });
             }

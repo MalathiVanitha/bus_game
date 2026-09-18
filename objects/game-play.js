@@ -46,6 +46,17 @@ const BURST_SPREAD = 0.9;
 const BURST_DRAG = 4;
 const SPARK_TEXTURE = "convoy-spark";
 
+// The confetti thrown up over a garage once its convoy is in, and again as the
+// building pops away. Speeds and gravity are in cells a second.
+const CONFETTI_COUNT = 36;
+const CONFETTI_POP_COUNT = 16;
+const CONFETTI_GRAVITY = 9;
+const CONFETTI_DRAG = 1.6;
+const CONFETTI_TEXTURE = "convoy-confetti";
+const CONFETTI_COLORS = [
+    "#ff5252", "#ffd400", "#3ae4ff", "#7cff6b", "#ff7ae0", "#ffffff", "#ff9f1a"
+];
+
 // The colour each convoy bursts in, by its key. White for one not listed.
 const CONVOY_SPLASH = {
     yellow: "#ffd400",
@@ -277,6 +288,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         for (let i = 0; i < this.garages.length; i++) {
             const garage = this.garages[i];
 
+            if (garage.gone) continue;
             if (garage.col === col && garage.row === row) return garage;
         }
 
@@ -1033,7 +1045,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             const convoy = this.convoys[i];
             const garage = convoy.garage;
 
-            if (!garage) continue;
+            if (!garage || garage.gone) continue;
 
             const spot = this.cellToPixel(convoy.exit[0], convoy.exit[1]);
 
@@ -1151,9 +1163,21 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         // The last cart is in: the garage bounces on it and throws a burst of
         // the convoy's colour out of the doorway.
+        // Confetti goes up over it, and once it has settled the building pops
+        // away with a last puff, leaving its cell free for anyone.
         if (convoy.garage) {
-            convoy.garage.cheer();
-            this.burstFrom(convoy.garage, CONVOY_SPLASH[convoy.key] || "#ffffff");
+            const garage = convoy.garage;
+            const splash = CONVOY_SPLASH[convoy.key] || "#ffffff";
+
+            this.burstFrom(garage, splash);
+            this.confettiFrom(garage.x, garage.y, CONFETTI_COUNT, splash);
+
+            garage.cheer(() => {
+                garage.vanish(() => {
+                    this.confettiFrom(garage.x, garage.y, CONFETTI_POP_COUNT, splash);
+                    this.boardStamp++;
+                });
+            });
         }
 
         // The last one out is the level won.
@@ -1269,6 +1293,89 @@ export class GamePlay extends Phaser.GameObjects.Container {
         }
     }
 
+    /** A small white strip, drawn once, for confetti pieces to be tinted from. */
+    confettiTexture() {
+        const key = CONFETTI_TEXTURE;
+
+        if (this.scene.textures.exists(key)) return key;
+
+        const canvas = this.scene.textures.createCanvas(key, 12, 20);
+
+        if (!canvas) return "";
+
+        const ctx = canvas.getContext();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, 12, 20);
+        canvas.refresh();
+
+        return key;
+    }
+
+    /**
+     * Throw confetti up from a point: strips of every colour, with the convoy's
+     * own worked in, that tumble, flutter and rain back down past it.
+     */
+    confettiFrom(x, y, count, color) {
+        const key = this.confettiTexture();
+
+        if (!key) return;
+
+        const cell = this.cellSize;
+
+        for (let i = 0; i < count; i++) {
+            const pick = i % 3 === 0 && color ?
+                color : CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+            const angle = -Math.PI / 2 + (Math.random() - 0.5) * 2.2;
+            const speed = cell * (4 + Math.random() * 6);
+            const size = cell * (0.16 + Math.random() * 0.1);
+            const piece = this.scene.add.image(x, y, key);
+
+            piece.setTint(Phaser.Display.Color.HexStringToColor(pick).color);
+            piece.setRotation(Math.random() * Math.PI * 2);
+            this.effectGroup.add(piece);
+
+            this.effects.push({
+                blob: piece,
+                confetti: true,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                spin: (Math.random() - 0.5) * 14,
+                flip: Math.random() * Math.PI * 2,
+                flipRate: 8 + Math.random() * 10,
+                sway: Math.random() * Math.PI * 2,
+                life: 0,
+                span: 1.1 + Math.random() * 0.7,
+                size: size
+            });
+        }
+    }
+
+    /** One confetti piece's frame: tumble, flutter, fall, and fade at the end. */
+    stepConfetti(p, dt) {
+        const drag = Math.max(0, 1 - CONFETTI_DRAG * dt);
+        const piece = p.blob;
+
+        p.vx *= drag;
+        p.vy = p.vy * drag + CONFETTI_GRAVITY * this.cellSize * dt;
+        p.flip += p.flipRate * dt;
+        p.sway += 5 * dt;
+
+        piece.x += (p.vx + Math.sin(p.sway) * this.cellSize * 0.8) * dt;
+        piece.y += p.vy * dt;
+        piece.rotation += p.spin * dt;
+
+        // Turning over in the air: seen edge-on it thins to a line.
+        const w = p.size * 0.6;
+        const h = p.size * Math.max(0.08, Math.abs(Math.cos(p.flip)));
+
+        piece.setDisplaySize(w, h);
+
+        const t = p.life / p.span;
+
+        piece.alpha = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
+    }
+
     updateEffects(delta) {
         const dt = delta / 1000;
         const drag = Math.max(0, 1 - BURST_DRAG * dt);
@@ -1281,6 +1388,11 @@ export class GamePlay extends Phaser.GameObjects.Container {
             if (p.life >= p.span) {
                 p.blob.destroy();
                 this.effects.splice(i, 1);
+                continue;
+            }
+
+            if (p.confetti) {
+                this.stepConfetti(p, dt);
                 continue;
             }
 

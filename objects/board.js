@@ -63,11 +63,13 @@ const OBSTACLE_OFFSET = {
 
 const OBSTACLE_OFFSET_DEFAULT = { x: 0, y: 0 };
 
-// A soft pool under each piece, sat where the art's own feet are rather than at
-// a fixed depth, so a barrier gets its shadow at its legs and a cone at its base.
-const SHADOW_ALPHA = 0.16;
-const SHADOW_SPREAD = 0.86;
-const SHADOW_DEPTH = 0.17;
+// Seen from straight above, a piece's shadow is its own outline laid on the
+// tarmac, pushed out a little away from a light high up to the top left. It is
+// the art itself filled black, so it always has the piece's own shape. The
+// offset is a fraction of a cell.
+const SHADOW_ALPHA = 0.42;
+const SHADOW_X = 0.07;
+const SHADOW_Y = 0.1;
 
 /**
  * The tarmac the convoys drive on. The board itself is drawn once and only
@@ -98,8 +100,8 @@ export class Board {
 
         // The pools under the obstacles lie on the tarmac, so they are drawn
         // over the tiles rather than on the tray underneath them.
-        this.shadowG = scene.add.graphics();
-        config.parent.add(this.shadowG);
+        this.shadowLayer = scene.add.container();
+        config.parent.add(this.shadowLayer);
 
         // Over the tarmac and under everything the board's parent adds after it,
         // so a lit tile reads beneath the convoys rather than over them.
@@ -189,14 +191,13 @@ export class Board {
      * Stands the obstacle art on the cells that carry one, and lays each piece's
      * shadow down on the tarmac under it.
      *
-     * The shadows go on the board's own graphics, since they never change; the
+     * The shadows go on a layer of their own over the tiles, since they never move; the
      * pieces themselves are sprites, on the layer the parent has placed.
      */
     placeObstacles() {
-        const g = this.shadowG;
         const scale = (this.cell * OBSTACLE_FIT) / OBSTACLE_ART;
 
-        g.clear();
+        this.shadowLayer.removeAll(true);
 
         for (let i = 0; i < this.pieces.length; i++) this.pieces[i].destroy();
 
@@ -218,14 +219,11 @@ export class Board {
             this.props.add(piece);
             this.pieces.push(piece);
 
-            // Where the drawn pixels stop inside the art's box - the piece's
-            // feet, which is where its shadow belongs, whatever the box says.
-            // The shadow goes with the piece, not the cell.
-            const art = piece.frame.data.spriteSourceSize;
-            const foot = (art.y + art.h - OBSTACLE_ART / 2) * scale;
-
-            g.fillStyle(SHADOW, SHADOW_ALPHA);
-            g.fillEllipse(x, y + foot, art.w * scale * SHADOW_SPREAD, this.cell * SHADOW_DEPTH);
+            const shadow = this.scene.add.sprite(x + SHADOW_X * this.cell - 2, y + SHADOW_Y * this.cell - 2, 'sheet', frame);
+            shadow.setScale(scale * 1.15);
+            shadow.setTintFill(SHADOW);
+            shadow.setAlpha(SHADOW_ALPHA);
+            this.shadowLayer.add(shadow);
         }
     }
 
