@@ -71,6 +71,43 @@ const SHADOW_ALPHA = 0.42;
 const SHADOW_X = 0.07;
 const SHADOW_Y = 0.1;
 
+// Walls are laid a cell at a time from one set of art per style, fitted to the
+// cell. Each style has a piece for every way a cell can join its neighbours,
+// all drawn joined the one way round - an end open to the north, a straight
+// running north-south, a corner joining north and east, a tee joining west,
+// north and east - and turned to suit.
+const WALL_SHEET = 'walls';
+const WALL_ART = 384;
+
+// Which neighbours of the same wall a cell joins, as bits.
+const WALL_N = 1;
+const WALL_E = 2;
+const WALL_S = 4;
+const WALL_W = 8;
+
+// The piece for each set of joins, and how many quarter turns clockwise it is
+// laid from the way it is drawn.
+const WALL_PIECES = {
+    0: ['isolated', 0],
+    [WALL_N]: ['end', 0],
+    [WALL_E]: ['end', 1],
+    [WALL_S]: ['end', 2],
+    [WALL_W]: ['end', 3],
+    [WALL_N | WALL_S]: ['straight', 0],
+    [WALL_E | WALL_W]: ['straight', 1],
+    [WALL_N | WALL_E]: ['corner', 0],
+    [WALL_E | WALL_S]: ['corner', 1],
+    [WALL_S | WALL_W]: ['corner', 2],
+    [WALL_W | WALL_N]: ['corner', 3],
+    [WALL_W | WALL_N | WALL_E]: ['tee', 0],
+    [WALL_N | WALL_E | WALL_S]: ['tee', 1],
+    [WALL_E | WALL_S | WALL_W]: ['tee', 2],
+    [WALL_S | WALL_W | WALL_N]: ['tee', 3],
+    [WALL_N | WALL_E | WALL_S | WALL_W]: ['cross', 0]
+};
+
+const DEFAULT_WALL = 'concrete-wall';
+
 /**
  * The tarmac the convoys drive on. The board itself is drawn once and only
  * redrawn when it is rebuilt, since nothing on it moves.
@@ -90,6 +127,7 @@ export class Board {
         this.startY = config.startY;
         this.cell = (this.tileWidth + this.tileHeight) / 2;
         this.obstacles = config.obstacles || [];
+        this.walls = config.walls || [];
 
         this.g = scene.add.graphics();
         config.parent.add(this.g);
@@ -102,6 +140,11 @@ export class Board {
         // over the tiles rather than on the tray underneath them.
         this.shadowLayer = scene.add.container();
         config.parent.add(this.shadowLayer);
+
+        // The walls lie flat on the tarmac, over their own shadows. Nothing
+        // ever stands on a wall, so they need no place in the depth stack.
+        this.wallLayer = scene.add.container();
+        config.parent.add(this.wallLayer);
 
         // Over the tarmac and under everything the board's parent adds after it,
         // so a lit tile reads beneath the convoys rather than over them.
@@ -184,7 +227,57 @@ export class Board {
             }
         }
 
+        this.shadowLayer.removeAll(true);
+        this.placeWalls();
         this.placeObstacles();
+    }
+
+    placeWalls() {
+        const scale = this.cell / WALL_ART;
+
+        this.wallLayer.removeAll(true);
+
+        for (let i = 0; i < this.walls.length; i++) {
+            const wall = this.walls[i];
+            const style = wall.style || DEFAULT_WALL;
+            const cells = new Set(wall.cells.map((c) => c[0] + ',' + c[1]));
+            const has = (col, row) => cells.has(col + ',' + row);
+
+            for (let j = 0; j < wall.cells.length; j++) {
+                const col = wall.cells[j][0];
+                const row = wall.cells[j][1];
+
+                const joins =
+                    (has(col, row - 1) ? WALL_N : 0) |
+                    (has(col + 1, row) ? WALL_E : 0) |
+                    (has(col, row + 1) ? WALL_S : 0) |
+                    (has(col - 1, row) ? WALL_W : 0);
+
+                const piece = WALL_PIECES[joins];
+                const frame = style + '/' + piece[0];
+                const turn = piece[1] * Math.PI / 2;
+                const at = this.cellToPixel(col, row);
+
+                const shadow = this.scene.add.sprite(
+                    at.x + SHADOW_X * this.cell,
+                    at.y + SHADOW_Y * this.cell,
+                    WALL_SHEET,
+                    frame
+                );
+
+                shadow.setScale(scale);
+                shadow.setRotation(turn);
+                shadow.setTintFill(SHADOW);
+                shadow.setAlpha(SHADOW_ALPHA);
+                this.shadowLayer.add(shadow);
+
+                const tile = this.scene.add.sprite(at.x, at.y, WALL_SHEET, frame);
+
+                tile.setScale(scale);
+                tile.setRotation(turn);
+                this.wallLayer.add(tile);
+            }
+        }
     }
 
     /**
@@ -196,8 +289,6 @@ export class Board {
      */
     placeObstacles() {
         const scale = (this.cell * OBSTACLE_FIT) / OBSTACLE_ART;
-
-        this.shadowLayer.removeAll(true);
 
         for (let i = 0; i < this.pieces.length; i++) this.pieces[i].destroy();
 

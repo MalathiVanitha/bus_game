@@ -88,6 +88,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.columns = levelData.columns;
         this.pattern = levelData.pattern;
         this.obstacles = levelData.obstacles || [];
+        this.walls = levelData.walls || [];
 
         // Square, so a cart is the same size whichever way it is driving and a
         // corner is a quarter turn rather than an ellipse.
@@ -138,6 +139,21 @@ export class GamePlay extends Phaser.GameObjects.Container {
             this.tiles[row][col].obstacle = true;
         }
 
+        // A wall cell is an obstacle like any other: driving into it is a knock.
+        for (let i = 0; i < this.walls.length; i++) {
+            const cells = this.walls[i].cells;
+
+            for (let j = 0; j < cells.length; j++) {
+                const col = cells[j][0];
+                const row = cells[j][1];
+
+                if (!this.onBoard(col, row)) continue;
+
+                this.tiles[row][col].blocked = true;
+                this.tiles[row][col].obstacle = true;
+            }
+        }
+
         // One layer for everything that stands on the board - obstacles,
         // vehicles, couplings and garages - sorted by depth, so whatever is
         // further down the screen is drawn over what stands behind it.
@@ -148,6 +164,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             props: this.stage,
             pattern: this.pattern,
             obstacles: this.obstacles,
+            walls: this.walls,
             rows: this.rows,
             columns: this.columns,
             tileWidth: this.tileWidth,
