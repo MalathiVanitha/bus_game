@@ -1,3 +1,9 @@
+const FILL_TIME = 600;
+const FILL_MIN = 250;
+const FULL_HOLD = 120;
+const SETTLE = 50;
+const FADE_TIME = 380;
+
 export default class Preload extends Phaser.Scene {
 
     width = null
@@ -46,8 +52,6 @@ export default class Preload extends Phaser.Scene {
         this.fill.setCrop(this.cropRect);
         this.barGrp.add(this.cropRect);
 
-        this.timeStart = Date.now();
-
         let loadingText = this.add.text(-90, -68, 'loading', {
             fontFamily: "Oduda-Bold-Demo",
             fontSize: 48,
@@ -78,34 +82,47 @@ export default class Preload extends Phaser.Scene {
         })
 
         this.load.on('complete', () => {
-            let difference = Date.now() - this.timeStart;
+            if (this.tween) return;
 
-            difference = 500 - difference;
-            if (difference <= 500) {
+            // Fill the rest of the bar from wherever loading left it, easing
+            // into the end rather than stopping dead on it.
+            const remaining = 1 - this.cropRect.width / this.fill.orgWidth;
 
-                if (!this.tween)
-                    this.tween = this.tweens.add({
-                        targets: this.cropRect,
-                        width: {
-                            from: this.fill.orgWidth * .1,
-                            to: this.fill.orgWidth,
-                        },
-                        duration: difference,
-                        ease: "Power0",
-                        onUpdate: () => {
-                            this.fill.setCrop(this.cropRect);
-                        },
-                        onComplete: () => {
-                            this.fill.setCrop(this.cropRect);
-                            this.scene.stop('preload');
-                            this.scene.launch('GameScene');
-                        }
-                    })
-            } else {
-                // this.scene.stop('preload');
-                //  this.scene.launch('GameScene');
-            }
+            this.tween = this.tweens.add({
+                targets: this.cropRect,
+                width: this.fill.orgWidth,
+                duration: Math.max(FILL_MIN, FILL_TIME * remaining),
+                ease: 'Sine.easeOut',
+                onUpdate: () => {
+                    this.fill.setCrop(this.cropRect);
+                },
+                onComplete: () => {
+                    this.fill.setCrop(this.cropRect);
+                    this.time.delayedCall(FULL_HOLD, () => this.handOff());
+                }
+            });
         })
+    }
+
+    // The game scene is built underneath (it sits below this one in the scene
+    // list), and the loader fades off it once it is up. Building it is the
+    // slow frame, so that happens behind a still loader, not mid-fade.
+    handOff() {
+        const game = this.scene.get('GameScene');
+
+        game.events.once('create', () => {
+            this.time.delayedCall(SETTLE, () => {
+                this.tweens.add({
+                    targets: [this.bg, this.barGrp],
+                    alpha: 0,
+                    duration: FADE_TIME,
+                    ease: 'Sine.easeInOut',
+                    onComplete: () => this.scene.stop('preload')
+                });
+            });
+        });
+
+        this.scene.launch('GameScene');
     }
 
     adjust() {

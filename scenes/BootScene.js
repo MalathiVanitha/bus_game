@@ -15,6 +15,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('button_green', 'assets/button_green.png')
 
         this.load.image('icon-stars', 'assets/icon-stars.png')
+        this.load.image('fx-glint', 'assets/fx-glint.png')
 
         // The packed toggle is a long, thin pill. The storyboard's is a stubby
         // one, so the track and its fill are kept here, reshaped, until the

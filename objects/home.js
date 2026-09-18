@@ -21,6 +21,39 @@ const HALO_STRENGTH = 2.4;
 const HALO_QUALITY = 0.16;
 const HALO_DISTANCE = 16;
 
+// The logo's colour washes out towards white, holds a beat, and eases back to
+// full. TINT_WHITE is how much white is mixed in at the peak.
+const TINT_WHITE = 0.35;
+const WHITE = [
+    0, 0, 0, 0, 255,
+    0, 0, 0, 0, 255,
+    0, 0, 0, 0, 255,
+    0, 0, 0, 1, 0
+];
+const TINT_TIME = 950;
+const TINT_HOLD = 180;
+const TINT_REST = 1600;
+const TINT_DELAY = 1900;
+
+const GLINT = 'fx-glint';
+const GLINT_ART = 256;
+
+// Spots on the logo's own specular highlights, in the untrimmed 960x560 art,
+// from its centre. size is the glint's peak width in that art.
+const GLINTS = [
+    { x: -385, y: -175, size: 180 },
+    { x: 250, y: 2, size: 150 },
+    { x: 35, y: -162, size: 120 },
+    { x: -180, y: 25, size: 170 },
+    { x: 360, y: -182, size: 140 }
+];
+
+const GLINT_TIME = 620;
+const GLINT_SPIN = 90;
+const GLINT_STAGGER = 380;
+const GLINT_INTERVAL = 3200;
+const GLINT_DELAY = 800;
+
 const CLOUD = 'home/cloud';
 const CLOUD_ART_W = 300;
 const CLOUD_EDGE = 20;
@@ -31,6 +64,22 @@ const CLOUDS = [
 
 const CONVOY = 'home/convoy';
 const CONVOY_Y = 0;
+
+// Soft shadow on the ground under the wheels, drawn once into a canvas.
+const CONVOY_SHADOW = 'homeConvoyShadow';
+const CONVOY_SHADOW_W = 256;
+const CONVOY_SHADOW_H = 64;
+const CONVOY_SHADOW_COLOR = '40,48,133';
+const CONVOY_SHADOW_ALPHA = 0.42;
+const CONVOY_SHADOW_SPAN = 1;
+const CONVOY_SHADOW_DEPTH = 30;
+// The art has clear space under the tyres: they meet the ground this many art
+// pixels above the bottom of the frame.
+const CONVOY_WHEEL_LINE = 46;
+const CONVOY_SHADOW_DY = -3;
+// How much the shadow shrinks and fades per pixel the convoy is off the ground.
+const CONVOY_SHADOW_SHRINK = 0.006;
+const CONVOY_SHADOW_FADE = 0.018;
 
 const PLATE = 'home/level-plate';
 const PLATE_Y = 150;
@@ -62,38 +111,40 @@ const PUSH_TIME = 900;
 
 const SWEEP = 620;
 
+// Degrees; negative tips the tractor end (on the left) down.
+const CONVOY_BRAKE = -1.6;
+
 const INTRO = [
     { piece: 'logo', scale: 0.4, dy: -40, angle: -8, duration: 620, delay: 0, ease: 'Back.easeOut', pulse: 1.04 },
-    { piece: 'convoy', dx: 560, duration: 820, delay: 200, ease: 'Quart.easeOut', hop: true },
+    { piece: 'convoy', dx: 560, duration: 1000, delay: 200, ease: 'Cubic.easeOut', brake: CONVOY_BRAKE },
     { piece: 'plate', dx: -SWEEP, duration: 480, delay: 430, ease: 'Back.easeOut' },
     { piece: 'playButton', dx: SWEEP, duration: 480, delay: 520, ease: 'Back.easeOut' },
     { piece: 'store', dx: -SWEEP, duration: 480, delay: 610, ease: 'Back.easeOut' }
 ];
 
-const HOPS = [
-    { height: 34, duration: 290, tilt: 3.5 },
-    { height: 19, duration: 225, tilt: 2.2 },
-    { height: 10, duration: 170, tilt: 1.2 },
-    { height: 4, duration: 120, tilt: 0.6 }
-];
-
-const HOP_STRETCH = 0.07;
-const HOP_NARROW = 0.6;
-const HOP_SQUASH = 0.1;
-const HOP_SQUASH_TIME = 130;
+// The convoy dips its nose as it brakes to a stop, then rocks back level:
+// the dip starts this far through the drive and takes as long again to recover.
+const BRAKE_FROM = 0.6;
 
 const INTRO_FADE = 240;
 const INTRO_SETTLE = 170;
 
 const INTRO_CLOUD_TIME = 900;
 
-const IDLE_DELAY = 1250;
+// After the convoy has braked and levelled out, so its rock does not fight it.
+const IDLE_DELAY = 1700;
 
 const PLAY_BREATH = 1.035;
 const PLAY_BREATH_TIME = 780;
 
 const CONVOY_BOB = 3;
 const CONVOY_BOB_TIME = 900;
+// Stretches a touch as it lifts and settles back as it lands.
+const CONVOY_STRETCH = 0.018;
+const CONVOY_NARROW = 0.006;
+// Rocks on its wheels, slower than the bob so the two never line up.
+const CONVOY_ROCK = 0.8;
+const CONVOY_ROCK_TIME = 2900;
 
 const LOGO_SWAY = 1.2;
 const LOGO_SWAY_TIME = 2400;
@@ -147,9 +198,16 @@ export class Home extends Phaser.GameObjects.Container {
 
         this.buildGleam();
 
+        this.buildConvoyShadow();
+
+        // Stood on its wheels, so squash, stretch and tilt pivot on the ground.
         this.convoy = this.scene.add.sprite(0, CONVOY_Y, 'sheet', CONVOY);
         this.convoy.setScale(ART_SCALE);
+        this.convoy.setOrigin(0.5, 1);
+        this.convoy.y += this.convoy.displayHeight / 2;
         this.content.add(this.convoy);
+
+        this.convoyShadow.baseScale = this.convoy.displayWidth * CONVOY_SHADOW_SPAN / CONVOY_SHADOW_W;
 
         this.buildPlate();
         this.buildPlay();
@@ -183,6 +241,49 @@ export class Home extends Phaser.GameObjects.Container {
             this.content.add(cloud);
             this.clouds.push(cloud);
         }
+    }
+
+    buildConvoyShadow() {
+        const textures = this.scene.textures;
+
+        if (!textures.exists(CONVOY_SHADOW)) {
+            const canvas = textures.createCanvas(CONVOY_SHADOW, CONVOY_SHADOW_W, CONVOY_SHADOW_H);
+            const ctx = canvas.getContext();
+            const r = CONVOY_SHADOW_W / 2;
+
+            ctx.save();
+            ctx.scale(1, CONVOY_SHADOW_H / CONVOY_SHADOW_W);
+
+            const fall = ctx.createRadialGradient(r, r, 0, r, r, r);
+            fall.addColorStop(0, `rgba(${CONVOY_SHADOW_COLOR},1)`);
+            fall.addColorStop(0.55, `rgba(${CONVOY_SHADOW_COLOR},0.6)`);
+            fall.addColorStop(1, `rgba(${CONVOY_SHADOW_COLOR},0)`);
+
+            ctx.fillStyle = fall;
+            ctx.fillRect(0, 0, CONVOY_SHADOW_W, CONVOY_SHADOW_W);
+            ctx.restore();
+
+            canvas.refresh();
+        }
+
+        this.convoyShadow = this.scene.add.image(0, 0, CONVOY_SHADOW);
+        this.convoyShadow.alpha = 0;
+        this.content.add(this.convoyShadow);
+    }
+
+    // Keeps the shadow under the wheels, smaller and fainter the higher the
+    // convoy is, through the idle bob and the drive off.
+    placeConvoyShadow() {
+        const convoy = this.convoy;
+        const shadow = this.convoyShadow;
+        const lift = Math.max(0, convoy.restY - convoy.y);
+        const size = convoy.scaleX / convoy.introScale;
+
+        shadow.x = convoy.x;
+        shadow.y = convoy.restY - CONVOY_WHEEL_LINE * convoy.introScale + CONVOY_SHADOW_DY;
+        shadow.scaleX = shadow.baseScale * size * Math.max(0.5, 1 - lift * CONVOY_SHADOW_SHRINK);
+        shadow.scaleY = CONVOY_SHADOW_DEPTH / CONVOY_SHADOW_H * shadow.scaleX / shadow.baseScale;
+        shadow.alpha = CONVOY_SHADOW_ALPHA * convoy.alpha * Math.max(0, 1 - lift * CONVOY_SHADOW_FADE);
     }
 
     buildPlate() {
@@ -238,7 +339,29 @@ export class Home extends Phaser.GameObjects.Container {
     }
 
     buildGleam() {
+        // Ahead of the glow, so the halo stays bright while the logo dims.
+        // Solid white, blended in by its alpha. The filter keeps the logo's
+        // own alpha, so the white stays inside the logo's outline.
+        this.logoTint = this.logo.postFX.addColorMatrix();
+        this.logoTint.set(WHITE);
+        this.tintDepth = 0;
+
         this.halo = this.logo.postFX.addGlow(GLEAM_WARM, 0, 0, false, HALO_QUALITY, HALO_DISTANCE);
+
+        this.glints = [];
+
+        let above = this.content.getIndex(this.logo);
+
+        for (let i = 0; i < GLINTS.length; i++) {
+            const glint = this.scene.add.image(0, 0, GLINT);
+
+            glint.spot = GLINTS[i];
+            glint.setBlendMode(Phaser.BlendModes.ADD);
+            glint.setVisible(false);
+
+            this.content.addAt(glint, ++above);
+            this.glints.push(glint);
+        }
     }
 
     startGleam() {
@@ -254,10 +377,108 @@ export class Home extends Phaser.GameObjects.Container {
             yoyo: true,
             ease: 'Sine.easeInOut'
         });
+
+        this.tintTween = this.scene.tweens.add({
+            targets: this,
+            tintDepth: 1,
+            duration: TINT_TIME,
+            delay: TINT_DELAY,
+            hold: TINT_HOLD,
+            repeatDelay: TINT_REST,
+            repeat: -1,
+            yoyo: true,
+            ease: 'Sine.easeInOut',
+            onUpdate: () => this.applyTint()
+        });
+
+        this.glintTimer = this.scene.time.addEvent({
+            delay: GLINT_INTERVAL,
+            loop: true,
+            startAt: GLINT_INTERVAL - GLINT_DELAY,
+            callback: () => this.twinkle()
+        });
+    }
+
+    applyTint() {
+        this.logoTint.alpha = TINT_WHITE * this.tintDepth;
+    }
+
+    // Each glint pops open on its highlight, turns a quarter and closes again,
+    // one after another, so the logo reads as catching the light.
+    twinkle() {
+        for (let i = 0; i < this.glints.length; i++) {
+            const glint = this.glints[i];
+
+            glint.bloom = 0;
+            glint.turn = 0;
+
+            this.scene.tweens.add({
+                targets: glint,
+                bloom: 1,
+                duration: GLINT_TIME / 2,
+                delay: i * GLINT_STAGGER,
+                ease: 'Quad.easeOut',
+                yoyo: true,
+                onStart: () => glint.setVisible(true),
+                onComplete: () => glint.setVisible(false)
+            });
+
+            this.scene.tweens.add({
+                targets: glint,
+                turn: GLINT_SPIN,
+                duration: GLINT_TIME,
+                delay: i * GLINT_STAGGER,
+                ease: 'Sine.easeInOut'
+            });
+        }
+    }
+
+    // Pins the glints to the logo's art while it moves, scales and sways.
+    placeGlints() {
+        const logo = this.logo;
+        const cos = Math.cos(logo.rotation);
+        const sin = Math.sin(logo.rotation);
+
+        for (let i = 0; i < this.glints.length; i++) {
+            const glint = this.glints[i];
+
+            if (!glint.visible) continue;
+
+            const spot = glint.spot;
+            const dx = spot.x * logo.scaleX;
+            const dy = spot.y * logo.scaleY;
+
+            glint.x = logo.x + dx * cos - dy * sin;
+            glint.y = logo.y + dx * sin + dy * cos;
+            glint.angle = logo.angle + glint.turn;
+            glint.setScale(glint.bloom * spot.size / GLINT_ART * logo.scaleX);
+            glint.alpha = logo.alpha;
+        }
+    }
+
+    stopGlints() {
+        if (this.glintTimer) {
+            this.glintTimer.remove(false);
+            this.glintTimer = null;
+        }
+
+        for (let i = 0; i < this.glints.length; i++) {
+            this.scene.tweens.killTweensOf(this.glints[i]);
+            this.glints[i].setVisible(false);
+        }
     }
 
     stopGleam() {
         this.scene.tweens.killTweensOf(this.halo);
+
+        if (this.tintTween) {
+            this.tintTween.remove();
+            this.tintTween = null;
+        }
+
+        this.tintDepth = 0;
+        this.applyTint();
+        this.stopGlints();
 
         this.gleam = null;
 
@@ -284,20 +505,39 @@ export class Home extends Phaser.GameObjects.Container {
                 this.scene.tweens.add({
                     targets: this.convoy,
                     y: this.convoy.restY - CONVOY_BOB,
+                    scaleX: this.convoy.introScale * (1 - CONVOY_NARROW),
+                    scaleY: this.convoy.introScale * (1 + CONVOY_STRETCH),
                     duration: CONVOY_BOB_TIME,
                     ease: 'Sine.easeInOut',
                     yoyo: true,
                     repeat: -1
                 }),
-                this.scene.tweens.add({
-                    targets: this.logo,
-                    angle: { from: -LOGO_SWAY, to: LOGO_SWAY },
-                    duration: LOGO_SWAY_TIME,
+                this.sway(this.logo, LOGO_SWAY, LOGO_SWAY_TIME),
+                this.sway(this.convoy, CONVOY_ROCK, CONVOY_ROCK_TIME)
+            ];
+        });
+    }
+
+    // Eases out of rest to one side first, so the sway picks up from wherever
+    // the piece is instead of snapping to -amount, then rocks side to side.
+    sway(target, amount, time) {
+        return this.scene.tweens.add({
+            targets: target,
+            angle: amount,
+            duration: time / 2,
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                if (!this.idle) return;
+
+                this.idle.push(this.scene.tweens.add({
+                    targets: target,
+                    angle: -amount,
+                    duration: time,
                     ease: 'Sine.easeInOut',
                     yoyo: true,
                     repeat: -1
-                })
-            ];
+                }));
+            }
         });
     }
 
@@ -318,6 +558,9 @@ export class Home extends Phaser.GameObjects.Container {
 
     update(time, delta) {
         if (!this.visible) return;
+
+        this.placeGlints();
+        this.placeConvoyShadow();
 
         for (let i = 0; i < this.clouds.length; i++) {
             const cloud = this.clouds[i];
@@ -340,6 +583,7 @@ export class Home extends Phaser.GameObjects.Container {
         this.introRun = (this.introRun || 0) + 1;
 
         this.stopIdle();
+        this.stopGlints();
         this.scene.events.emit('home:leaving');
 
         const fit = this.fitScale || 1;
@@ -352,16 +596,9 @@ export class Home extends Phaser.GameObjects.Container {
 
             this.scene.tweens.killTweensOf(piece);
 
-            if (piece.hops) {
-                piece.hops.destroy();
-                piece.hops = null;
-            }
-
-            piece.x = piece.restX;
-            piece.y = piece.restY;
-            piece.angle = 0;
-            piece.alpha = 1;
-            piece.setScale(piece.introScale);
+            // Leaves from wherever the idle bob, sway or intro has it, rather
+            // than snapping back to rest first.
+            const size = piece.introScale * (step.scale || 1);
 
             const go = {
                 targets: piece,
@@ -370,10 +607,10 @@ export class Home extends Phaser.GameObjects.Container {
                 angle: step.angle || 0,
                 duration: step.duration,
                 delay: step.delay,
+                scaleX: size,
+                scaleY: size,
                 ease: step.ease || OUTRO_EASE
             };
-
-            if (step.scale) go.scale = piece.introScale * step.scale;
 
             if (step.squat) {
                 go.delay += OUTRO_SQUAT_TIME;
@@ -441,8 +678,6 @@ export class Home extends Phaser.GameObjects.Container {
 
         this.introRun = (this.introRun || 0) + 1;
 
-        const run = this.introRun;
-
         this.scene.tweens.killTweensOf(this.sky);
         this.sky.alpha = 1;
 
@@ -461,11 +696,6 @@ export class Home extends Phaser.GameObjects.Container {
             const piece = this[step.piece];
 
             this.scene.tweens.killTweensOf(piece);
-
-            if (piece.hops) {
-                piece.hops.destroy();
-                piece.hops = null;
-            }
 
             piece.x = piece.restX + (step.dx || 0);
             piece.y = piece.restY + (step.dy || 0);
@@ -487,14 +717,24 @@ export class Home extends Phaser.GameObjects.Container {
                 x: piece.restX,
                 duration: step.duration,
                 delay: step.delay,
+                y: piece.restY,
                 ease: step.ease,
                 onComplete: () => this.settle(piece, step)
             };
 
-            if (step.hop) {
-                this.hopIn(piece, step, run);
+            if (step.brake) {
+                // Nose down as it slows, level again once it has stopped.
+                const dip = step.duration * (1 - BRAKE_FROM);
+
+                this.scene.tweens.add({
+                    targets: piece,
+                    angle: step.brake,
+                    duration: dip,
+                    delay: step.delay + step.duration * BRAKE_FROM,
+                    ease: 'Sine.easeInOut',
+                    yoyo: true
+                });
             } else {
-                drive.y = piece.restY;
                 drive.angle = 0;
             }
 
@@ -522,46 +762,6 @@ export class Home extends Phaser.GameObjects.Container {
 
         this.startGleam();
         this.startIdle();
-    }
-
-    hopIn(piece, step, run) {
-        if (piece.hops) piece.hops.destroy();
-
-        const rest = piece.introScale;
-
-        piece.hops = this.scene.tweens.chain({
-            targets: piece,
-            delay: step.delay,
-            tweens: HOPS.map((hop) => {
-                const share = hop.height / HOPS[0].height;
-
-                return {
-                    y: piece.restY - hop.height,
-                    angle: hop.tilt,
-                    scaleX: rest * (1 - HOP_STRETCH * share * HOP_NARROW),
-                    scaleY: rest * (1 + HOP_STRETCH * share),
-                    duration: hop.duration / 2,
-                    ease: 'Quad.easeOut',
-                    yoyo: true,
-                    onComplete: () => this.squash(piece, share, run)
-                };
-            })
-        });
-    }
-
-    squash(piece, share, run) {
-        if (run !== this.introRun) return;
-
-        const rest = piece.introScale;
-
-        this.scene.tweens.add({
-            targets: piece,
-            scaleX: rest * (1 + HOP_SQUASH * share),
-            scaleY: rest * (1 - HOP_SQUASH * share),
-            duration: HOP_SQUASH_TIME * (0.6 + 0.4 * share),
-            ease: 'Quad.easeOut',
-            yoyo: true
-        });
     }
 
     settle(piece, step) {
