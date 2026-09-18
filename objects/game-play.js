@@ -1246,7 +1246,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         const outX = Math.cos(garage.facing);
         const outY = Math.sin(garage.facing);
         const x = garage.x + outX * garage.doorMouth * 0.5;
-        const y = garage.y + outY * garage.doorMouth * 0.5;
+        const y = garage.y + outY * garage.doorMouth * 0.5 - 20;
 
         for (let i = 0; i < BURST_COUNT; i++) {
             const angle = garage.facing + (Math.random() - 0.5) * 2 * BURST_SPREAD;

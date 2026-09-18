@@ -182,15 +182,6 @@
         <key>individualSpriteSettings</key>
         <map type="IndividualSpriteSettingsMap">
             <key type="filename">../source/board/tile_road.png</key>
-            <key type="filename">../source/bus/blue/garage.png</key>
-            <key type="filename">../source/bus/cyan/garage.png</key>
-            <key type="filename">../source/bus/green/garage.png</key>
-            <key type="filename">../source/bus/lime/garage.png</key>
-            <key type="filename">../source/bus/orange/garage.png</key>
-            <key type="filename">../source/bus/pink/garage.png</key>
-            <key type="filename">../source/bus/purple/garage.png</key>
-            <key type="filename">../source/bus/white/garage.png</key>
-            <key type="filename">../source/bus/yellow/garage.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
                 <point_f>0.5,0.5</point_f>
@@ -202,42 +193,6 @@
                 <rect>48,48,96,96</rect>
                 <key>scale9Paddings</key>
                 <rect>48,48,96,96</rect>
-                <key>scale9FromFile</key>
-                <false/>
-            </struct>
-            <key type="filename">../source/bus/blue/luggage_cart.png</key>
-            <key type="filename">../source/bus/blue/tractor_front.png</key>
-            <key type="filename">../source/bus/cyan/luggage_cart.png</key>
-            <key type="filename">../source/bus/cyan/tractor_front.png</key>
-            <key type="filename">../source/bus/green/luggage_cart.png</key>
-            <key type="filename">../source/bus/green/tractor_front.png</key>
-            <key type="filename">../source/bus/lime/luggage_cart.png</key>
-            <key type="filename">../source/bus/lime/tractor_front.png</key>
-            <key type="filename">../source/bus/orange/luggage_cart.png</key>
-            <key type="filename">../source/bus/orange/tractor_front.png</key>
-            <key type="filename">../source/bus/pink/luggage_cart.png</key>
-            <key type="filename">../source/bus/pink/tractor_front.png</key>
-            <key type="filename">../source/bus/purple/luggage_cart.png</key>
-            <key type="filename">../source/bus/purple/tractor_front.png</key>
-            <key type="filename">../source/bus/red/garage.png</key>
-            <key type="filename">../source/bus/red/luggage_cart.png</key>
-            <key type="filename">../source/bus/red/tractor_front.png</key>
-            <key type="filename">../source/bus/white/luggage_cart.png</key>
-            <key type="filename">../source/bus/white/tractor_front.png</key>
-            <key type="filename">../source/bus/yellow/luggage_cart.png</key>
-            <key type="filename">../source/bus/yellow/tractor_front.png</key>
-            <key type="filename">../source/icons/icon-timer-coral.png</key>
-            <struct type="IndividualSpriteSettings">
-                <key>pivotPoint</key>
-                <point_f>0.5,0.5</point_f>
-                <key>spriteScale</key>
-                <double>1</double>
-                <key>scale9Enabled</key>
-                <false/>
-                <key>scale9Borders</key>
-                <rect>55,55,110,110</rect>
-                <key>scale9Paddings</key>
-                <rect>55,55,110,110</rect>
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
@@ -466,6 +421,21 @@
                 <rect>45,45,90,90</rect>
                 <key>scale9Paddings</key>
                 <rect>45,45,90,90</rect>
+                <key>scale9FromFile</key>
+                <false/>
+            </struct>
+            <key type="filename">../source/icons/icon-timer-coral.png</key>
+            <struct type="IndividualSpriteSettings">
+                <key>pivotPoint</key>
+                <point_f>0.5,0.5</point_f>
+                <key>spriteScale</key>
+                <double>1</double>
+                <key>scale9Enabled</key>
+                <false/>
+                <key>scale9Borders</key>
+                <rect>55,55,110,110</rect>
+                <key>scale9Paddings</key>
+                <rect>55,55,110,110</rect>
                 <key>scale9FromFile</key>
                 <false/>
             </struct>

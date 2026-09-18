@@ -52,6 +52,17 @@ const OBSTACLE_FIT = 1;
 
 const DEFAULT_OBSTACLE = 'cone';
 
+const OBSTACLE_OFFSET = {
+    cone: { x: 0, y: -0.225 },
+    planter: { x: 0, y: -0.225 },
+    cargo_pallet: { x: 0, y: -0.2 },
+    barrier: { x: 0, y: 0.11 },
+    cargo_container: { x: 0, y: -0.04 },
+    service_cabinet: { x: 0, y: -0.04 }
+};
+
+const OBSTACLE_OFFSET_DEFAULT = { x: 0, y: -0.04 };
+
 // A soft pool under each piece, sat where the art's own feet are rather than at
 // a fixed depth, so a barrier gets its shadow at its legs and a cone at its base.
 const SHADOW_ALPHA = 0.16;
@@ -195,8 +206,12 @@ export class Board {
             const spot = this.obstacles[i];
             const at = this.cellToPixel(spot[0], spot[1]);
             const frame = this.obstacleFrame(spot[2]);
+            const nudge = this.obstacleOffset(spot[2], spot[3]);
 
-            const piece = this.scene.add.sprite(at.x, at.y - 3, 'sheet', frame);
+            const x = at.x + nudge.x * this.cell;
+            const y = at.y + nudge.y * this.cell;
+
+            const piece = this.scene.add.sprite(x, y, 'sheet', frame);
 
             piece.setScale(scale);
             piece.depth = at.y;
@@ -205,12 +220,26 @@ export class Board {
 
             // Where the drawn pixels stop inside the art's box - the piece's
             // feet, which is where its shadow belongs, whatever the box says.
+            // The shadow goes with the piece, not the cell.
             const art = piece.frame.data.spriteSourceSize;
             const foot = (art.y + art.h - OBSTACLE_ART / 2) * scale;
 
             g.fillStyle(SHADOW, SHADOW_ALPHA);
-            g.fillEllipse(at.x, at.y + foot, art.w * scale * SHADOW_SPREAD, this.cell * SHADOW_DEPTH);
+            g.fillEllipse(x, y + foot, art.w * scale * SHADOW_SPREAD, this.cell * SHADOW_DEPTH);
         }
+    }
+
+    /**
+     * The nudge a piece gets within its cell: its own kind's, and on top of
+     * that whatever the level says for this one piece in particular.
+     */
+    obstacleOffset(name, own) {
+        const kind = OBSTACLE_OFFSET[name] || OBSTACLE_OFFSET_DEFAULT;
+
+        return {
+            x: kind.x + ((own && own.x) || 0),
+            y: kind.y + ((own && own.y) || 0)
+        };
     }
 
     /** Falls back to a cone rather than the missing-texture box. */

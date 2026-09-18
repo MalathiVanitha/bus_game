@@ -23,6 +23,8 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('toggle-fill', 'assets/toggle-fill.png')
 
         this.load.atlas('sheet', 'assets/sheet/sheet.png', 'assets/sheet/sheet.json')
+        this.load.atlas('walls', 'assets/sheet/walls.png', 'assets/sheet/walls.json')
+        this.load.atlas('luggages', 'assets/sheet/luggages.png', 'assets/sheet/luggages.json')
 
         this.load.script('webfont', '../../js/webfont.js');
 
