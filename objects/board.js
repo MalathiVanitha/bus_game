@@ -1,9 +1,9 @@
 const RIM = 0xffffff;
-const WELL = 0x5f6979;
+const WELL = 0x9aa3b3;
 
-const TILE_FACE = 0x7c8697;
-const TILE_LIGHT = 0x8f99a9;
-const TILE_SHADE = 0x6b7585;
+const TILE_FACE = 0xb8c0cf;
+const TILE_LIGHT = 0xcbd2df;
+const TILE_SHADE = 0xa7afbf;
 
 const SHADOW = 0x000000;
 

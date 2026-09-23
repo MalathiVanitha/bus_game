@@ -1,7 +1,104 @@
-// Every level in play order: the first entry is Level 1, the next Level 2, and
-// so on. Past the last one the run starts over from the first.
 export default [
-    // Level 1
+    {
+        rows: 9,
+        columns: 8,
+
+        time: 75,
+
+        pattern: [
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 0, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1]
+        ],
+
+        obstacles: [
+            [4, 1, "planter"],
+            [7, 2, "cone"],
+            [1, 7, "cone"]
+        ],
+
+        walls: [
+            {
+                style: "hedge-green",
+                cells: [
+                    [0, 1],
+                    [0, 2],
+                    [1, 2]
+                ]
+            },
+            {
+                style: "concrete-wall",
+                cells: [
+                    [5, 7]
+                ]
+            }
+        ],
+
+        convoys: [{
+            key: "pink",
+            exit: [7, 3],
+            facing: 90,
+            cells: [
+                [6, 0],
+                [5, 0],
+                [4, 0],
+                [3, 0]
+            ]
+        }, {
+            key: "cyan",
+            exit: [6, 7],
+            facing: 90,
+            cells: [
+                [2, 2],
+                [3, 2],
+                [4, 2]
+            ]
+        }, {
+            key: "blue",
+            exit: [5, 8],
+            facing: 90,
+            cells: [
+                [6, 3],
+                [6, 4],
+                [6, 5]
+            ]
+        }, {
+            key: "orange",
+            exit: [0, 4],
+            facing: 90,
+            cells: [
+                [2, 8],
+                [3, 8],
+                [4, 8]
+            ]
+        }, {
+            key: "yellow",
+            exit: [1, 8],
+            facing: 90,
+            cells: [
+                [3, 6],
+                [4, 6],
+                [5, 6]
+            ]
+        }, {
+            key: "red",
+            exit: [1, 0],
+            facing: 90,
+            cells: [
+                [5, 5],
+                [4, 5],
+                [3, 5]
+            ]
+        }]
+    },
+
+    // Level 2
     {
         rows: 8,
         columns: 8,
@@ -25,9 +122,6 @@ export default [
             [1, 5, "cargo_pallet"]
         ],
 
-        // Each wall is one piece of hedge, crate or concrete, laid over the cells it
-        // lists. Cells of the same wall that sit side by side join up; see
-        // Board.placeWalls().
         walls: [
             // L
             {
@@ -100,16 +194,13 @@ export default [
         }]
     },
 
-    // Level 2: four lanes stacked on top of each other, cut apart by walls that
-    // come in from alternate sides. Every convoy crosses its own lane to the
-    // garage at the far end.
+    // Level 3
     {
         rows: 8,
         columns: 8,
 
         time: 60,
 
-        // 0 is an empty space; each run of them is filled by a wall below.
         pattern: [
             [1, 1, 1, 1, 0, 0, 0, 0],
             [1, 1, 1, 1, 1, 1, 1, 1],
