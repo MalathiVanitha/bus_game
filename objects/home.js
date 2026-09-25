@@ -1,5 +1,6 @@
 import { pressable } from '../utils/buttons.js';
 import { Store } from './store.js';
+import perf from '../utils/perf.js';
 
 const SKY = 0x98ddfc;
 
@@ -332,7 +333,17 @@ export class Home extends Phaser.GameObjects.Container {
     }
 
     buildGleam() {
-        this.halo = this.logo.postFX.addGlow(GLEAM_WARM, HALO_REST, 0, false, HALO_QUALITY, HALO_DISTANCE);
+        // The glow is a shader run over every pixel of the logo, every frame -
+        // more than a low-end GPU can spare. Those get the glints alone, and the
+        // breathing tween runs on a stand-in.
+        if (perf.lowEnd) {
+            this.halo = { outerStrength: HALO_REST };
+        } else {
+            this.halo = this.logo.postFX.addGlow(GLEAM_WARM, HALO_REST, 0, false, HALO_QUALITY, HALO_DISTANCE);
+            this.haloFX = true;
+
+            this.scene.game.events.once('quality:low', this.dropHalo, this);
+        }
 
         this.glints = [];
 
@@ -348,6 +359,17 @@ export class Home extends Phaser.GameObjects.Container {
             this.content.addAt(glint, ++above);
             this.glints.push(glint);
         }
+    }
+
+    // The game found the device too slow: the glow goes, the glints stay.
+    dropHalo() {
+        if (!this.haloFX) return;
+
+        this.scene.tweens.killTweensOf(this.halo);
+        this.logo.postFX.remove(this.halo);
+
+        this.haloFX = false;
+        this.halo = { outerStrength: HALO_REST };
     }
 
     startGleam() {
@@ -797,6 +819,7 @@ export class Home extends Phaser.GameObjects.Container {
     }
 
     destroy(fromScene) {
+        this.scene.game.events.off('quality:low', this.dropHalo, this);
         this.stopGleam();
         this.stopIdle();
 

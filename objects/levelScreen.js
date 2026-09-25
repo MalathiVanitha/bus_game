@@ -1,4 +1,5 @@
 import { pressable } from '../utils/buttons.js';
+import { bakeShape } from '../utils/bake.js';
 
 const PANEL_W = 450;
 const PANEL_H = 560;
@@ -286,10 +287,11 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         convoy.setScale(CONVOY_SCALE);
         this.card.add(convoy);
 
-        const arrow = this.scene.add.graphics();
-        arrow.fillStyle(ARROW_COLOR, 1);
-        arrow.fillRoundedRect(-14, -6, 16, 12, 3);
-        arrow.fillTriangle(0, -14, 0, 14, 16, 0);
+        const arrow = bakeShape(this.scene, { left: -14, top: -14, width: 30, height: 28 }, (g) => {
+            g.fillStyle(ARROW_COLOR, 1);
+            g.fillRoundedRect(-14, -6, 16, 12, 3);
+            g.fillTriangle(0, -14, 0, 14, 16, 0);
+        });
         arrow.setPosition(ARROW_X, ART_Y);
         this.card.add(arrow);
 
@@ -305,11 +307,14 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         tile.base.setScale(BASE_SCALE);
         tile.add(tile.base);
 
-        tile.ring = this.scene.add.graphics();
-        tile.ring.fillStyle(RING_FILL, 1);
-        tile.ring.fillCircle(0, 0, RING_R);
-        tile.ring.lineStyle(RING_THICK, RING_LINE, 1);
-        tile.ring.strokeCircle(0, 0, RING_R);
+        const ringR = RING_R + RING_THICK;
+
+        tile.ring = bakeShape(this.scene, { left: -ringR, top: -ringR, width: ringR * 2, height: ringR * 2 }, (g) => {
+            g.fillStyle(RING_FILL, 1);
+            g.fillCircle(0, 0, RING_R);
+            g.lineStyle(RING_THICK, RING_LINE, 1);
+            g.strokeCircle(0, 0, RING_R);
+        }, 'level-ring');
         tile.add(tile.ring);
 
         const icon = this.scene.add.sprite(0, 0, 'sheet', booster.icon);
@@ -335,9 +340,11 @@ export class LevelScreen extends Phaser.GameObjects.Container {
     }
 
     buildNote() {
-        const back = this.scene.add.graphics();
-        back.fillStyle(NOTE_FILL, 1);
-        back.fillRoundedRect(-NOTE_W / 2, NOTE_Y - NOTE_H / 2, NOTE_W, NOTE_H, NOTE_H / 2);
+        const noteBox = { left: -NOTE_W / 2, top: NOTE_Y - NOTE_H / 2, width: NOTE_W, height: NOTE_H };
+        const back = bakeShape(this.scene, noteBox, (g) => {
+            g.fillStyle(NOTE_FILL, 1);
+            g.fillRoundedRect(noteBox.left, noteBox.top, NOTE_W, NOTE_H, NOTE_H / 2);
+        });
         this.card.add(back);
 
         this.card.add(this.text(0, NOTE_Y, NOTE, NOTE_SIZE, INK));
@@ -375,9 +382,11 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
         const price = this.scene.add.container(0, OFFER_PRICE_Y);
 
-        const back = this.scene.add.graphics();
-        back.fillStyle(NOTE_FILL, 1);
-        back.fillRoundedRect(-OFFER_PRICE_W / 2, -OFFER_PRICE_H / 2, OFFER_PRICE_W, OFFER_PRICE_H, 18);
+        const priceBox = { left: -OFFER_PRICE_W / 2, top: -OFFER_PRICE_H / 2, width: OFFER_PRICE_W, height: OFFER_PRICE_H };
+        const back = bakeShape(this.scene, priceBox, (g) => {
+            g.fillStyle(NOTE_FILL, 1);
+            g.fillRoundedRect(priceBox.left, priceBox.top, OFFER_PRICE_W, OFFER_PRICE_H, 18);
+        });
         price.add(back);
 
         const coin = this.scene.add.sprite(OFFER_COIN_X, 0, 'sheet', 'home/coin-icon');
@@ -440,11 +449,13 @@ export class LevelScreen extends Phaser.GameObjects.Container {
     badge(x, y, radius, label) {
         const badge = this.scene.add.container(x, y);
 
-        const disc = this.scene.add.graphics();
-        disc.fillStyle(BADGE_EDGE, 1);
-        disc.fillCircle(0, 0, radius + BADGE_EDGE_THICK);
-        disc.fillStyle(BADGE_FILL, 1);
-        disc.fillCircle(0, 0, radius);
+        const outer = radius + BADGE_EDGE_THICK;
+        const disc = bakeShape(this.scene, { left: -outer, top: -outer, width: outer * 2, height: outer * 2 }, (g) => {
+            g.fillStyle(BADGE_EDGE, 1);
+            g.fillCircle(0, 0, outer);
+            g.fillStyle(BADGE_FILL, 1);
+            g.fillCircle(0, 0, radius);
+        }, 'level-badge-' + radius);
         badge.add(disc);
 
         if (label === null) {

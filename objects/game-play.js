@@ -1618,6 +1618,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.fitScale = Math.min(1, room);
         this.setScale(this.fitScale);
 
+        if (this.board) this.board.refresh();
+
         this.stopIntro();
     }
 

@@ -1,3 +1,5 @@
+import { bakeShape } from '../utils/bake.js';
+
 // The level clock, top left, as in the storyboard: an icy-blue rounded panel
 // with the stopwatch sat in its left end and the time left read out in mm:ss.
 // The board keeps the time; this only shows it.
@@ -85,20 +87,27 @@ export class Timer extends Phaser.GameObjects.Container {
     }
 
     drawPanel() {
-        const panel = this.scene.add.graphics();
         const left = -PANEL_W / 2;
         const top = -PANEL_H / 2;
+        const edge = PANEL_RIM_THICK;
 
-        panel.fillStyle(PANEL_SHADOW, PANEL_SHADOW_ALPHA);
-        panel.fillRoundedRect(left, top + PANEL_SHADOW_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
+        const bounds = {
+            left: left - edge,
+            top: top - edge,
+            width: PANEL_W + edge * 2,
+            height: PANEL_H + PANEL_SHADOW_Y + edge * 2
+        };
 
-        panel.fillStyle(PANEL_FACE, 1);
-        panel.fillRoundedRect(left, top, PANEL_W, PANEL_H, PANEL_RADIUS);
+        return bakeShape(this.scene, bounds, (panel) => {
+            panel.fillStyle(PANEL_SHADOW, PANEL_SHADOW_ALPHA);
+            panel.fillRoundedRect(left, top + PANEL_SHADOW_Y, PANEL_W, PANEL_H, PANEL_RADIUS);
 
-        panel.lineStyle(PANEL_RIM_THICK, PANEL_RIM, PANEL_RIM_ALPHA);
-        panel.strokeRoundedRect(left, top, PANEL_W, PANEL_H, PANEL_RADIUS);
+            panel.fillStyle(PANEL_FACE, 1);
+            panel.fillRoundedRect(left, top, PANEL_W, PANEL_H, PANEL_RADIUS);
 
-        return panel;
+            panel.lineStyle(PANEL_RIM_THICK, PANEL_RIM, PANEL_RIM_ALPHA);
+            panel.strokeRoundedRect(left, top, PANEL_W, PANEL_H, PANEL_RADIUS);
+        });
     }
 
     /** Puts seconds on the face, only redrawing when the readout changes. */

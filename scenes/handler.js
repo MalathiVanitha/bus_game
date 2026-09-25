@@ -1,3 +1,5 @@
+import perf from '../utils/perf.js';
+
 export default class Handler extends Phaser.Scene {
 
     // Vars
@@ -19,7 +21,7 @@ export default class Handler extends Phaser.Scene {
 
     updateResize(scene) {
 
-        let ratio = window.devicePixelRatio;
+        let ratio = perf.ratio();
         scene.scale.on('resize', this.resize, scene)
 
         const scaleWidth = scene.scale.gameSize.width * ratio
@@ -38,7 +40,7 @@ export default class Handler extends Phaser.Scene {
         // 'this' means to the current scene that is running
         if (!this.sceneStopped) {
 
-            let ratio = window.devicePixelRatio;
+            let ratio = perf.ratio();
             const width = gameSize.width * ratio
             const height = gameSize.height * ratio
 

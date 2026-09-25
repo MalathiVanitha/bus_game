@@ -10,6 +10,7 @@ import { StorePanel } from '../objects/store.js';
 import { Coin } from '../objects/coin.js';
 import { Timer } from '../objects/timer.js';
 import data from '../data/data.js';
+import perf from '../utils/perf.js';
 
 export default class GameScene extends Phaser.Scene {
 
@@ -32,7 +33,7 @@ export default class GameScene extends Phaser.Scene {
 
         this.switchMode()
 
-        let ratio = window.devicePixelRatio;
+        let ratio = perf.ratio();
 
         dimensions.fullWidth = window.innerWidth * ratio;
         dimensions.fullHeight = window.innerHeight * ratio;
@@ -282,7 +283,7 @@ export default class GameScene extends Phaser.Scene {
 
     switchMode() {
 
-        let ratio = window.devicePixelRatio;
+        let ratio = perf.ratio();
         let isPortrait;
         dimensions.fullWidth = window.innerWidth * ratio;
         dimensions.fullHeight = window.innerHeight * ratio;
@@ -313,7 +314,7 @@ export default class GameScene extends Phaser.Scene {
 
     setPositions() {
 
-        let ratio = window.devicePixelRatio;
+        let ratio = perf.ratio();
         this.superGroup.scale = this.gameScale
         this.gameGroup.x = (dimensions.fullWidth / this.gameScale - dimensions.gameWidth) / 2;
         this.gameGroup.y = (dimensions.fullHeight / this.gameScale - dimensions.gameHeight) / 2;
@@ -352,7 +353,7 @@ export default class GameScene extends Phaser.Scene {
 
     updateResize(scene) {
 
-        let ratio = window.devicePixelRatio;
+        let ratio = perf.ratio();
         scene.scale.on('resize', this.resize, scene)
 
         const scaleWidth = scene.scale.gameSize.width * ratio
@@ -369,6 +370,8 @@ export default class GameScene extends Phaser.Scene {
 
     update(time, delta) {
 
+        perf.watch(time, delta, () => this.game.lowerQuality());
+
         // The convoys are walked along their trails a frame at a time, so the
         // drag has something to pull against between pointer moves.
         if (this.gamePlay) this.gamePlay.update(time, delta);
@@ -384,7 +387,7 @@ export default class GameScene extends Phaser.Scene {
         // 'this' means to the current scene that is running
         if (!this.sceneStopped) {
 
-            let ratio = window.devicePixelRatio;
+            let ratio = perf.ratio();
             const width = gameSize.width * ratio;
             const height = gameSize.height * ratio;
 

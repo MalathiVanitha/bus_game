@@ -1,4 +1,5 @@
 import { pressable } from '../utils/buttons.js';
+import { bakeShape } from '../utils/bake.js';
 
 const PANEL_W = 470;
 
@@ -280,14 +281,19 @@ export class CTA extends Phaser.GameObjects.Container {
         return card;
     }
 
+    // A white pill, tinted. Pills of one size share a texture, so the rain and
+    // the cannons (a hundred pieces at a time) cost no more than sprites.
     sprinkle(x, y, angle, color, length = SPRINKLE_LEN, thick = SPRINKLE_THICK) {
-        const bit = this.scene.add.graphics();
+        const len = Math.max(1, Math.round(length));
+        const wide = Math.max(1, Math.round(thick));
+        const bounds = { left: -len / 2, top: -wide / 2, width: len, height: wide };
 
-        bit.fillStyle(color, 1);
-        bit.fillRoundedRect(-length / 2, -thick / 2,
-            length, thick, Math.min(length, thick) / 2
-        );
+        const bit = bakeShape(this.scene, bounds, (g) => {
+            g.fillStyle(0xffffff, 1);
+            g.fillRoundedRect(-len / 2, -wide / 2, len, wide, Math.min(len, wide) / 2);
+        }, 'sprinkle-' + len + 'x' + wide);
 
+        bit.setTint(color);
         bit.setPosition(x, y);
         bit.setAngle(angle);
 
@@ -571,7 +577,7 @@ export class CTA extends Phaser.GameObjects.Container {
             piece.bit.y = piece.y + piece.vy * at + gravity * at * at / 2;
             piece.bit.angle = piece.spin * at;
 
-            piece.bit.scaleX = Math.cos(piece.flutter * at);
+            piece.bit.scaleX = piece.bit.restScale * Math.cos(piece.flutter * at);
 
             piece.bit.alpha = spent < POP_FADE ? 1 : 1 - (spent - POP_FADE) / (1 - POP_FADE);
         }

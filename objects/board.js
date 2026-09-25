@@ -1,3 +1,5 @@
+import { bakeShape, bakeResolution, dropBaked } from '../utils/bake.js';
+
 const RIM = 0xffffff;
 const WELL = 0x9aa3b3;
 
@@ -82,6 +84,10 @@ const WALL_PIECES = {
 
 const DEFAULT_WALL = 'concrete-wall';
 
+// The floor and the lift highlight are drawn once into these, not every frame.
+const FLOOR_KEY = 'board-floor';
+const LIFT_KEY = 'board-lift';
+
 export class Board {
     constructor(scene, config) {
         this.scene = scene;
@@ -96,9 +102,6 @@ export class Board {
         this.obstacles = config.obstacles || [];
         this.walls = config.walls || [];
 
-        this.g = scene.add.graphics();
-        config.parent.add(this.g);
-
         this.tileLayer = scene.add.container();
         config.parent.add(this.tileLayer);
 
@@ -108,8 +111,9 @@ export class Board {
         this.wallLayer = scene.add.container();
         config.parent.add(this.wallLayer);
 
-        this.liftG = scene.add.graphics();
-        config.parent.add(this.liftG);
+        this.liftLayer = scene.add.container();
+        config.parent.add(this.liftLayer);
+        this.lifts = [];
 
         this.props = config.props;
         this.pieces = [];
@@ -137,9 +141,29 @@ export class Board {
     }
 
     draw() {
-        const g = this.g;
+        this.bakeFloor();
 
-        g.clear();
+        this.shadowLayer.removeAll(true);
+        this.placeWalls();
+        this.placeObstacles();
+    }
+
+    // The rim, the well and every tile, as one image. Drawn again only if the
+    // game is shown at a different resolution after a resize.
+    bakeFloor() {
+        const res = bakeResolution(this.scene);
+
+        if (this.floorRes === res) return;
+
+        this.floorRes = res;
+
+        this.tileLayer.removeAll(true);
+        this.liftLayer.removeAll(true);
+        this.lifts.length = 0;
+        this.liftDrawn = true;
+
+        dropBaked(this.scene, FLOOR_KEY);
+        dropBaked(this.scene, LIFT_KEY);
 
         const width = this.columns * this.tileWidth;
         const height = this.rows * this.tileHeight;
@@ -149,30 +173,39 @@ export class Board {
         const rimPad = RIM_PAD * this.cell;
         const wellPad = WELL_PAD * this.cell;
 
-        g.fillStyle(RIM, 1);
-        g.fillRoundedRect(
-            left - rimPad, top - rimPad,
-            width + rimPad * 2, height + rimPad * 2,
-            RIM_CORNER * this.cell
-        );
+        const bounds = {
+            left: left - rimPad,
+            top: top - rimPad,
+            width: width + rimPad * 2,
+            height: height + rimPad * 2
+        };
 
-        g.fillStyle(WELL, 1);
-        g.fillRoundedRect(
-            left - wellPad, top - wellPad,
-            width + wellPad * 2, height + wellPad * 2,
-            WELL_CORNER * this.cell
-        );
+        this.tileLayer.add(bakeShape(this.scene, bounds, (g) => {
+            g.fillStyle(RIM, 1);
+            g.fillRoundedRect(
+                left - rimPad, top - rimPad,
+                width + rimPad * 2, height + rimPad * 2,
+                RIM_CORNER * this.cell
+            );
 
+            g.fillStyle(WELL, 1);
+            g.fillRoundedRect(
+                left - wellPad, top - wellPad,
+                width + wellPad * 2, height + wellPad * 2,
+                WELL_CORNER * this.cell
+            );
+
+            this.drawTiles(g);
+        }, FLOOR_KEY, res));
+    }
+
+    drawTiles(g) {
         const gap = TILE_GAP * this.cell;
 
         const corner = TILE_CORNER * this.cell;
         const bevel = TILE_BEVEL * this.cell;
         const w = this.tileWidth - gap;
         const h = this.tileHeight - gap;
-
-        this.tileLayer.removeAll(true);
-
-        const tiles = this.scene.add.graphics();
 
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.columns; col++) {
@@ -182,22 +215,21 @@ export class Board {
                 const x = spot.x - w / 2;
                 const y = spot.y - h / 2;
 
-                tiles.fillStyle(TILE_SHADE, 1);
-                tiles.fillRoundedRect(x, y, w, h, corner);
+                g.fillStyle(TILE_SHADE, 1);
+                g.fillRoundedRect(x, y, w, h, corner);
 
-                tiles.fillStyle(TILE_LIGHT, 1);
-                tiles.fillRoundedRect(x, y, w, h - bevel, corner);
+                g.fillStyle(TILE_LIGHT, 1);
+                g.fillRoundedRect(x, y, w, h - bevel, corner);
 
-                tiles.fillStyle(TILE_FACE, 1);
-                tiles.fillRoundedRect(x, y + bevel, w, h - bevel * 2, corner);
+                g.fillStyle(TILE_FACE, 1);
+                g.fillRoundedRect(x, y + bevel, w, h - bevel * 2, corner);
             }
         }
+    }
 
-        this.tileLayer.add(tiles);
-
-        this.shadowLayer.removeAll(true);
-        this.placeWalls();
-        this.placeObstacles();
+    // Picked up again on a resize, in case the floor was drawn at another size.
+    refresh() {
+        this.bakeFloor();
     }
 
     placeWalls() {
@@ -333,31 +365,47 @@ export class Board {
         this.liftDrawn = live;
     }
 
-    drawLifts() {
-        const g = this.liftG;
+    // A lift is the same rounded square at every size (its corner grows with
+    // it), so each cell shows one baked square, scaled and faded.
+    liftFor(i, col, row) {
+        if (this.lifts[i]) return this.lifts[i];
+
         const gap = TILE_GAP * this.cell;
         const inset = gap / 2 + LIFT_INSET * this.cell;
+        const w = this.tileWidth - inset * 2;
+        const h = this.tileHeight - inset * 2;
+        const bounds = { left: -w / 2, top: -h / 2, width: w, height: h };
 
-        g.clear();
+        const lift = bakeShape(this.scene, bounds, (g) => {
+            g.fillStyle(LIFT, 1);
+            g.fillRoundedRect(-w / 2, -h / 2, w, h, TILE_CORNER * this.cell);
+        }, LIFT_KEY, this.floorRes);
 
+        const spot = this.cellToPixel(col, row);
+
+        lift.setPosition(spot.x, spot.y);
+        this.liftLayer.add(lift);
+        this.lifts[i] = lift;
+
+        return lift;
+    }
+
+    drawLifts() {
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.columns; col++) {
                 const i = row * this.columns + col;
                 const level = this.liftLevel[i];
 
-                if (level <= 0) continue;
+                if (level <= 0) {
+                    if (this.lifts[i]) this.lifts[i].visible = false;
+                    continue;
+                }
 
-                const scale = this.liftScale(this.liftRise[i]);
-                const w = (this.tileWidth - inset * 2) * scale;
-                const h = (this.tileHeight - inset * 2) * scale;
-                const spot = this.cellToPixel(col, row);
+                const lift = this.liftFor(i, col, row);
 
-                g.fillStyle(LIFT, level * LIFT_ALPHA);
-                g.fillRoundedRect(
-                    spot.x - w / 2, spot.y - h / 2,
-                    w, h,
-                    TILE_CORNER * this.cell * scale
-                );
+                lift.visible = true;
+                lift.alpha = level * LIFT_ALPHA;
+                lift.setScale(lift.restScale * this.liftScale(this.liftRise[i]));
             }
         }
     }
