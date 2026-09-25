@@ -34,6 +34,7 @@ export default class BootScene extends Phaser.Scene {
 
         this.loadFont('Oduda-Bold-Demo', 'fonts/Oduda-Bold-Demo.otf');
         this.loadFont('FredokaOne_Regular', 'fonts/FredokaOne_Regular.otf');
+        this.loadFont('Baloo2-ExtraBold', 'fonts/Baloo2-ExtraBold.woff2');
 
         this.width = this.game.screenBaseSize.width
         this.height = this.game.screenBaseSize.height

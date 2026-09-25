@@ -1,5 +1,5 @@
 const PILL = 'home/coin-base';
-const PILL_X = 107;
+const PILL_X = 132;
 const PILL_Y = 62;
 const PILL_SCALE = 0.5;
 
@@ -9,7 +9,22 @@ const ICON_SCALE = 0.3125;
 
 const COUNT_X = 28;
 const COUNT_SIZE = 34;
+const COUNT_FONT = 'Baloo2-ExtraBold';
 const INK = '#283085';
+
+// The home bar's counter is drawn on the gear's tile, stretched sideways, so
+// the two read as a pair.
+const TILE = 'ui/button_icon_base';
+const TILE_W = 346;
+const TILE_H = 160;
+const TILE_SLICE = 56;
+const TILE_SCALE = 0.524;
+
+const TILE_ICON_X = -46;
+const TILE_ICON_SCALE = 0.4;
+
+const TILE_COUNT_X = 34;
+const TILE_COUNT_SIZE = 40;
 
 const FLY_SCATTER = 30;
 const FLY_OUT_TIME = 180;
@@ -50,20 +65,22 @@ function writeStore(value) {
     }
 }
 
-export function makeCoinPill(scene, value, textRes) {
+export function makeCoinPill(scene, value, textRes, tile = false) {
     const pill = scene.add.container(0, 0);
 
-    const base = scene.add.sprite(0, 0, 'sheet', PILL);
-    base.setScale(PILL_SCALE);
+    const base = tile
+        ? scene.add.nineslice(0, 0, 'sheet', TILE, TILE_W, TILE_H, TILE_SLICE, TILE_SLICE, TILE_SLICE, TILE_SLICE)
+        : scene.add.sprite(0, 0, 'sheet', PILL);
+    base.setScale(tile ? TILE_SCALE : PILL_SCALE);
     pill.add(base);
 
-    const icon = scene.add.sprite(ICON_X, 0, 'sheet', ICON);
-    icon.setScale(ICON_SCALE);
+    const icon = scene.add.sprite(tile ? TILE_ICON_X : ICON_X, 0, 'sheet', ICON);
+    icon.setScale(tile ? TILE_ICON_SCALE : ICON_SCALE);
     pill.add(icon);
 
-    pill.count = scene.add.text(COUNT_X, 0, String(value), {
-        fontFamily: 'FredokaOne_Regular',
-        fontSize: COUNT_SIZE,
+    pill.count = scene.add.text(tile ? TILE_COUNT_X : COUNT_X, 0, String(value), {
+        fontFamily: COUNT_FONT,
+        fontSize: tile ? TILE_COUNT_SIZE : COUNT_SIZE,
         color: INK
     });
     pill.count.setOrigin(.5);
@@ -89,7 +106,7 @@ export class Coin extends Phaser.GameObjects.Container {
     build() {
         this.textRes = Math.min(3, Math.max(1, Math.ceil(this.scene.gameScale || 1)));
 
-        const pill = makeCoinPill(this.scene, this.value, this.textRes);
+        const pill = makeCoinPill(this.scene, this.value, this.textRes, true);
 
         this.count = pill.count;
         this.pill = pill;
@@ -140,7 +157,7 @@ export class Coin extends Phaser.GameObjects.Container {
         for (let i = 0; i < count; i++) {
             const coin = this.scene.add.sprite(from.x, from.y, 'sheet', ICON);
 
-            coin.setScale(ICON_SCALE);
+            coin.setScale(TILE_ICON_SCALE);
             this.add(coin);
             this.flights.push(coin);
 
@@ -154,9 +171,9 @@ export class Coin extends Phaser.GameObjects.Container {
                 onComplete: () => {
                     this.scene.tweens.add({
                         targets: coin,
-                        x: 0,
+                        x: TILE_ICON_X,
                         y: 0,
-                        scale: ICON_SCALE * FLY_END_SCALE,
+                        scale: TILE_ICON_SCALE * FLY_END_SCALE,
                         duration: FLY_TIME,
                         ease: 'Quad.easeIn',
                         onComplete: () => {

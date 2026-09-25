@@ -8,6 +8,7 @@ import { Home } from '../objects/home.js';
 import { LevelScreen } from '../objects/levelScreen.js';
 import { StorePanel } from '../objects/store.js';
 import { Coin } from '../objects/coin.js';
+import { Timer } from '../objects/timer.js';
 import data from '../data/data.js';
 
 export default class GameScene extends Phaser.Scene {
@@ -100,6 +101,10 @@ export default class GameScene extends Phaser.Scene {
             this.gamePlay.readyIntro();
         });
 
+        // The level clock, over the board and under the end card.
+        this.timer = new Timer(this, 0, 0);
+        this.gameGroup.add(this.timer);
+
         this.settings = new Settings(this, 0, 0);
         this.gameGroup.add(this.settings);
 
@@ -166,6 +171,8 @@ export default class GameScene extends Phaser.Scene {
         this.gamePlay.reset();
         this.gamePlay.adjust();
         this.gamePlay.start();
+
+        this.timer.intro(this.gamePlay.timeLeft);
     }
 
     leaveGame() {
@@ -179,11 +186,16 @@ export default class GameScene extends Phaser.Scene {
     showHome() {
         this.home.show();
         this.coin.intro();
+        this.timer.hide();
+        this.settings.dock(false);
     }
 
     enterGame() {
         this.home.hide();
         this.coin.hide();
+
+        this.timer.intro(this.gamePlay.timeLeft);
+        this.settings.dock(true);
 
         this.gamePlay.intro(() => this.gamePlay.start());
     }
@@ -317,6 +329,7 @@ export default class GameScene extends Phaser.Scene {
         this.home.adjust();
         this.levelScreen.adjust();
         this.coin.adjust();
+        this.timer.adjust();
         this.storePanel.adjust();
         this.settings.adjust();
 
@@ -359,6 +372,8 @@ export default class GameScene extends Phaser.Scene {
         // The convoys are walked along their trails a frame at a time, so the
         // drag has something to pull against between pointer moves.
         if (this.gamePlay) this.gamePlay.update(time, delta);
+
+        if (this.timer && this.timer.visible) this.timer.set(this.gamePlay.timeLeft);
 
         // Clouds on the home screen, while it is up.
         if (this.home) this.home.update(time, delta);

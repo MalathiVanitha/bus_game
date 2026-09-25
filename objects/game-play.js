@@ -87,6 +87,9 @@ const INTRO_FADE = 320;
 const INTRO_FROM = 0.84;
 const INTRO_DROP = 70;
 
+// Seconds on the clock for a level that does not give its own.
+const DEFAULT_TIME = 60;
+
 const byDepth = (a, b) => a.depth - b.depth;
 
 export class GamePlay extends Phaser.GameObjects.Container {
@@ -196,9 +199,12 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.doorMatrix = new Phaser.GameObjects.Components.TransformMatrix();
         this.doorParent = new Phaser.GameObjects.Components.TransformMatrix();
 
-        this.levelTime = levelData.time || 0;
+        this.levelTime = levelData.time > 0 ? levelData.time : DEFAULT_TIME;
         this.timeLeft = this.levelTime;
         this.running = false;
+        this.paused = false;
+        // The clock holds at full until the player first takes hold of a convoy.
+        this.clockStarted = false;
         this.finished = false;
 
         this.drag = null;
@@ -1308,6 +1314,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         if (!grabbed) return;
 
+        this.clockStarted = true;
+
         this.finishSettle(grabbed.convoy);
         this.setLeadingEnd(grabbed.convoy, grabbed.end);
         this.updateConvoyView(grabbed.convoy, 0);
@@ -1443,7 +1451,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
     update(time, delta) {
         const step = Math.min(delta || 16, 50);
 
-        if (this.running) {
+        if (this.running && this.clockStarted && !this.paused) {
             this.timeLeft -= step / 1000;
 
             if (this.timeLeft <= 0) {

@@ -64,6 +64,11 @@ const GEAR_BASE_SCALE = 0.524;
 const GEAR_ICON_SCALE = 0.58;
 const GEAR_HIT = 104;
 
+// In a level the clock takes the top left, so the gear moves over to the
+// storyboard's top-right button spot.
+const PLAY_GEAR_X = 100;
+const PLAY_GEAR_Y = 52;
+
 const OPEN_TIME = 300;
 const SHUT_TIME = 170;
 const OPEN_FROM = 0.72;
@@ -117,6 +122,7 @@ export class Settings extends Phaser.GameObjects.Container {
 
         this.state = readStore();
         this.isOpen = false;
+        this.docked = false;
         this.toggles = {};
 
         this.build();
@@ -371,7 +377,11 @@ export class Settings extends Phaser.GameObjects.Container {
 
         this.gear.disableInteractive();
 
-        if (this.scene.gamePlay) this.scene.gamePlay.detachInput();
+        // The clock stands still while the panel is up and the board can't be played.
+        if (this.scene.gamePlay) {
+            this.scene.gamePlay.detachInput();
+            this.scene.gamePlay.paused = true;
+        }
 
         this.modal.visible = true;
         this.dim.alpha = 0;
@@ -425,7 +435,10 @@ export class Settings extends Phaser.GameObjects.Container {
 
                 this.gear.setInteractive();
 
-                if (this.scene.gamePlay) this.scene.gamePlay.attachInput();
+                if (this.scene.gamePlay) {
+                    this.scene.gamePlay.attachInput();
+                    this.scene.gamePlay.paused = false;
+                }
             }
         });
     }
@@ -445,7 +458,22 @@ export class Settings extends Phaser.GameObjects.Container {
             (dimensions.gameWidth - MODAL_MARGIN * 2) / PANEL_W
         ));
 
-        this.gear.x = -dimensions.gameWidth / 2 + GEAR_X;
-        this.gear.y = -dimensions.gameHeight / 2 + GEAR_Y;
+        this.fitter.x = 0;
+        this.fitter.y = 17;
+
+        this.placeGear();
+    }
+
+    /** Moves the gear to its in-level corner (true) or back home (false). */
+    dock(inLevel) {
+        this.docked = inLevel;
+        this.placeGear();
+    }
+
+    placeGear() {
+        this.gear.x = this.docked ?
+            dimensions.gameWidth / 2 - PLAY_GEAR_X :
+            -dimensions.gameWidth / 2 + GEAR_X;
+        this.gear.y = -dimensions.gameHeight / 2 + (this.docked ? PLAY_GEAR_Y : GEAR_Y);
     }
 }

@@ -3,7 +3,7 @@ export default [
         rows: 9,
         columns: 8,
 
-        time: 75,
+        time: 60,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
