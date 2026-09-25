@@ -17,23 +17,11 @@ const GLEAM_TIME = 1100;
 const GLEAM_HOLD = 140;
 const GLEAM_DELAY = 1250;
 
-const HALO_STRENGTH = 2.4;
-const HALO_QUALITY = 0.16;
-const HALO_DISTANCE = 16;
-
-// The logo's colour washes out towards white, holds a beat, and eases back to
-// full. TINT_WHITE is how much white is mixed in at the peak.
-const TINT_WHITE = 0.35;
-const WHITE = [
-    0, 0, 0, 0, 255,
-    0, 0, 0, 0, 255,
-    0, 0, 0, 0, 255,
-    0, 0, 0, 1, 0
-];
-const TINT_TIME = 950;
-const TINT_HOLD = 180;
-const TINT_REST = 1600;
-const TINT_DELAY = 1900;
+// The halo never goes out: it breathes between HALO_REST and HALO_STRENGTH.
+const HALO_REST = 2.5;
+const HALO_STRENGTH = 7;
+const HALO_QUALITY = 0.2;
+const HALO_DISTANCE = 32;
 
 const GLINT = 'fx-glint';
 const GLINT_ART = 256;
@@ -344,14 +332,7 @@ export class Home extends Phaser.GameObjects.Container {
     }
 
     buildGleam() {
-        // Ahead of the glow, so the halo stays bright while the logo dims.
-        // Solid white, blended in by its alpha. The filter keeps the logo's
-        // own alpha, so the white stays inside the logo's outline.
-        this.logoTint = this.logo.postFX.addColorMatrix();
-        this.logoTint.set(WHITE);
-        this.tintDepth = 0;
-
-        this.halo = this.logo.postFX.addGlow(GLEAM_WARM, 0, 0, false, HALO_QUALITY, HALO_DISTANCE);
+        this.halo = this.logo.postFX.addGlow(GLEAM_WARM, HALO_REST, 0, false, HALO_QUALITY, HALO_DISTANCE);
 
         this.glints = [];
 
@@ -383,29 +364,12 @@ export class Home extends Phaser.GameObjects.Container {
             ease: 'Sine.easeInOut'
         });
 
-        this.tintTween = this.scene.tweens.add({
-            targets: this,
-            tintDepth: 1,
-            duration: TINT_TIME,
-            delay: TINT_DELAY,
-            hold: TINT_HOLD,
-            repeatDelay: TINT_REST,
-            repeat: -1,
-            yoyo: true,
-            ease: 'Sine.easeInOut',
-            onUpdate: () => this.applyTint()
-        });
-
         this.glintTimer = this.scene.time.addEvent({
             delay: GLINT_INTERVAL,
             loop: true,
             startAt: GLINT_INTERVAL - GLINT_DELAY,
             callback: () => this.twinkle()
         });
-    }
-
-    applyTint() {
-        this.logoTint.alpha = TINT_WHITE * this.tintDepth;
     }
 
     // Each glint pops open on its highlight, turns a quarter and closes again,
@@ -476,18 +440,11 @@ export class Home extends Phaser.GameObjects.Container {
     stopGleam() {
         this.scene.tweens.killTweensOf(this.halo);
 
-        if (this.tintTween) {
-            this.tintTween.remove();
-            this.tintTween = null;
-        }
-
-        this.tintDepth = 0;
-        this.applyTint();
         this.stopGlints();
 
         this.gleam = null;
 
-        this.halo.outerStrength = 0;
+        this.halo.outerStrength = HALO_REST;
     }
 
     startIdle() {
