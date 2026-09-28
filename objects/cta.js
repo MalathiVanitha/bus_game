@@ -135,10 +135,30 @@ const FALL_FOR = 1600;
 const FALL_TIME = [800, 1300];
 const FALL_SWAY = 90;
 
-const OPEN_TIME = 300;
-const SHUT_TIME = 170;
-const OPEN_FROM = 0.72;
-const SHUT_TO = 0.86;
+// The card slams down from above the screen, tipped over and fading in, and
+// squashes on the landing. Its contents are held back until then, and pop and
+// fade out of it a row at a time, top to bottom.
+const DIM_TIME = 300;
+const DROP_TIME = 360;
+const DROP_FADE = 220;
+const DROP_TILT = -8;
+const LAND_SQUASH_X = 1.1;
+const LAND_SQUASH_Y = 0.88;
+const LAND_TIME = 90;
+const SETTLE_TIME = 460;
+const LAND_SHAKE_TIME = 160;
+const LAND_SHAKE = 0.006;
+
+const ROW_DELAY = 70;
+const ROW_TIME = 320;
+const ROW_FROM = 0.2;
+const ROW_FADE = 200;
+// Pieces closer together than this, top to bottom, come out together.
+const ROW_BAND = 30;
+
+// And drops off the bottom on the way out.
+const SHUT_TIME = 260;
+const SHUT_TILT = 6;
 
 const STARS_DELAY = 140;
 const STARS_TIME = 420;
@@ -275,6 +295,7 @@ export class CTA extends Phaser.GameObjects.Container {
         catcher.setInteractive();
         card.add(catcher);
 
+        card.panelH = height;
         card.visible = false;
         this.fitter.add(card);
 
@@ -445,37 +466,144 @@ export class CTA extends Phaser.GameObjects.Container {
         this.winGroup.visible = this.userWon;
         this.failGroup.visible = !this.userWon;
 
-        this.dim.alpha = 0;
-        card.setScale(OPEN_FROM);
-        card.alpha = 0;
-
         this.scene.tweens.killTweensOf(this.dim);
         this.scene.tweens.killTweensOf(card);
 
+        this.dim.alpha = 0;
         this.scene.tweens.add({
             targets: this.dim,
             alpha: DIM_ALPHA,
-            duration: OPEN_TIME,
+            duration: DIM_TIME,
+            ease: 'Quad.easeOut'
+        });
+
+        card.alpha = 0;
+        card.setScale(1);
+        card.angle = DROP_TILT;
+        card.y = this.aboveScreen(card);
+
+        const rows = this.holdContents(card);
+
+        this.scene.tweens.add({
+            targets: card,
+            alpha: 1,
+            duration: DROP_FADE,
             ease: 'Quad.easeOut'
         });
 
         this.scene.tweens.add({
             targets: card,
-            scale: 1,
-            alpha: 1,
-            duration: OPEN_TIME,
-            ease: 'Back.easeOut',
+            y: 0,
+            angle: 0,
+            duration: DROP_TIME,
+            ease: 'Cubic.easeIn'
+        });
+
+        // The landing hangs off a counter of its own, the same length as the
+        // drop, rather than the drop's tween, which a hide could kill.
+        this.landRun = this.scene.tweens.addCounter({
+            from: 0,
+            to: 1,
+            duration: DROP_TIME,
             onComplete: () => {
-                if (this.userWon) {
-                    this.popStars();
-                    this.pop();
-                } else {
-                    this.shakeClock();
-                }
+                this.landRun = null;
+                this.land(card, rows);
             }
         });
 
         if (this.userWon) this.rain();
+    }
+
+    // Just clear of the top of the screen, allowing for the fitter's scale.
+    aboveScreen(card) {
+        const scale = this.fitter.scaleY || 1;
+
+        return -dimensions.actualHeight / 2 / scale - card.panelH / 2 - 40;
+    }
+
+    // Shrinks and hides everything on the card but the panel itself, and hands it
+    // back as rows, top to bottom, for land() to bring out in turn.
+    holdContents(card) {
+        const pieces = card.list.slice(2).filter((piece) => piece !== this.stars);
+
+        pieces.sort((a, b) => a.y - b.y);
+
+        const rows = [];
+
+        for (let i = 0; i < pieces.length; i++) {
+            const piece = pieces[i];
+            const row = rows[rows.length - 1];
+
+            if (piece.cardScale === undefined) {
+                piece.cardScale = piece.restScale || piece.scaleX;
+                piece.cardAlpha = piece.alpha;
+            }
+
+            this.scene.tweens.killTweensOf(piece);
+            piece.setScale(0);
+            piece.alpha = 0;
+
+            if (row && piece.y - row.top < ROW_BAND) row.pieces.push(piece);
+            else rows.push({ top: piece.y, pieces: [piece] });
+        }
+
+        if (this.userWon) this.stars.alpha = 0;
+
+        return rows;
+    }
+
+    land(card, rows) {
+        if (!this.isOpen) return;
+
+        this.scene.cameras.main.shake(LAND_SHAKE_TIME, LAND_SHAKE);
+
+        card.setScale(LAND_SQUASH_X, LAND_SQUASH_Y);
+
+        this.scene.tweens.add({
+            targets: card,
+            scaleX: 1,
+            scaleY: 1,
+            duration: SETTLE_TIME,
+            delay: LAND_TIME,
+            ease: 'Elastic.easeOut',
+            easeParams: [1.1, 0.4]
+        });
+
+        // Before the rows: the stars and the clock clear their own tweens,
+        // and would take their pop out with them.
+        if (this.userWon) {
+            this.popStars();
+            this.pop();
+        } else {
+            this.shakeClock();
+        }
+
+        for (let i = 0; i < rows.length; i++) {
+            const pieces = rows[i].pieces;
+
+            for (let j = 0; j < pieces.length; j++) {
+                const piece = pieces[j];
+
+                piece.setScale(piece.cardScale * ROW_FROM);
+
+                this.scene.tweens.add({
+                    targets: piece,
+                    scale: piece.cardScale,
+                    duration: ROW_TIME,
+                    delay: i * ROW_DELAY,
+                    ease: 'Back.easeOut',
+                    easeParams: [2.4]
+                });
+
+                this.scene.tweens.add({
+                    targets: piece,
+                    alpha: piece.cardAlpha,
+                    duration: ROW_FADE,
+                    delay: i * ROW_DELAY,
+                    ease: 'Quad.easeOut'
+                });
+            }
+        }
     }
 
     popStars() {
@@ -647,6 +775,11 @@ export class CTA extends Phaser.GameObjects.Container {
         this.stopRain();
         this.stopPop();
 
+        if (this.landRun) {
+            this.landRun.remove();
+            this.landRun = null;
+        }
+
         const card = this.userWon ? this.winGroup : this.failGroup;
 
         this.scene.tweens.killTweensOf(this.dim);
@@ -661,16 +794,28 @@ export class CTA extends Phaser.GameObjects.Container {
 
         this.scene.tweens.add({
             targets: card,
-            scale: SHUT_TO,
-            alpha: 0,
+            y: -this.aboveScreen(card),
+            angle: SHUT_TILT,
             duration: SHUT_TIME,
-            ease: 'Quad.easeIn',
+            ease: 'Cubic.easeIn'
+        });
+
+        // Its own counter, rather than the card's tween, which a show could
+        // kill before it had put the card away.
+        this.scene.tweens.addCounter({
+            from: 0,
+            to: 1,
+            duration: SHUT_TIME,
             onComplete: () => {
+                if (this.isOpen) return;
+
                 this.visible = false;
                 this.confettiGrp.removeAll(true);
 
-                card.setScale(1);
+                card.y = 0;
+                card.angle = 0;
                 card.alpha = 1;
+                card.setScale(1);
                 card.visible = false;
             }
         });
@@ -684,10 +829,13 @@ export class CTA extends Phaser.GameObjects.Container {
 
         if (this.dim.input) this.dim.input.hitArea.setSize(dimensions.actualWidth, dimensions.actualHeight);
 
+        // Each card fits by its own height, against the whole screen rather
+        // than the game area, so the shorter win card isn't shrunk to make
+        // room for the fail card's.
         this.fitter.setScale(Math.min(
             1,
-            (dimensions.gameHeight - MODAL_MARGIN * 2) / FAIL_H,
-            (dimensions.gameWidth - MODAL_MARGIN * 2) / PANEL_W
+            (dimensions.actualHeight - MODAL_MARGIN * 2) / (this.userWon ? WIN_H : FAIL_H),
+            (dimensions.actualWidth - MODAL_MARGIN * 2) / PANEL_W
         ));
     }
 }

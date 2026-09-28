@@ -6,7 +6,6 @@ const SKY = 0x98ddfc;
 
 const ART_SCALE = 0.6;
 
-const INK = '#283085';
 
 const LOGO = 'home/logo';
 const LOGO_Y = -240;
@@ -70,10 +69,6 @@ const CONVOY_SHADOW_DY = -3;
 const CONVOY_SHADOW_SHRINK = 0.006;
 const CONVOY_SHADOW_FADE = 0.018;
 
-const PLATE = 'home/level-plate';
-const PLATE_Y = 150;
-const PLATE_SIZE = 44;
-
 const PLAY_FACE = 'home/play-button';
 const PLAY_Y = 270;
 
@@ -106,7 +101,6 @@ const CONVOY_BRAKE = -1.6;
 const INTRO = [
     { piece: 'logo', scale: 0.4, dy: -40, angle: -8, duration: 620, delay: 0, ease: 'Back.easeOut', pulse: 1.04 },
     { piece: 'convoy', dx: 560, duration: 1000, delay: 200, ease: 'Cubic.easeOut', brake: CONVOY_BRAKE },
-    { piece: 'plate', dx: -SWEEP, duration: 480, delay: 430, ease: 'Back.easeOut' },
     { piece: 'playButton', dx: SWEEP, duration: 480, delay: 520, ease: 'Back.easeOut' },
     { piece: 'store', dx: -SWEEP, duration: 480, delay: 610, ease: 'Back.easeOut' }
 ];
@@ -141,7 +135,6 @@ const LOGO_SWAY_TIME = 2400;
 const OUTRO = [
     { piece: 'store', dx: -SWEEP, duration: 340, delay: 0 },
     { piece: 'playButton', dx: SWEEP, duration: 340, delay: 50 },
-    { piece: 'plate', dx: -SWEEP, duration: 340, delay: 100 },
     { piece: 'convoy', dx: 640, duration: 420, delay: 120, ease: 'Quart.easeIn', squat: true },
     { piece: 'logo', dy: -60, scale: 0.8, angle: 6, duration: 380, delay: 200, ease: 'Back.easeIn' }
 ];
@@ -165,7 +158,6 @@ export class Home extends Phaser.GameObjects.Container {
         this.scene.add.existing(this);
 
         this.onPlay = onPlay;
-        this.level = scene.level || 1;
 
         this.build();
     }
@@ -198,7 +190,6 @@ export class Home extends Phaser.GameObjects.Container {
 
         this.convoyShadow.baseScale = this.convoy.displayWidth * CONVOY_SHADOW_SPAN / CONVOY_SHADOW_W;
 
-        this.buildPlate();
         this.buildPlay();
 
         this.store = new Store(this.scene, 0, STORE_Y);
@@ -273,26 +264,6 @@ export class Home extends Phaser.GameObjects.Container {
         shadow.scaleX = shadow.baseScale * size * Math.max(0.5, 1 - lift * CONVOY_SHADOW_SHRINK);
         shadow.scaleY = CONVOY_SHADOW_DEPTH / CONVOY_SHADOW_H * shadow.scaleX / shadow.baseScale;
         shadow.alpha = CONVOY_SHADOW_ALPHA * convoy.alpha * Math.max(0, 1 - lift * CONVOY_SHADOW_FADE);
-    }
-
-    buildPlate() {
-        const plate = this.scene.add.container(0, PLATE_Y);
-
-        const face = this.scene.add.sprite(0, 0, 'sheet', PLATE);
-        face.setScale(ART_SCALE);
-        plate.add(face);
-
-        this.plateText = this.scene.add.text(0, -2, 'Level ' + this.level, {
-            fontFamily: 'FredokaOne_Regular',
-            fontSize: PLATE_SIZE,
-            color: INK
-        });
-        this.plateText.setOrigin(.5);
-        this.plateText.setResolution(this.textRes);
-        plate.add(this.plateText);
-
-        this.plate = plate;
-        this.content.add(plate);
     }
 
     buildPlay() {
@@ -553,11 +524,6 @@ export class Home extends Phaser.GameObjects.Container {
 
             if (cloud.x > cloud.edge) cloud.x = -cloud.edge;
         }
-    }
-
-    setLevel(level) {
-        this.level = level;
-        this.plateText.setText('Level ' + level);
     }
 
     play() {

@@ -10,6 +10,7 @@ import { StorePanel } from '../objects/store.js';
 import { Coin } from '../objects/coin.js';
 import { Timer } from '../objects/timer.js';
 import { LevelBadge } from '../objects/levelBadge.js';
+import { Transition } from '../objects/transition.js';
 import data from '../data/data.js';
 import perf from '../utils/perf.js';
 
@@ -72,8 +73,9 @@ export default class GameScene extends Phaser.Scene {
         this.gamePlay = new GamePlay(this, 0, 0);
         this.gameGroup.add(this.gamePlay);
 
-        // Over the board, which it covers until Play is pressed. Its Play
-        // sends it off, then puts the level card up.
+        // Over the board, which it covers until Play is pressed. Its Play is
+        // taken over below (onPlayPress) by the transition to the level card;
+        // this callback is left for its own outro, should that be used again.
         this.home = new Home(this, 0, 0, () => this.levelScreen.show(this.level));
         this.gameGroup.add(this.home);
 
@@ -88,10 +90,10 @@ export default class GameScene extends Phaser.Scene {
             if (this.betweenLevels) this.beginLevel();
             else this.enterGame();
         });
-        this.levelScreen.onClose = () => {
+        this.levelScreen.onClose = () => this.transition.run(() => {
             if (this.betweenLevels) this.leaveGame();
             else this.showHome();
-        };
+        });
         this.gameGroup.add(this.levelScreen);
 
         // The counter outlives the home screen: the end of a level pays coins
@@ -125,6 +127,17 @@ export default class GameScene extends Phaser.Scene {
         this.cta = new CTA(this, 0, 0);
         this.gameGroup.add(this.cta);
 
+        // Over everything: the change from one screen to the next.
+        this.transition = new Transition(this, 0, 0);
+        this.gameGroup.add(this.transition);
+
+        // Home's Play swaps to the level card under the transition.
+        this.home.onPlayPress = () => this.transition.run(() => {
+            this.home.hide();
+            this.gamePlay.readyIntro();
+            this.levelScreen.show(this.level);
+        });
+
         this.wireEndCard();
 
         this.setPositions();
@@ -151,11 +164,13 @@ export default class GameScene extends Phaser.Scene {
      * the card's video buttons is taken as paid, the same way the store's is.
      */
     wireEndCard() {
-        this.events.on('cta:double', (offer) => this.nextLevel(offer.coins));
-        this.events.on('cta:next', (offer) => this.nextLevel(offer.coins));
+        this.events.on('cta:double', (offer) => this.transition.run(() => this.nextLevel(offer.coins)));
+        this.events.on('cta:next', (offer) => this.transition.run(() => this.nextLevel(offer.coins)));
         this.events.on('cta:continue', (offer) => this.gamePlay.addTime(offer.seconds));
-        this.events.on('cta:retry', () => this.restartLevel());
-        this.events.on('cta:home', () => this.leaveGame());
+        // The board is laid out again under the transition, and the clock
+        // only starts once it has cleared.
+        this.events.on('cta:retry', () => this.transition.run(() => this.layoutLevel(), () => this.beginLevel()));
+        this.events.on('cta:home', () => this.transition.run(() => this.leaveGame()));
     }
 
     /** The level is over, one way or the other. Called by the board itself. */
@@ -175,7 +190,6 @@ export default class GameScene extends Phaser.Scene {
         if (coins > 0) this.coin.award(coins);
 
         this.level++;
-        this.home.setLevel(this.level);
         this.levelBadge.set(this.level);
 
         this.layoutLevel();
@@ -366,6 +380,7 @@ export default class GameScene extends Phaser.Scene {
         this.levelBadge.adjust();
         this.storePanel.adjust();
         this.settings.adjust();
+        this.transition.adjust();
 
     }
 
