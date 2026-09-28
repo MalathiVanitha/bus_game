@@ -210,6 +210,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.scene.add.existing(this);
 
         this.onPlay = onPlay;
+        this.onClose = null;
         this.counts = readStore();
         this.picked = {};
         this.tiles = {};
@@ -277,7 +278,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
     }
 
     buildClose() {
-        this.card.add(this.closeButton(CLOSE_X, CLOSE_Y, () => this.hide()));
+        this.card.add(this.closeButton(CLOSE_X, CLOSE_Y, () => this.close()));
     }
 
     buildGoal() {
@@ -685,6 +686,14 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         if (this.onPlay) this.onPlay(picked);
     }
 
+
+    close() {
+        if (!this.isOpen) return;
+
+        this.hide();
+
+        if (this.onClose) this.onClose();
+    }
 
     show(level = 1) {
         if (this.isOpen) return;

@@ -4,7 +4,7 @@ import { bakeShape } from '../utils/bake.js';
 // with the stopwatch sat in its left end and the time left read out in mm:ss.
 // The board keeps the time; this only shows it.
 
-const PANEL_X = 128;
+const PANEL_X = 114;
 const PANEL_Y = 51;
 const PANEL_W = 128;
 const PANEL_H = 52;

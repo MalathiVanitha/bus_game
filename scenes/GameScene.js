@@ -9,6 +9,7 @@ import { LevelScreen } from '../objects/levelScreen.js';
 import { StorePanel } from '../objects/store.js';
 import { Coin } from '../objects/coin.js';
 import { Timer } from '../objects/timer.js';
+import { LevelBadge } from '../objects/levelBadge.js';
 import data from '../data/data.js';
 import perf from '../utils/perf.js';
 
@@ -71,20 +72,27 @@ export default class GameScene extends Phaser.Scene {
         this.gamePlay = new GamePlay(this, 0, 0);
         this.gameGroup.add(this.gamePlay);
 
-        // Over the board, which it covers until Play is pressed.
-        this.home = new Home(this, 0, 0, () => this.enterGame());
+        // Over the board, which it covers until Play is pressed. Its Play
+        // sends it off, then puts the level card up.
+        this.home = new Home(this, 0, 0, () => this.levelScreen.show(this.level));
         this.gameGroup.add(this.home);
 
-        // Home's Play opens the level card, and the card's Play sets the
-        // home screen off into the level with the boosters picked on it.
+        // The card comes up before every level: after the home screen, and
+        // between one level and the next. Its Play starts the level with the
+        // boosters picked on it; its close goes back home.
         this.boosters = {};
+        this.betweenLevels = false;
         this.levelScreen = new LevelScreen(this, 0, 0, (boosters) => {
             this.boosters = boosters;
-            this.home.play();
-        });
-        this.gameGroup.add(this.levelScreen);
 
-        this.home.onPlayPress = () => this.levelScreen.show(this.level);
+            if (this.betweenLevels) this.beginLevel();
+            else this.enterGame();
+        });
+        this.levelScreen.onClose = () => {
+            if (this.betweenLevels) this.leaveGame();
+            else this.showHome();
+        };
+        this.gameGroup.add(this.levelScreen);
 
         // The counter outlives the home screen: the end of a level pays coins
         // into it off the board.
@@ -97,14 +105,17 @@ export default class GameScene extends Phaser.Scene {
 
         this.events.on('store:open', () => this.storePanel.show());
 
-        this.events.on('home:leaving', () => {
-            this.coin.outro();
-            this.gamePlay.readyIntro();
-        });
+        // The counter stays up over the level card, where boosters are
+        // bought with it, and goes once the level starts.
+        this.events.on('home:leaving', () => this.gamePlay.readyIntro());
 
         // The level clock, over the board and under the end card.
         this.timer = new Timer(this, 0, 0);
         this.gameGroup.add(this.timer);
+
+        // The level number, between the clock and the pause button.
+        this.levelBadge = new LevelBadge(this, 0, 0);
+        this.gameGroup.add(this.levelBadge);
 
         this.settings = new Settings(this, 0, 0);
         this.gameGroup.add(this.settings);
@@ -156,29 +167,48 @@ export default class GameScene extends Phaser.Scene {
         this.time.delayedCall(GameScene.END_CARD_WAIT, () => this.cta.show());
     }
 
-    /** Pays the level out and moves on. */
+    /**
+     * Pays the level out and moves on. The next level is laid out under its
+     * level card, and starts from the card's Play.
+     */
     nextLevel(coins) {
         if (coins > 0) this.coin.award(coins);
 
         this.level++;
         this.home.setLevel(this.level);
+        this.levelBadge.set(this.level);
 
-        this.restartLevel();
+        this.layoutLevel();
+
+        this.betweenLevels = true;
+        this.levelScreen.show(this.level);
     }
 
     // The board lays out whichever level this.level is on, so the next level
     // and a retry are the same call.
     restartLevel() {
+        this.layoutLevel();
+        this.beginLevel();
+    }
+
+    layoutLevel() {
         this.gamePlay.reset();
         this.gamePlay.adjust();
+    }
+
+    beginLevel() {
+        this.betweenLevels = false;
+        this.coin.outro();
+
         this.gamePlay.start();
 
         this.timer.intro(this.gamePlay.timeLeft);
+        this.levelBadge.intro(this.level);
     }
 
     leaveGame() {
-        this.gamePlay.reset();
-        this.gamePlay.adjust();
+        this.betweenLevels = false;
+        this.layoutLevel();
 
         this.showHome();
     }
@@ -188,14 +218,16 @@ export default class GameScene extends Phaser.Scene {
         this.home.show();
         this.coin.intro();
         this.timer.hide();
+        this.levelBadge.hide();
         this.settings.dock(false);
     }
 
     enterGame() {
         this.home.hide();
-        this.coin.hide();
+        this.coin.outro();
 
         this.timer.intro(this.gamePlay.timeLeft);
+        this.levelBadge.intro(this.level);
         this.settings.dock(true);
 
         this.gamePlay.intro(() => this.gamePlay.start());
@@ -331,6 +363,7 @@ export default class GameScene extends Phaser.Scene {
         this.levelScreen.adjust();
         this.coin.adjust();
         this.timer.adjust();
+        this.levelBadge.adjust();
         this.storePanel.adjust();
         this.settings.adjust();
 

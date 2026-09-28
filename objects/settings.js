@@ -65,9 +65,20 @@ const GEAR_ICON_SCALE = 0.58;
 const GEAR_HIT = 104;
 
 // In a level the clock takes the top left, so the gear moves over to the
-// storyboard's top-right button spot.
-const PLAY_GEAR_X = 100;
-const PLAY_GEAR_Y = 52;
+// storyboard's top-right button spot and turns into the blue pause button.
+// It opens the same panel, which stops the clock while it is up.
+const PLAY_GEAR_X = 86;
+const PLAY_GEAR_Y = 51;
+
+const PAUSE_SIZE = 64;
+const PAUSE_FACE = 'button_blue';
+// The button in the art is 144 tall, with 50 clear on either side of it. Its
+// round ends are kept whole and the middle stretched.
+const PAUSE_FACE_SCALE = PAUSE_SIZE / 144;
+const PAUSE_PAD = 50;
+const PAUSE_CORNER = 110;
+const PAUSE_ICON_Y = -2;
+const PAUSE_ICON_SCALE = 0.5;
 
 const OPEN_TIME = 300;
 const SHUT_TIME = 170;
@@ -147,6 +158,25 @@ export class Settings extends Phaser.GameObjects.Container {
         const icon = this.scene.add.sprite(0, 0, 'sheet', 'icons/icon-gear');
         icon.setScale(GEAR_ICON_SCALE);
         gear.add(icon);
+
+        const pause = this.scene.add.container(0, 0);
+
+        const face = this.scene.add.nineslice(
+            0, 0, PAUSE_FACE, null,
+            PAUSE_SIZE / PAUSE_FACE_SCALE + PAUSE_PAD * 2, 160,
+            PAUSE_CORNER, PAUSE_CORNER, 0, 0
+        );
+        face.setScale(PAUSE_FACE_SCALE);
+        pause.add(face);
+
+        const bars = this.scene.add.sprite(0, PAUSE_ICON_Y, 'sheet', 'icons/icon-pause');
+        bars.setScale(PAUSE_ICON_SCALE);
+        pause.add(bars);
+
+        gear.add(pause);
+
+        this.gearFace = [base, icon];
+        this.pauseFace = pause;
 
         this.pressable(gear, GEAR_HIT, GEAR_HIT, () => this.show());
 
@@ -471,6 +501,9 @@ export class Settings extends Phaser.GameObjects.Container {
     }
 
     placeGear() {
+        this.gearFace.forEach((part) => part.visible = !this.docked);
+        this.pauseFace.visible = this.docked;
+
         this.gear.x = this.docked ?
             dimensions.gameWidth / 2 - PLAY_GEAR_X :
             -dimensions.gameWidth / 2 + GEAR_X;
