@@ -5,8 +5,10 @@
     "main": "main.js",
     "scripts": {
         "start": "live-server --open=index.html",
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "build": "vite build"
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "test": "echo \"Error: no test specified\" && exit 1"
     },
     "repository": {
         "type": "git",
