@@ -1,5 +1,10 @@
+import { TIMER_RIGHT } from './timer.js';
+import { PAUSE_INSET } from './settings.js';
+
 // The level number, top middle, as in the storyboard: a blue pill between the
-// clock on its left and the pause button on its right.
+// clock on its left and the pause button on its right. It is centred in the
+// gap between those two rather than on the screen, since the clock is wider
+// than the pause button and would leave it looking off to the left.
 
 const BADGE_Y = 51;
 const BADGE_W = 150;
@@ -92,7 +97,7 @@ export class LevelBadge extends Phaser.GameObjects.Container {
     }
 
     adjust() {
-        this.x = dimensions.gameWidth / 2;
+        this.x = (TIMER_RIGHT + dimensions.gameWidth - PAUSE_INSET) / 2;
         this.y = BADGE_Y;
     }
 }

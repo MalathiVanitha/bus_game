@@ -71,6 +71,10 @@ const PLAY_GEAR_X = 86;
 const PLAY_GEAR_Y = 51;
 
 const PAUSE_SIZE = 64;
+
+// How far in from the right edge the pause button starts, for the level badge
+// to its left.
+export const PAUSE_INSET = PLAY_GEAR_X + PAUSE_SIZE / 2;
 const PAUSE_FACE = 'button_blue';
 // The button in the art is 144 tall, with 50 clear on either side of it. Its
 // round ends are kept whole and the middle stretched.

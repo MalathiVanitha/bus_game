@@ -8,6 +8,9 @@ const PANEL_X = 114;
 const PANEL_Y = 51;
 const PANEL_W = 128;
 const PANEL_H = 52;
+
+// Where the clock ends, for the level badge to its right.
+export const TIMER_RIGHT = PANEL_X + PANEL_W / 2;
 const PANEL_RADIUS = 18;
 const PANEL_FACE = 0xdcf0fe;
 // A white rim round the face, and the blue it casts on the sky below it.
