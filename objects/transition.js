@@ -1,43 +1,70 @@
-import { bakeShape } from '../utils/bake.js';
-
-// The change from one screen to the next, done with the game's own pieces:
-// the screen is cut into lanes a board row high, and a convoy from the board
-// drives down each one, tractor first, laying the board behind it. The lanes
-// set off one after another from the top, and every other one runs the other
-// way, like traffic, until the screen is all board. The screens are swapped
-// under it, and the convoys come through again and take the board up behind
-// them, onto the new screen.
+// The change from one screen to the next, as a candy iris: rings in the
+// luggage colours close in on the middle one after another, each with a wavy
+// edge that turns, the last a deep blue sunburst. Once the screen is covered
+// the game's logo pops up in the middle with a convoy driving round it on a
+// ring road, and the screens are swapped underneath. Then the badge pops away,
+// the rings open back out, blue first, and confetti bursts over the new screen.
 //
-// Every convoy drives at one steady speed and only across its own lane, so
-// none of them has to cover much ground in a frame.
+// Everything is drawn from one clock of its own, stepped once a frame, so a
+// slow frame only slows the change down rather than making it jump.
 
-// One cell of the board, shaped the way board.js draws its own (a bevelled
-// tile in a well) but in the blues of the game's buttons, with their gloss.
-const CELL = 64;
-const WELL = 0x2c64c9;
-const TILE_FACE = 0x4f96f2;
-const TILE_LIGHT = 0x8cc0ff;
-const TILE_SHADE = 0x2f73dc;
-const TILE_GAP = 3;
-const TILE_CORNER = 10;
-const TILE_BEVEL = 3;
-const GLOSS = 0xffffff;
-const GLOSS_ALPHA = 0.22;
-const GLOSS_INSET = 7;
-const GLOSS_H = 14;
+// The rings, from the one that leads to the one that closes last (and so lies
+// on top). Each sets off LAG ms after the change starts; opening, the order
+// runs the other way.
+const RINGS = [
+    { color: 0xffffff, lag: 0, spin: 1 },
+    { color: 0xffd23f, lag: 45, spin: -1 },
+    { color: 0xff8a1f, lag: 115, spin: 1 },
+    { color: 0xff4f8b, lag: 185, spin: -1 },
+    { color: 0x2f73dc, lag: 255, spin: 1 }
+];
 
-// A lane is one row of the board, its tiles drawn this big.
-const LANE = 96;
+// The wavy edge: how many lobes, how deep, and how fast they turn.
+const LOBES = 9;
+const WAVE = 0.07;
+const WAVE_SPIN = 0.0016;
+const SEGMENTS = 120;
 
-// The white rim of the board, along the edge each convoy is dragging.
-const RIM = 0xffffff;
-const RIM_W = 6;
-const EDGE_SHADE = 0x283085;
-const EDGE_SHADE_ALPHA = 0.18;
-const EDGE_SHADE_W = 14;
+// The sunburst on the blue ring.
+const RAYS = 18;
+const RAY_COLOR = 0x4f96f2;
+const RAY_ALPHA = 0.55;
+const RAY_SPIN = 0.00035;
+const RAY_GAP = 14;
 
-// The convoys are built the way convoy.js builds them, one vehicle to a cell,
-// from the same art.
+// Timing, in ms of the change's own clock.
+const CLOSE_TIME = 460;
+const COVERED = CLOSE_TIME + RINGS[RINGS.length - 1].lag;
+const HOLD_TIME = 520;
+const BADGE_OUT = 220;
+const OPEN_TIME = 520;
+const OPEN_AT = COVERED + HOLD_TIME;
+// The rings start opening a little after the badge starts popping away.
+const OPEN_DELAY = 110;
+const OPEN_LAST_LAG = RINGS[RINGS.length - 1].lag;
+const OPENED = OPEN_AT + OPEN_DELAY + OPEN_LAST_LAG + OPEN_TIME;
+
+// Frames let go by after the swap before the clock runs on, so any hitch from
+// building the new screen falls while it is covered.
+const SETTLE_FRAMES = 2;
+// The most the clock moves in one frame, whatever the frame took.
+const MAX_STEP = 1000 / 30;
+
+// The badge: the game's logo, as home shows it, on a soft glow, with a ring road round it.
+const BADGE_IN = 380;
+const LOGO_SHEET = 'sheet';
+const LOGO_ART = 'home/logo';
+const LOGO_WIDTH = 0.66;
+const GLOW = 0xffffff;
+const GLOW_ALPHA = 0.18;
+const ROAD = 0x1d4fa8;
+const ROAD_ALPHA = 0.85;
+const ROAD_LINE = 0xffffff;
+const ROAD_LINE_ALPHA = 0.7;
+const ROAD_DASHES = 28;
+
+// The convoy on the ring road, built the way convoy.js builds them, one
+// vehicle to a cell, from the same art.
 const VEHICLE_SHEET = 'luggages';
 const TRACTOR_ART = 'tractor_front';
 const CART_ART = 'luggage_cart';
@@ -49,34 +76,26 @@ const TRACTOR_FACING = Math.PI / 2;
 const CART_FACING = -Math.PI / 2;
 const LINK_COLOR = 0x23262d;
 const LINK_WIDTH = 0.11;
+const CARTS = 4;
+// Radians a millisecond round the ring.
+const DRIVE = 0.0034;
 
-const VEHICLE = LANE * 0.84;
-const CARTS = [2, 3, 2, 3, 1, 3];
 const COLORS = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'lime', 'white'];
 
 const SHADOW = 0x101a33;
-const SHADOW_ALPHA = 0.22;
+const SHADOW_ALPHA = 0.25;
 const SHADOW_DY = 6;
 
-// The carts sway a little behind the tractor as they go.
-const SWAY = 2.2;
-const SWAY_TIME = 150;
-const SWAY_LAG = 0.9;
+// Confetti thrown out as the rings open.
+const CONFETTI = 44;
+const CONFETTI_COLORS = [0xff4f4f, 0xff8a1f, 0xffd23f, 0x5ad35a, 0x37d0e0, 0x4f96f2, 0xa66bff, 0xff4f8b];
+const CONFETTI_TIME = 820;
+const CONFETTI_AT = OPEN_AT + OPEN_DELAY / 2;
+const CONFETTI_STAGGER = 60;
+const GRAVITY = 0.0016;
 
-// How far the board's edge tucks under the last cart.
-const TUCK = 18;
-
-// Design units a millisecond, the same for every lane on every screen.
-const SPEED = 1.7;
-// Between one lane setting off and the next.
-const STAGGER = 34;
-// Fully covered, after the swap, before the board starts to come up.
-const HOLD_TIME = 120;
-// Frames let go by after the swap before the clock runs on, so any hitch from
-// building the new screen falls while it is covered.
-const SETTLE_FRAMES = 2;
-// The most the clock moves in one frame, whatever the frame took.
-const MAX_STEP = 1000 / 30;
+// The change is over once the rings are open and the confetti has fallen.
+const TOTAL = Math.max(OPENED, CONFETTI_AT + CONFETTI_STAGGER + CONFETTI_TIME);
 
 export class Transition extends Phaser.GameObjects.Container {
     constructor(scene, x = 0, y = 0) {
@@ -86,165 +105,141 @@ export class Transition extends Phaser.GameObjects.Container {
         this.scene.add.existing(this);
 
         this.running = false;
-        this.lanes = [];
         this.builtFor = '';
 
         // Swallows taps while a change is under way.
         this.blocker = this.scene.add.zone(0, 0, 10, 10);
         this.add(this.blocker);
 
-        this.buildBoard();
+        this.iris = this.scene.add.graphics();
+        this.add(this.iris);
 
-        this.edges = this.scene.add.container(0, 0);
-        this.add(this.edges);
+        this.badge = this.scene.add.container(0, 0);
+        this.add(this.badge);
 
-        this.traffic = this.scene.add.container(0, 0);
-        this.add(this.traffic);
+        this.road = this.scene.add.graphics();
+        this.badge.add(this.road);
+
+        this.convoy = this.scene.add.container(0, 0);
+        this.badge.add(this.convoy);
+
+        this.logo = this.scene.add.image(0, 0, LOGO_SHEET, LOGO_ART);
+        this.badge.add(this.logo);
+
+        this.buildConvoy();
+
+        this.confetti = [];
+        for (let i = 0; i < CONFETTI; i++) {
+            const bit = this.scene.add.rectangle(0, 0, 14, 22, CONFETTI_COLORS[i % CONFETTI_COLORS.length]);
+            this.confetti.push(bit);
+            this.add(bit);
+        }
 
         this.visible = false;
     }
 
-    buildBoard() {
-        const tile = bakeShape(this.scene, {
-            left: 0, top: 0, width: CELL, height: CELL
-        }, (g) => {
-            const x = TILE_GAP;
-            const w = CELL - TILE_GAP * 2;
+    buildConvoy() {
+        this.links = [];
+        this.vehicles = [];
 
-            g.fillStyle(WELL, 1);
-            g.fillRect(0, 0, CELL, CELL);
+        for (let k = 0; k < CARTS; k++) {
+            const link = this.scene.add.rectangle(0, 0, 10, 10, LINK_COLOR);
+            this.links.push(link);
+            this.convoy.add(link);
+        }
 
-            g.fillStyle(TILE_SHADE, 1);
-            g.fillRoundedRect(x, x, w, w, TILE_CORNER);
+        const shadows = [];
+        const arts = [];
 
-            g.fillStyle(TILE_LIGHT, 1);
-            g.fillRoundedRect(x, x, w, w - TILE_BEVEL, TILE_CORNER);
+        for (let k = CARTS; k >= 0; k--) {
+            const shadow = this.scene.add.sprite(0, 0, VEHICLE_SHEET, 'red/' + CART_ART);
+            shadow.setTintFill(SHADOW);
+            shadow.alpha = SHADOW_ALPHA;
+            shadows.push(shadow);
 
-            g.fillStyle(TILE_FACE, 1);
-            g.fillRoundedRect(x, x + TILE_BEVEL, w, w - TILE_BEVEL * 2, TILE_CORNER);
+            const art = this.scene.add.sprite(0, 0, VEHICLE_SHEET, 'red/' + CART_ART);
+            arts.push(art);
 
-            g.fillStyle(GLOSS, GLOSS_ALPHA);
-            g.fillRoundedRect(x + GLOSS_INSET, x + TILE_BEVEL + GLOSS_INSET / 2, w - GLOSS_INSET * 2, GLOSS_H, GLOSS_H / 2);
-        }, 'transition-tile', Math.min(3, Math.max(1, (this.scene.gameScale || 1) * LANE / CELL)));
+            this.vehicles[k] = { art, shadow, tractor: k === 0 };
+        }
 
-        this.tileRes = 1 / tile.restScale;
-        tile.destroy();
-
-        this.board = this.scene.add.tileSprite(0, 0, 10, 10, 'transition-tile');
-        this.board.setTileScale(LANE / CELL / this.tileRes);
-        this.add(this.board);
-
-        // The board stays put on the screen, and a mask shows the part of it
-        // the convoys have laid. Masks work in world space.
-        this.cut = this.scene.make.graphics({ add: false });
-        this.board.setMask(this.cut.createGeometryMask());
+        shadows.forEach((s) => this.convoy.add(s));
+        arts.forEach((a) => this.convoy.add(a));
     }
 
-    // A lane for every board row the screen is high, each with its convoy, rim
-    // and shade. Built again only when the screen changes size.
-    buildLanes(width, height) {
+    // Sizes that follow the screen, worked out again only when it changes.
+    layout(width, height) {
         const size = width + 'x' + height;
 
         if (this.builtFor === size) return;
 
         this.builtFor = size;
 
-        this.traffic.removeAll(true);
-        this.edges.removeAll(true);
-        this.lanes = [];
+        // The rings start (and end) far enough out that even the deepest dip
+        // of their wavy edge is past the corners.
+        this.far = Math.hypot(width, height) / 2 / (1 - WAVE) + 4;
+        this.outer = this.far * 1.25;
 
-        const count = Math.ceil(height / LANE);
+        const short = Math.min(width, height);
 
-        for (let i = 0; i < count; i++) {
-            const carts = CARTS[i % CARTS.length];
-            const lane = {
-                y: -height / 2 + LANE * (i + 0.5),
-                length: VEHICLE * (carts + 1),
-                convoy: this.scene.add.container(0, 0),
-                vehicles: [],
-                rim: this.scene.add.rectangle(0, 0, RIM_W, LANE, RIM),
-                shade: this.scene.add.rectangle(0, 0, EDGE_SHADE_W, LANE, EDGE_SHADE, EDGE_SHADE_ALPHA),
-                dir: -1
-            };
+        this.track = short * 0.36;
+        this.vehicle = Math.min(84, this.track * 0.42);
 
-            lane.convoy.y = lane.y;
+        this.logo.setScale(this.track * 2 * LOGO_WIDTH / this.logo.width);
 
-            this.edges.add(lane.shade);
-            this.edges.add(lane.rim);
-            this.traffic.add(lane.convoy);
+        this.road.clear();
+        this.road.fillStyle(GLOW, GLOW_ALPHA);
+        this.road.fillCircle(0, 0, this.track + this.vehicle * 1.1);
+        this.road.lineStyle(this.vehicle * 1.02, ROAD, ROAD_ALPHA);
+        this.road.strokeCircle(0, 0, this.track);
 
-            // Couplings first, under the vehicles, then shadows, then the
-            // vehicles, last cart first so the tractor is on top.
-            for (let k = 0; k < carts; k++) {
-                const link = this.scene.add.rectangle(0, 0, VEHICLE, LINK_WIDTH * VEHICLE, LINK_COLOR);
-                link.linkIndex = k;
-                lane.convoy.add(link);
-            }
-
-            const shadows = [];
-            const arts = [];
-
-            for (let k = carts; k >= 0; k--) {
-                const tractor = k === 0;
-                const scale = VEHICLE * VEHICLE_FIT / (tractor ? TRACTOR_ART_CELL : CART_ART_CELL);
-
-                const shadow = this.scene.add.sprite(0, 0, VEHICLE_SHEET, 'red/' + CART_ART);
-                shadow.setScale(scale);
-                shadow.setTintFill(SHADOW);
-                shadow.alpha = SHADOW_ALPHA;
-                shadows.push(shadow);
-
-                const art = this.scene.add.sprite(0, 0, VEHICLE_SHEET, 'red/' + CART_ART);
-                art.setScale(scale);
-                arts.push(art);
-
-                lane.vehicles[k] = { art, shadow, tractor };
-            }
-
-            shadows.forEach((s) => lane.convoy.add(s));
-            arts.forEach((a) => lane.convoy.add(a));
-
-            lane.links = lane.convoy.list.filter((o) => o.linkIndex !== undefined);
-
-            this.lanes.push(lane);
+        this.road.lineStyle(Math.max(3, this.vehicle * 0.06), ROAD_LINE, ROAD_LINE_ALPHA);
+        for (let i = 0; i < ROAD_DASHES; i++) {
+            const a = i / ROAD_DASHES * Math.PI * 2;
+            this.road.beginPath();
+            this.road.arc(0, 0, this.track, a, a + Math.PI / ROAD_DASHES * 0.9);
+            this.road.strokePath();
         }
+
+        this.links.forEach((link) => link.setSize(this.vehicle, LINK_WIDTH * this.vehicle));
+
+        this.vehicles.forEach((v) => {
+            const scale = this.vehicle * VEHICLE_FIT / (v.tractor ? TRACTOR_ART_CELL : CART_ART_CELL);
+            v.art.setScale(scale);
+            v.shadow.setScale(scale);
+        });
     }
 
-    // Each run, the lanes get their colours and directions afresh.
-    dressLanes() {
+    // Each run gets its own colours, and the sunburst and badge a fresh turn.
+    dress() {
         const first = Phaser.Math.Between(0, COLORS.length - 1);
-        const flip = Math.random() < 0.5 ? 1 : -1;
 
-        this.lanes.forEach((lane, i) => {
-            const color = COLORS[(first + i * 3) % COLORS.length];
+        this.vehicles.forEach((v, k) => {
+            const color = COLORS[(first + (v.tractor ? 0 : 3 + k * 2)) % COLORS.length];
+            const frame = color + '/' + (v.tractor ? TRACTOR_ART : CART_ART);
 
-            lane.dir = (i % 2 === 0 ? -1 : 1) * flip;
+            v.art.setFrame(frame);
+            v.shadow.setFrame(frame);
+        });
 
-            lane.vehicles.forEach((v, k) => {
-                const frame = color + '/' + (v.tractor ? TRACTOR_ART : CART_ART);
-                const heading = lane.dir < 0 ? Math.PI : 0;
-                const facing = v.tractor ? TRACTOR_FACING : CART_FACING;
+        this.turn = Math.random() * Math.PI * 2;
+        this.flip = Math.random() < 0.5 ? 1 : -1;
 
-                v.art.setFrame(frame);
-                v.shadow.setFrame(frame);
-                v.rotation = heading - facing;
-                v.x = -lane.dir * (VEHICLE / 2 + k * VEHICLE);
+        this.confetti.forEach((bit) => {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 0.55 + Math.random() * 0.9;
 
-                v.art.x = v.shadow.x = v.x;
-                v.art.y = 0;
-                v.shadow.y = SHADOW_DY;
-                v.art.rotation = v.shadow.rotation = v.rotation;
-            });
-
-            lane.links.forEach((link) => {
-                link.x = -lane.dir * VEHICLE * (link.linkIndex + 1);
-            });
+            bit.vx = Math.cos(angle) * speed;
+            bit.vy = Math.sin(angle) * speed - 0.35;
+            bit.spin = (Math.random() - 0.5) * 0.03;
+            bit.start = Math.random() * CONFETTI_STAGGER;
+            bit.setSize(10 + Math.random() * 8, 16 + Math.random() * 12);
         });
     }
 
     /**
-     * Lays the board, calls onCovered to swap what is under it, then takes it
-     * up and calls onDone. A change asked for while one is running is dropped,
+     * Closes the iris, calls onCovered to swap what is under it, then opens it
+     * and calls onDone. A change asked for while one is running is dropped,
      * so a double tap cannot start two.
      */
     run(onCovered, onDone = null) {
@@ -260,37 +255,30 @@ export class Transition extends Phaser.GameObjects.Container {
         this.blocker.setSize(width, height);
         this.blocker.setInteractive();
 
-        this.board.setSize(width, height);
+        this.layout(width, height);
+        this.dress();
 
-        this.buildLanes(width, height);
-        this.dressLanes();
-
-        this.traffic.visible = true;
         this.onCovered = onCovered;
         this.onDone = onDone;
-        this.pass = this.passTime();
-        this.stage = 'laying';
+        this.stage = 'closing';
         this.clock = 0;
 
-        this.draw(true, 0);
+        this.draw(0);
 
         this.scene.events.on('update', this.tick, this);
 
         return true;
     }
 
-    // Its own clock, stepped once a frame. A slow frame only slows it down
-    // for that frame, rather than throwing the convoys a long way on.
     tick(time, delta) {
         const step = Math.min(delta || 0, MAX_STEP);
 
-        if (this.stage === 'laying') {
-            this.clock = Math.min(this.pass, this.clock + step);
-            this.draw(true, this.clock);
+        if (this.stage === 'closing') {
+            this.clock = Math.min(COVERED, this.clock + step);
+            this.draw(this.clock);
 
-            if (this.clock < this.pass) return;
+            if (this.clock < COVERED) return;
 
-            this.traffic.visible = false;
             this.stage = 'settling';
             this.settleFrames = SETTLE_FRAMES;
 
@@ -302,30 +290,22 @@ export class Transition extends Phaser.GameObjects.Container {
         if (this.stage === 'settling') {
             if (--this.settleFrames > 0) return;
 
-            this.stage = 'lifting';
-            this.clock = -HOLD_TIME;
-
-            this.dressLanes();
-            this.traffic.visible = true;
-            this.draw(false, 0);
+            this.stage = 'opening';
 
             return;
         }
 
-        this.clock = Math.min(this.pass, this.clock + step);
+        this.clock = Math.min(TOTAL, this.clock + step);
+        this.draw(this.clock);
 
-        if (this.clock <= 0) return;
-
-        this.draw(false, this.clock);
-
-        if (this.clock < this.pass) return;
+        if (this.clock < TOTAL) return;
 
         this.scene.events.off('update', this.tick, this);
 
         this.stage = null;
         this.running = false;
         this.visible = false;
-        this.cut.clear();
+        this.iris.clear();
         this.blocker.disableInteractive();
 
         if (this.onDone) this.onDone();
@@ -338,9 +318,8 @@ export class Transition extends Phaser.GameObjects.Container {
 
         this.warmed = true;
 
-        this.board.setSize(dimensions.actualWidth, dimensions.actualHeight);
-        this.dressLanes();
-        this.draw(true, this.passTime() / 2);
+        this.dress();
+        this.draw(OPEN_AT + OPEN_DELAY + 80);
 
         this.alpha = 0.001;
         this.visible = true;
@@ -350,76 +329,194 @@ export class Transition extends Phaser.GameObjects.Container {
 
             this.visible = false;
             this.alpha = 1;
-            this.cut.clear();
+            this.iris.clear();
         });
     }
 
-    // Long enough for the last lane's convoy to get right across.
-    passTime() {
-        const most = Math.max(...this.lanes.map((lane) => lane.length));
+    // How far out ring i's edge is at this point of the clock: from far out
+    // down to nothing while closing, and back out again while opening.
+    ringRadius(i, at) {
+        const ring = RINGS[i];
 
-        return (this.lanes.length - 1) * STAGGER + (dimensions.actualWidth + most + TUCK) / SPEED;
+        if (at < OPEN_AT) {
+            const t = Phaser.Math.Clamp((at - ring.lag) / CLOSE_TIME, 0, 1);
+
+            return this.far * (1 - Phaser.Math.Easing.Cubic.InOut(t));
+        }
+
+        // Opening, the top ring (blue) goes first and the lead ring last.
+        const lag = OPEN_LAST_LAG - ring.lag;
+        const t = Phaser.Math.Clamp((at - OPEN_AT - OPEN_DELAY - lag) / OPEN_TIME, 0, 1);
+
+        return this.far * Phaser.Math.Easing.Cubic.In(t);
     }
 
-    draw(laying, at) {
-        const width = dimensions.actualWidth;
-        const matrix = this.getWorldTransformMatrix();
+    draw(at) {
+        const g = this.iris;
 
-        this.cut.clear();
-        this.cut.fillStyle(0xffffff, 1);
+        g.clear();
 
-        this.lanes.forEach((lane, i) => {
-            const dir = lane.dir;
-            const travel = Phaser.Math.Clamp((at - i * STAGGER) * SPEED, 0, width + lane.length + TUCK);
+        const radii = RINGS.map((ring, i) => this.ringRadius(i, at));
+        const top = RINGS.length - 1;
 
-            // The tractor's nose, in from just off the side the lane starts
-            // on, and the board's edge, tucked under the last cart.
-            const front = -dir * (width / 2) + dir * travel;
-            const edge = front - dir * (lane.length - TUCK);
+        // Once the top ring is shut, it is all that shows.
+        const from = radii[top] <= 0 ? top : 0;
 
-            // Laying, the board runs from the edge back to the side the convoy
-            // came in from; taking it up, from the far side to the edge.
-            const cameFrom = -dir * width / 2;
-            const goingTo = dir * width / 2;
-            const behind = laying ? cameFrom : goingTo;
+        for (let i = from; i < RINGS.length; i++) {
+            if (radii[i] >= this.far) continue;
 
-            const left = Phaser.Math.Clamp(Math.min(edge, behind), -width / 2, width / 2);
-            const right = Phaser.Math.Clamp(Math.max(edge, behind), -width / 2, width / 2);
+            this.drawRing(g, radii[i], RINGS[i].color, at * WAVE_SPIN * RINGS[i].spin * this.flip + i);
+        }
 
-            if (right > left) {
-                const topLeft = matrix.transformPoint(left, lane.y - LANE / 2);
-                const bottomRight = matrix.transformPoint(right, lane.y + LANE / 2);
+        if (radii[top] < this.far) this.drawRays(g, radii[top], at);
 
-                this.cut.fillRect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y);
+        this.drawBadge(at);
+        this.drawConfetti(at);
+    }
+
+    // Everything outside a wavy circle of radius r, as a band of quads out to
+    // well past the corners.
+    drawRing(g, r, color, phase) {
+        g.fillStyle(color, 1);
+
+        const outer = this.outer;
+        let px = 0;
+        let py = 0;
+        let ox = 0;
+        let oy = 0;
+
+        for (let s = 0; s <= SEGMENTS; s++) {
+            const a = s / SEGMENTS * Math.PI * 2;
+            const edge = r * (1 + WAVE * Math.sin(a * LOBES + phase));
+            const cos = Math.cos(a);
+            const sin = Math.sin(a);
+            const x = cos * edge;
+            const y = sin * edge;
+            const fx = cos * outer;
+            const fy = sin * outer;
+
+            if (s > 0) {
+                g.fillTriangle(px, py, x, y, ox, oy);
+                g.fillTriangle(x, y, fx, fy, ox, oy);
             }
 
-            // The rim along the board's open edge, and its shade on the
-            // screen beyond it. The board lies on the side it came from when
-            // laying, and the side it is going to when being taken up.
-            const side = laying ? -dir : dir;
-            const showEdge = right > left && edge > -width / 2 && edge < width / 2;
+            px = x;
+            py = y;
+            ox = fx;
+            oy = fy;
+        }
+    }
 
-            lane.rim.visible = showEdge;
-            lane.shade.visible = showEdge;
-            lane.rim.setPosition(edge - side * RIM_W / 2, lane.y);
-            lane.shade.setPosition(edge - side * (RIM_W + EDGE_SHADE_W / 2), lane.y);
+    // Lighter wedges turning slowly on the blue ring, kept clear of its edge.
+    drawRays(g, r, at) {
+        g.fillStyle(RAY_COLOR, RAY_ALPHA);
 
-            const moving = travel > 0 && travel < width + lane.length + TUCK;
+        const inner = r > 0 ? r * (1 + WAVE) + RAY_GAP : 0;
+        const outer = this.outer;
+        const width = Math.PI / RAYS;
+        const turn = this.turn + at * RAY_SPIN * this.flip;
 
-            lane.convoy.x = front;
-            lane.convoy.visible = moving;
+        for (let i = 0; i < RAYS; i++) {
+            const a = turn + i * width * 2;
+            const b = a + width;
+            const ax = Math.cos(a);
+            const ay = Math.sin(a);
+            const bx = Math.cos(b);
+            const by = Math.sin(b);
 
-            if (!moving) return;
+            if (inner <= 0) {
+                g.fillTriangle(0, 0, ax * outer, ay * outer, bx * outer, by * outer);
+                continue;
+            }
 
-            // The carts sway behind the tractor, each a beat after the one
-            // in front.
-            lane.vehicles.forEach((v, k) => {
-                const sway = Math.sin(at / SWAY_TIME - k * SWAY_LAG + i) * SWAY * (v.tractor ? 0.4 : 1);
-                const turn = Phaser.Math.DegToRad(sway);
+            g.fillTriangle(ax * inner, ay * inner, bx * inner, by * inner, ax * outer, ay * outer);
+            g.fillTriangle(bx * inner, by * inner, bx * outer, by * outer, ax * outer, ay * outer);
+        }
+    }
 
-                v.art.rotation = v.rotation + turn;
-                v.shadow.rotation = v.art.rotation;
-            });
+    // The logo and its ring road pop up once the screen is covered, the
+    // convoy drives round, and it all pops away as the rings open.
+    drawBadge(at) {
+        const shown = at - COVERED + BADGE_IN * 0.25;
+
+        if (shown <= 0 || at >= OPEN_AT + BADGE_OUT) {
+            this.badge.visible = false;
+            return;
+        }
+
+        this.badge.visible = true;
+
+        let scale;
+        let spin;
+
+        if (at < OPEN_AT) {
+            const t = Math.min(1, shown / BADGE_IN);
+            scale = Phaser.Math.Easing.Back.Out(t, 2.2);
+            spin = (1 - Phaser.Math.Easing.Cubic.Out(t)) * -0.5 * this.flip;
+        } else {
+            const t = (at - OPEN_AT) / BADGE_OUT;
+            scale = 1 + Math.sin(t * Math.PI) * 0.12 - Phaser.Math.Easing.Back.In(t, 2.5);
+            spin = Phaser.Math.Easing.Cubic.In(t) * 0.4 * this.flip;
+        }
+
+        this.badge.setScale(Math.max(0.001, scale));
+        this.badge.rotation = spin;
+
+        // The logo breathes while it waits.
+        this.logo.rotation = Math.sin(at / 180) * 0.05;
+        this.logo.y = Math.sin(at / 240) * 4;
+
+        this.drawConvoy(shown);
+    }
+
+    drawConvoy(shown) {
+        const R = this.track;
+        const dir = this.flip;
+        const head = this.turn + shown * DRIVE * dir;
+        const gap = this.vehicle / R;
+
+        const place = (angle) => ({
+            x: Math.cos(angle) * R,
+            y: Math.sin(angle) * R,
+            heading: angle + dir * Math.PI / 2
+        });
+
+        this.vehicles.forEach((v, k) => {
+            const p = place(head - dir * k * gap);
+            const facing = v.tractor ? TRACTOR_FACING : CART_FACING;
+            const bounce = Math.abs(Math.sin(shown / 70 + k * 0.9)) * 2;
+
+            v.art.setPosition(p.x, p.y - bounce);
+            v.shadow.setPosition(p.x, p.y + SHADOW_DY);
+            v.art.rotation = v.shadow.rotation = p.heading - facing;
+        });
+
+        this.links.forEach((link, k) => {
+            const p = place(head - dir * (k + 0.5) * gap);
+
+            link.setPosition(p.x, p.y);
+            link.rotation = p.heading;
+        });
+    }
+
+    // Thrown out from the middle as the rings open, falling and spinning, and
+    // fading at the end.
+    drawConfetti(at) {
+        this.confetti.forEach((bit) => {
+            const t = at - CONFETTI_AT - bit.start;
+
+            if (t <= 0 || t >= CONFETTI_TIME) {
+                bit.visible = false;
+                return;
+            }
+
+            bit.visible = true;
+            bit.x = bit.vx * t;
+            bit.y = bit.vy * t + GRAVITY * t * t / 2;
+            bit.rotation = bit.spin * t;
+            // Flutter: the bit turns edge-on and back as it falls.
+            bit.scaleX = Math.cos(t / 90 + bit.start);
+            bit.alpha = Math.min(1, (CONFETTI_TIME - t) / 250);
         });
     }
 
@@ -429,7 +526,7 @@ export class Transition extends Phaser.GameObjects.Container {
 
         // Ready ahead of the first run, so it does not start on a hitch.
         if (!this.running && dimensions.actualWidth) {
-            this.buildLanes(dimensions.actualWidth, dimensions.actualHeight);
+            this.layout(dimensions.actualWidth, dimensions.actualHeight);
             this.warmUp();
         }
     }
