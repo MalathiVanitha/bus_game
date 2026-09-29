@@ -1,5 +1,6 @@
 import { pressable } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
+import { openModal, shutModal } from '../utils/modal.js';
 
 const ART_SCALE = 0.645;
 
@@ -178,10 +179,6 @@ const FILM_SHINE = 0x4d86ff;
 const FILM_MARK = 0xdfeaff;
 const FILM_PLAY = 0xffffff;
 
-const OPEN_TIME = 300;
-const SHUT_TIME = 170;
-const OPEN_FROM = 0.72;
-const SHUT_TO = 0.86;
 
 const OFFERS = {
     ads: { id: 'remove-ads', price: '$3.99' },
@@ -608,27 +605,7 @@ export class StorePanel extends Phaser.GameObjects.Container {
 
         this.setBalance(this.balance());
 
-        this.dim.alpha = 0;
-        this.card.setScale(OPEN_FROM);
-        this.card.alpha = 0;
-
-        this.scene.tweens.killTweensOf(this.dim);
-        this.scene.tweens.killTweensOf(this.card);
-
-        this.scene.tweens.add({
-            targets: this.dim,
-            alpha: DIM_ALPHA,
-            duration: OPEN_TIME,
-            ease: 'Quad.easeOut'
-        });
-
-        this.scene.tweens.add({
-            targets: this.card,
-            scale: 1,
-            alpha: 1,
-            duration: OPEN_TIME,
-            ease: 'Back.easeOut'
-        });
+        openModal(this.scene, this.dim, this.card, DIM_ALPHA);
     }
 
     hide() {
@@ -636,27 +613,8 @@ export class StorePanel extends Phaser.GameObjects.Container {
 
         this.isOpen = false;
 
-        this.scene.tweens.killTweensOf(this.dim);
-        this.scene.tweens.killTweensOf(this.card);
-
-        this.scene.tweens.add({
-            targets: this.dim,
-            alpha: 0,
-            duration: SHUT_TIME,
-            ease: 'Quad.easeIn'
-        });
-
-        this.scene.tweens.add({
-            targets: this.card,
-            scale: SHUT_TO,
-            alpha: 0,
-            duration: SHUT_TIME,
-            ease: 'Quad.easeIn',
-            onComplete: () => {
-                this.visible = false;
-                this.card.setScale(1);
-                this.card.alpha = 1;
-            }
+        shutModal(this.scene, this.dim, this.card, () => {
+            this.visible = false;
         });
     }
 

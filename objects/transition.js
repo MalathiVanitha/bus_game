@@ -43,6 +43,11 @@ const OPEN_AT = COVERED + HOLD_TIME;
 const OPEN_DELAY = 110;
 const OPEN_LAST_LAG = RINGS[RINGS.length - 1].lag;
 const OPENED = OPEN_AT + OPEN_DELAY + OPEN_LAST_LAG + OPEN_TIME;
+// When the new screen starts to show: a little way into the last ring (the
+// lead one, over the screen) opening, while the hole is still a speck, so
+// the screen's own intro plays out as the iris opens rather than unseen
+// behind it.
+const REVEAL_AT = OPEN_AT + OPEN_DELAY + OPEN_LAST_LAG + OPEN_TIME * 0.3;
 
 // Frames let go by after the swap before the clock runs on, so any hitch from
 // building the new screen falls while it is covered.
@@ -106,6 +111,8 @@ export class Transition extends Phaser.GameObjects.Container {
 
         this.running = false;
         this.builtFor = '';
+        this.reveals = [];
+        this.revealed = true;
 
         // Swallows taps while a change is under way.
         this.blocker = this.scene.add.zone(0, 0, 10, 10);
@@ -262,12 +269,32 @@ export class Transition extends Phaser.GameObjects.Container {
         this.onDone = onDone;
         this.stage = 'closing';
         this.clock = 0;
+        this.revealed = false;
+        this.reveals.length = 0;
 
         this.draw(0);
 
         this.scene.events.on('update', this.tick, this);
 
         return true;
+    }
+
+    /**
+     * Calls fn as the new screen starts to show, so an intro set off under the
+     * cover is seen; straight away if no change is under way or it already
+     * shows.
+     */
+    whenOpen(fn) {
+        if (this.revealed) fn();
+        else this.reveals.push(fn);
+    }
+
+    reveal() {
+        this.revealed = true;
+
+        const reveals = this.reveals.splice(0);
+
+        for (let i = 0; i < reveals.length; i++) reveals[i]();
     }
 
     tick(time, delta) {
@@ -296,6 +323,11 @@ export class Transition extends Phaser.GameObjects.Container {
         }
 
         this.clock = Math.min(TOTAL, this.clock + step);
+
+        // Before this frame's draw, so whatever the reveal sets up is shown in
+        // its starting pose on the frame the hole first opens.
+        if (!this.revealed && this.clock >= REVEAL_AT) this.reveal();
+
         this.draw(this.clock);
 
         if (this.clock < TOTAL) return;

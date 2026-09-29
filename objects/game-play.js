@@ -14,6 +14,14 @@ const DRAG_SPEED = 3.5;
 const CHASE_SPEED = 8;
 const SETTLE_SPEED = 5.5;
 
+// Cells a second, a second: how hard the lead picks up speed, and how hard it
+// brakes as the end of its route comes up, so it rolls off and draws up
+// rather than jumping to speed and stopping dead. Never slower than
+// ARRIVE_FLOOR, so the last of the way does not crawl.
+const ACCELERATION = 40;
+const BRAKING = 30;
+const ARRIVE_FLOOR = 0.8;
+
 const CHASE_SLACK = 0.5;
 const CHASE_SPAN = 4;
 
@@ -698,8 +706,46 @@ export class GamePlay extends Phaser.GameObjects.Container {
         return this.dragSpeed + (this.chaseSpeed - this.dragSpeed) * t * t;
     }
 
+    // How far the lead still has to go before the route runs out: to the cell
+    // it is heading for, then a cell for each one queued after it.
+    roadLeft(convoy) {
+        const target = convoy.queue.length ?
+            this.cellToPixel(convoy.queue[0].col, convoy.queue[0].row) :
+            convoy.settle;
+
+        if (!target) return 0;
+
+        const lead = convoy.trail.points[0];
+        const rest = Math.max(0, convoy.queue.length - 1) * this.cellSize;
+
+        return Math.hypot(target.x - lead.x, target.y - lead.y) + rest;
+    }
+
+    // leadSpeed, reached at a limited rate from the speed it is already doing,
+    // and held down to what it can still brake from before the road runs out.
+    // Into a garage it keeps entrySpeed's own wind-up untouched.
+    pace(convoy, delta) {
+        const want = this.leadSpeed(convoy);
+
+        if (this.enteringGarage(convoy)) {
+            convoy.pace = want;
+            return want;
+        }
+
+        const step = delta / 1000;
+        const brake = Math.sqrt(2 * BRAKING * this.cellSize * this.roadLeft(convoy));
+        const limit = Math.min(want, Math.max(brake, ARRIVE_FLOOR * this.cellSize));
+        const now = convoy.pace || 0;
+
+        convoy.pace = limit > now ?
+            Math.min(limit, now + ACCELERATION * this.cellSize * step) :
+            limit;
+
+        return convoy.pace;
+    }
+
     updateConvoy(convoy, delta) {
-        const travel = this.leadSpeed(convoy) * (delta / 1000);
+        const travel = this.pace(convoy, delta) * (delta / 1000);
 
         let budget = travel;
         let moved = false;
@@ -743,6 +789,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         convoy.trail.trim(convoy.bodyLength + this.cellSize * TRAIL_TAIL);
         convoy.moving = moved;
+
+        if (!moved) convoy.pace = 0;
 
         return moved;
     }
@@ -831,7 +879,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
     beginEntry(convoy) {
-        convoy.entryStart = Math.max(this.leadSpeed(convoy), this.cellSize * PULL_FLOOR);
+        convoy.entryStart = Math.max(convoy.pace || 0, this.cellSize * PULL_FLOOR);
         convoy.entered = 0;
         convoy.diving = true;
     }
@@ -1348,6 +1396,9 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         this.finishSettle(grabbed.convoy);
         this.setLeadingEnd(grabbed.convoy, grabbed.end);
+
+        // Picked up from a standstill, it pulls away rather than leaping off.
+        grabbed.convoy.pace = 0;
         this.updateConvoyView(grabbed.convoy, 0);
 
         this.drag = { convoy: grabbed.convoy };
@@ -1785,6 +1836,18 @@ export class GamePlay extends Phaser.GameObjects.Container {
     start() {
         this.finished = false;
         this.running = true;
+
+        // Still flying in: the board can be played once it has landed.
+        if (this.introTweens) {
+            const then = this.introDone;
+
+            this.introDone = () => {
+                if (then) then();
+                if (this.running) this.attachInput();
+            };
+
+            return;
+        }
 
         this.attachInput();
     }

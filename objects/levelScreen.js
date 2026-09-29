@@ -1,5 +1,6 @@
 import { pressable } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
+import { openModal, shutModal } from '../utils/modal.js';
 
 const PANEL_W = 450;
 const PANEL_H = 560;
@@ -148,11 +149,6 @@ const OFFER_CANCEL_HIT_H = 50;
 
 const OFFER_CLOSE_X = OFFER_W / 2 - 20;
 const OFFER_CLOSE_Y = -OFFER_H / 2 + 20;
-
-const OPEN_TIME = 300;
-const SHUT_TIME = 170;
-const OPEN_FROM = 0.72;
-const SHUT_TO = 0.86;
 
 const CHECK_POP = 1.3;
 const CHECK_POP_TIME = 120;
@@ -595,26 +591,8 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         offer.line.setText(PACK_COUNT + ' ' + booster.noun + ' for ' + PACK_PRICE + ' coins');
 
         offer.visible = true;
-        offer.dim.alpha = 0;
-        offer.card.setScale(OPEN_FROM);
-        offer.card.alpha = 0;
 
-        this.scene.tweens.killTweensOf([offer.dim, offer.card]);
-
-        this.scene.tweens.add({
-            targets: offer.dim,
-            alpha: OFFER_DIM_ALPHA,
-            duration: OPEN_TIME,
-            ease: 'Quad.easeOut'
-        });
-
-        this.scene.tweens.add({
-            targets: offer.card,
-            scale: 1,
-            alpha: 1,
-            duration: OPEN_TIME,
-            ease: 'Back.easeOut'
-        });
+        openModal(this.scene, offer.dim, offer.card, OFFER_DIM_ALPHA);
     }
 
     hideOffer(onDone = null) {
@@ -622,43 +600,19 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
         if (!offer.visible) return;
 
-        this.scene.tweens.killTweensOf([offer.dim, offer.card]);
+        shutModal(this.scene, offer.dim, offer.card, () => {
+            offer.visible = false;
+            if (onDone) onDone();
 
-        this.scene.tweens.add({
-            targets: offer.dim,
-            alpha: 0,
-            duration: SHUT_TIME,
-            ease: 'Quad.easeIn'
-        });
+            if (this.inPlay && !this.isOpen) {
+                const done = this.inPlay;
 
-        this.scene.tweens.add({
-            targets: offer.card,
-            scale: SHUT_TO,
-            alpha: 0,
-            duration: SHUT_TIME,
-            ease: 'Quad.easeIn'
-        });
+                this.inPlay = null;
+                this.visible = false;
+                this.dim.visible = true;
+                this.card.visible = true;
 
-        // Its own counter rather than the card's tween, which a press on the
-        // card could kill.
-        this.scene.tweens.addCounter({
-            from: 0,
-            to: 1,
-            duration: SHUT_TIME,
-            onComplete: () => {
-                offer.visible = false;
-                if (onDone) onDone();
-
-                if (this.inPlay && !this.isOpen) {
-                    const done = this.inPlay;
-
-                    this.inPlay = null;
-                    this.visible = false;
-                    this.dim.visible = true;
-                    this.card.visible = true;
-
-                    done();
-                }
+                done();
             }
         });
     }
@@ -749,26 +703,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.offer.visible = false;
         this.refresh();
 
-        this.dim.alpha = 0;
-        this.card.setScale(OPEN_FROM);
-        this.card.alpha = 0;
-
-        this.scene.tweens.killTweensOf([this.dim, this.card]);
-
-        this.scene.tweens.add({
-            targets: this.dim,
-            alpha: DIM_ALPHA,
-            duration: OPEN_TIME,
-            ease: 'Quad.easeOut'
-        });
-
-        this.scene.tweens.add({
-            targets: this.card,
-            scale: 1,
-            alpha: 1,
-            duration: OPEN_TIME,
-            ease: 'Back.easeOut'
-        });
+        openModal(this.scene, this.dim, this.card, DIM_ALPHA);
     }
 
     hide() {
@@ -776,34 +711,8 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
         this.isOpen = false;
 
-        this.scene.tweens.killTweensOf([this.dim, this.card]);
-
-        this.scene.tweens.add({
-            targets: this.dim,
-            alpha: 0,
-            duration: SHUT_TIME,
-            ease: 'Quad.easeIn'
-        });
-
-        this.scene.tweens.add({
-            targets: this.card,
-            scale: SHUT_TO,
-            alpha: 0,
-            duration: SHUT_TIME,
-            ease: 'Quad.easeIn'
-        });
-
-        this.scene.tweens.addCounter({
-            from: 0,
-            to: 1,
-            duration: SHUT_TIME,
-            onComplete: () => {
-                if (this.isOpen) return;
-
-                this.visible = false;
-                this.card.setScale(1);
-                this.card.alpha = 1;
-            }
+        shutModal(this.scene, this.dim, this.card, () => {
+            if (!this.isOpen) this.visible = false;
         });
     }
 

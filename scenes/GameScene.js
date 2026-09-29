@@ -143,7 +143,7 @@ export default class GameScene extends Phaser.Scene {
         this.home.onPlayPress = () => this.transition.run(() => {
             this.home.hide();
             this.gamePlay.readyIntro();
-            this.levelScreen.show(this.level);
+            this.transition.whenOpen(() => this.levelScreen.show(this.level));
         });
 
         this.wireEndCard();
@@ -177,7 +177,10 @@ export default class GameScene extends Phaser.Scene {
         this.events.on('cta:continue', (offer) => this.gamePlay.addTime(offer.seconds));
         // The board is laid out again under the transition, and the clock
         // only starts once it has cleared.
-        this.events.on('cta:retry', () => this.transition.run(() => this.layoutLevel(), () => this.beginLevel()));
+        this.events.on('cta:retry', () => this.transition.run(() => {
+            this.layoutLevel();
+            this.bringBoardOn();
+        }, () => this.beginLevel()));
         this.events.on('cta:home', () => this.transition.run(() => this.leaveGame()));
     }
 
@@ -203,9 +206,10 @@ export default class GameScene extends Phaser.Scene {
         this.levelBadge.set(this.level);
 
         this.layoutLevel();
+        this.bringBoardOn();
 
         this.betweenLevels = true;
-        this.levelScreen.show(this.level);
+        this.transition.whenOpen(() => this.levelScreen.show(this.level));
     }
 
     // The board lays out whichever level this.level is on, so the next level
@@ -240,14 +244,25 @@ export default class GameScene extends Phaser.Scene {
         this.showHome();
     }
 
-    // The home screen and the counter over it come on together.
+    // The home screen and the counter over it come on together, as the
+    // transition opens if one is under way.
     showHome() {
-        this.home.show();
-        this.coin.intro();
         this.timer.hide();
         this.levelBadge.hide();
         this.boosterBar.hide();
         this.settings.dock(false);
+
+        this.transition.whenOpen(() => {
+            this.home.show();
+            this.coin.intro();
+            this.settings.introGear();
+        });
+    }
+
+    // The board, hidden now, flies in as the transition opens.
+    bringBoardOn() {
+        this.gamePlay.readyIntro();
+        this.transition.whenOpen(() => this.gamePlay.intro());
     }
 
     // Under the transition: the board is put straight where it belongs, and
@@ -261,8 +276,8 @@ export default class GameScene extends Phaser.Scene {
         this.boosterBar.hide();
         this.settings.dock(true);
 
-        this.gamePlay.intro();
-        this.gamePlay.stopIntro();
+        this.bringBoardOn();
+        this.transition.whenOpen(() => this.settings.introGear());
     }
 
     startGamePlay() {

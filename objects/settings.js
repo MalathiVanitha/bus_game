@@ -1,4 +1,5 @@
 import soundsData from "../sounds-data.js";
+import { openModal, shutModal } from "../utils/modal.js";
 
 const PANEL_W = 470;
 const PANEL_H = 600;
@@ -84,10 +85,11 @@ const PAUSE_CORNER = 110;
 const PAUSE_ICON_Y = -2;
 const PAUSE_ICON_SCALE = 0.5;
 
-const OPEN_TIME = 300;
-const SHUT_TIME = 170;
-const OPEN_FROM = 0.72;
-const SHUT_TO = 0.86;
+
+// The gear (or pause button) pops in with a turn as its screen comes on.
+const GEAR_INTRO_TIME = 460;
+const GEAR_INTRO_DELAY = 180;
+const GEAR_INTRO_TURN = -120;
 
 const PRESS = 0.94;
 const PRESS_TIME = 90;
@@ -418,27 +420,7 @@ export class Settings extends Phaser.GameObjects.Container {
         }
 
         this.modal.visible = true;
-        this.dim.alpha = 0;
-        this.card.setScale(OPEN_FROM);
-        this.card.alpha = 0;
-
-        this.scene.tweens.killTweensOf(this.dim);
-        this.scene.tweens.killTweensOf(this.card);
-
-        this.scene.tweens.add({
-            targets: this.dim,
-            alpha: DIM_ALPHA,
-            duration: OPEN_TIME,
-            ease: 'Quad.easeOut'
-        });
-
-        this.scene.tweens.add({
-            targets: this.card,
-            scale: 1,
-            alpha: 1,
-            duration: OPEN_TIME,
-            ease: 'Back.easeOut'
-        });
+        openModal(this.scene, this.dim, this.card, DIM_ALPHA);
     }
 
     hide() {
@@ -446,33 +428,14 @@ export class Settings extends Phaser.GameObjects.Container {
 
         this.isOpen = false;
 
-        this.scene.tweens.killTweensOf(this.dim);
-        this.scene.tweens.killTweensOf(this.card);
+        shutModal(this.scene, this.dim, this.card, () => {
+            this.modal.visible = false;
 
-        this.scene.tweens.add({
-            targets: this.dim,
-            alpha: 0,
-            duration: SHUT_TIME,
-            ease: 'Quad.easeIn'
-        });
+            this.gear.setInteractive();
 
-        this.scene.tweens.add({
-            targets: this.card,
-            scale: SHUT_TO,
-            alpha: 0,
-            duration: SHUT_TIME,
-            ease: 'Quad.easeIn',
-            onComplete: () => {
-                this.modal.visible = false;
-                this.card.setScale(1);
-                this.card.alpha = 1;
-
-                this.gear.setInteractive();
-
-                if (this.scene.gamePlay) {
-                    this.scene.gamePlay.attachInput();
-                    this.scene.gamePlay.paused = false;
-                }
+            if (this.scene.gamePlay) {
+                this.scene.gamePlay.attachInput();
+                this.scene.gamePlay.paused = false;
             }
         });
     }
@@ -496,6 +459,25 @@ export class Settings extends Phaser.GameObjects.Container {
         this.fitter.y = 17;
 
         this.placeGear();
+    }
+
+    introGear() {
+        const gear = this.gear;
+        const rest = gear.restScale || 1;
+
+        this.scene.tweens.killTweensOf(gear);
+
+        gear.setScale(0);
+        gear.angle = GEAR_INTRO_TURN;
+
+        this.scene.tweens.add({
+            targets: gear,
+            scale: rest,
+            angle: 0,
+            duration: GEAR_INTRO_TIME,
+            delay: GEAR_INTRO_DELAY,
+            ease: 'Back.easeOut'
+        });
     }
 
     /** Moves the gear to its in-level corner (true) or back home (false). */
