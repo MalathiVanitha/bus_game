@@ -11,6 +11,7 @@ import { Coin } from '../objects/coin.js';
 import { Timer } from '../objects/timer.js';
 import { LevelBadge } from '../objects/levelBadge.js';
 import { Transition } from '../objects/transition.js';
+import { BoosterBar } from '../objects/boosterBar.js';
 import data from '../data/data.js';
 import perf from '../utils/perf.js';
 
@@ -73,6 +74,11 @@ export default class GameScene extends Phaser.Scene {
         this.gamePlay = new GamePlay(this, 0, 0);
         this.gameGroup.add(this.gamePlay);
 
+        // The boosters under the board. Low in the stack, so the level card's
+        // offer (which they open when one runs out) and the end card cover them.
+        this.boosterBar = new BoosterBar(this, 0, 0);
+        this.gameGroup.add(this.boosterBar);
+
         // Over the board, which it covers until Play is pressed. Its Play is
         // taken over below (onPlayPress) by the transition to the level card;
         // this callback is left for its own outro, should that be used again.
@@ -80,21 +86,23 @@ export default class GameScene extends Phaser.Scene {
         this.gameGroup.add(this.home);
 
         // The card comes up before every level: after the home screen, and
-        // between one level and the next. Its Play starts the level with the
-        // boosters picked on it; its close goes back home.
+        // between one level and the next. Its Play goes through the
+        // transition into the level, with the boosters picked on it; its close
+        // goes back home.
         this.boosters = {};
         this.betweenLevels = false;
         this.levelScreen = new LevelScreen(this, 0, 0, (boosters) => {
             this.boosters = boosters;
 
-            if (this.betweenLevels) this.beginLevel();
-            else this.enterGame();
+            this.transition.run(() => this.enterGame(), () => this.beginLevel());
         });
         this.levelScreen.onClose = () => this.transition.run(() => {
             if (this.betweenLevels) this.leaveGame();
             else this.showHome();
         });
         this.gameGroup.add(this.levelScreen);
+
+        this.levelScreen.onChange = (counts) => this.boosterBar.refresh(counts);
 
         // The counter outlives the home screen: the end of a level pays coins
         // into it off the board.
@@ -175,6 +183,8 @@ export default class GameScene extends Phaser.Scene {
 
     /** The level is over, one way or the other. Called by the board itself. */
     showEndCard(gameWin = false) {
+        this.boosterBar.stopPicking();
+
         this.cta.userWon = gameWin;
 
         if (gameWin) this.cta.setValue(GameScene.LEVEL_COINS);
@@ -206,6 +216,8 @@ export default class GameScene extends Phaser.Scene {
     }
 
     layoutLevel() {
+        this.boosterBar.hide();
+
         this.gamePlay.reset();
         this.gamePlay.adjust();
     }
@@ -218,6 +230,7 @@ export default class GameScene extends Phaser.Scene {
 
         this.timer.intro(this.gamePlay.timeLeft);
         this.levelBadge.intro(this.level);
+        this.boosterBar.intro();
     }
 
     leaveGame() {
@@ -233,18 +246,23 @@ export default class GameScene extends Phaser.Scene {
         this.coin.intro();
         this.timer.hide();
         this.levelBadge.hide();
+        this.boosterBar.hide();
         this.settings.dock(false);
     }
 
+    // Under the transition: the board is put straight where it belongs, and
+    // everything that is not part of a level cleared away. beginLevel() then
+    // brings the clock and badge in and starts play once it has cleared.
     enterGame() {
         this.home.hide();
-        this.coin.outro();
-
-        this.timer.intro(this.gamePlay.timeLeft);
-        this.levelBadge.intro(this.level);
+        this.coin.hide();
+        this.timer.hide();
+        this.levelBadge.hide();
+        this.boosterBar.hide();
         this.settings.dock(true);
 
-        this.gamePlay.intro(() => this.gamePlay.start());
+        this.gamePlay.intro();
+        this.gamePlay.stopIntro();
     }
 
     startGamePlay() {
@@ -372,6 +390,7 @@ export default class GameScene extends Phaser.Scene {
         this.graphicsGrp.add(this.graphics);
 
         this.gamePlay.adjust();
+        this.boosterBar.adjust();
         this.cta.adjust();
         this.home.adjust();
         this.levelScreen.adjust();

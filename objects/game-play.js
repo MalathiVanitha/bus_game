@@ -90,6 +90,21 @@ const INTRO_DROP = 70;
 // Seconds on the clock for a level that does not give its own.
 const DEFAULT_TIME = 60;
 
+// The Remove booster: the picked convoy's vehicles pop and spin away one after
+// another, tractor first, each with a little confetti.
+const REMOVE_POP = 1.25;
+const REMOVE_POP_TIME = 110;
+const REMOVE_OUT_TIME = 260;
+const REMOVE_STAGGER = 70;
+const REMOVE_SPIN = 25;
+const REMOVE_CONFETTI = 8;
+
+// The Hint booster: the convoy that can get home glows, and a wave of lit
+// cells runs along its way to the garage, over and over for a while.
+const HINT_TIME = 2800;
+const HINT_STEP = 70;
+const HINT_REST = 5;
+
 const byDepth = (a, b) => a.depth - b.depth;
 
 export class GamePlay extends Phaser.GameObjects.Container {
@@ -209,6 +224,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         this.drag = null;
         this.dragPoint = null;
+        this.picking = null;
+        this.hint = null;
         this.convoys = [];
         this.garages = [];
 
@@ -1312,7 +1329,20 @@ export class GamePlay extends Phaser.GameObjects.Container {
         const p = this.localPointer();
         const grabbed = this.pickEnd(p.x, p.y);
 
+        // A booster waiting on a convoy takes the tap instead of a drag.
+        if (this.picking) {
+            if (!grabbed) return;
+
+            const onPick = this.picking;
+
+            this.picking = null;
+            onPick(grabbed.convoy);
+            return;
+        }
+
         if (!grabbed) return;
+
+        if (this.hint && this.hint.convoy === grabbed.convoy) this.hint = null;
 
         this.clockStarted = true;
 
@@ -1488,11 +1518,209 @@ export class GamePlay extends Phaser.GameObjects.Container {
             }
         }
 
+        if (this.hint) this.stepHint(step);
+
         if (this.stackDirty) this.sortStage();
 
         this.board.step(step);
         this.updateEffects(step);
         this.updateDoors();
+    }
+
+    // ---- boosters -------------------------------------------------------
+
+    /** The next tap on a convoy is handed to onPick, rather than grabbing it. */
+    pickConvoy(onPick) {
+        this.dropDrag();
+        this.picking = onPick;
+    }
+
+    stopPicking() {
+        this.picking = null;
+    }
+
+    /**
+     * Takes a convoy off the board, garage and all, as though it had got home.
+     * False if it can't be taken (it is already on its way in).
+     */
+    removeConvoy(convoy) {
+        if (!this.canGrab(convoy)) return false;
+
+        if (this.drag && this.drag.convoy === convoy) {
+            this.drag = null;
+            this.dragPoint = null;
+        }
+
+        if (this.hint && this.hint.convoy === convoy) this.hint = null;
+
+        const spots = convoy.cells.map((cell) => this.cellToPixel(cell.col, cell.row));
+        const tint = CONFETTI_TINT[convoy.key] || null;
+
+        convoy.escaped = true;
+        convoy.queue.length = 0;
+        convoy.settle = null;
+        convoy.settling = false;
+        convoy.diving = false;
+
+        if (convoy.bumpTween) {
+            convoy.bumpTween.remove();
+            convoy.bumpTween = null;
+        }
+
+        this.releaseCells(convoy);
+
+        convoy.rig.links.visible = false;
+
+        const vehicles = convoy.rig.vehicles;
+
+        for (let i = 0; i < vehicles.length; i++) {
+            const art = vehicles[i].art;
+            const scale = vehicles[i].scale;
+            const delay = i * REMOVE_STAGGER;
+            const spot = spots[convoy.leadIsHead ? i : spots.length - 1 - i] || spots[0];
+
+            this.scene.tweens.add({
+                targets: art,
+                scale: scale * REMOVE_POP,
+                duration: REMOVE_POP_TIME,
+                delay: delay,
+                ease: 'Quad.easeOut',
+                onStart: () => this.confettiFrom(spot.x, spot.y, REMOVE_CONFETTI, tint),
+                onComplete: () => {
+                    this.scene.tweens.add({
+                        targets: art,
+                        scale: 0,
+                        alpha: 0,
+                        angle: art.angle + (i % 2 ? REMOVE_SPIN : -REMOVE_SPIN),
+                        duration: REMOVE_OUT_TIME,
+                        ease: 'Back.easeIn'
+                    });
+                }
+            });
+        }
+
+        if (convoy.garage) convoy.garage.vanish(() => { this.boardStamp++; });
+
+        // Its own counter, the length of the whole pop, before the level can
+        // be called: the last convoy off the board should be seen to go.
+        this.scene.tweens.addCounter({
+            from: 0,
+            to: 1,
+            duration: (vehicles.length - 1) * REMOVE_STAGGER + REMOVE_POP_TIME + REMOVE_OUT_TIME,
+            onComplete: () => {
+                convoy.rig.setVisible(false);
+
+                if (this.convoys.every((c) => c.escaped)) this.finish(true);
+            }
+        });
+
+        return true;
+    }
+
+    /**
+     * Finds a convoy that can drive into its garage as the board stands, and
+     * lights its way. False, and nothing shown, if none can.
+     */
+    showHint() {
+        let best = null;
+
+        for (let i = 0; i < this.convoys.length; i++) {
+            const convoy = this.convoys[i];
+
+            if (!convoy.exit || !this.canGrab(convoy) || !convoy.cells.length) continue;
+
+            const ends = [this.headCell(convoy), this.tailCell(convoy)];
+
+            for (let e = 0; e < ends.length; e++) {
+                const route = this.freeRoute(convoy, ends[e]);
+
+                if (route && (!best || route.length < best.route.length)) {
+                    best = { convoy: convoy, route: route };
+                }
+            }
+        }
+
+        if (!best) return false;
+
+        this.hint = { convoy: best.convoy, route: best.route, time: 0 };
+
+        this.bumpConvoy(best.convoy);
+
+        if (best.convoy.garage) best.convoy.garage.cheer();
+
+        return true;
+    }
+
+    // The way from one end of a convoy to its garage over empty cells alone,
+    // as a list of cells ending on the garage, or null. The convoy's own body
+    // counts as in the way, so what it finds can be driven as it stands.
+    freeRoute(convoy, from) {
+        const goal = convoy.exit;
+        const seen = new Map();
+        const queue = [from];
+        const key = (col, row) => row * this.columns + col;
+        const sides = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+        seen.set(key(from.col, from.row), null);
+
+        while (queue.length) {
+            const cell = queue.shift();
+
+            for (let i = 0; i < sides.length; i++) {
+                const col = cell.col + sides[i][0];
+                const row = cell.row + sides[i][1];
+                const k = key(col, row);
+
+                if (seen.has(k) || !this.isFloor(col, row)) continue;
+                if (this.tiles[row][col].owner !== -1) continue;
+
+                const garage = this.garageAt(col, row);
+
+                if (garage && garage.convoyIndex !== convoy.index) continue;
+
+                seen.set(k, cell);
+
+                if (col === goal[0] && row === goal[1]) {
+                    const route = [];
+                    let at = { col: col, row: row };
+
+                    while (at && !(at.col === from.col && at.row === from.row)) {
+                        route.unshift(at);
+                        at = seen.get(key(at.col, at.row));
+                    }
+
+                    return route;
+                }
+
+                queue.push({ col: col, row: row });
+            }
+        }
+
+        return null;
+    }
+
+    stepHint(step) {
+        const hint = this.hint;
+
+        if (hint.convoy.escaped || hint.time >= HINT_TIME) {
+            this.hint = null;
+            return;
+        }
+
+        const was = Math.floor(hint.time / HINT_STEP);
+
+        hint.time += step;
+
+        const now = Math.floor(hint.time / HINT_STEP);
+
+        this.lightConvoy(hint.convoy);
+
+        // A wave of lit cells runs out along the way, then a short rest.
+        for (let n = was + 1; n <= now; n++) {
+            const k = n % (hint.route.length + HINT_REST);
+
+            if (k < hint.route.length) this.board.pulseCell(hint.route[k].col, hint.route[k].row);
+        }
     }
 
     /**

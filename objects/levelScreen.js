@@ -211,6 +211,10 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
         this.onPlay = onPlay;
         this.onClose = null;
+        // Told whenever a booster count changes, here or from the board.
+        this.onChange = null;
+        // Set while the offer is up on its own over a level, without the card.
+        this.inPlay = null;
         this.counts = readStore();
         this.picked = {};
         this.tiles = {};
@@ -414,8 +418,10 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         offer.card = card;
         offer.visible = false;
 
+        // Beside the card rather than on it, so it can also stand on its own
+        // over a level, when the boosters are played from the board.
         this.offer = offer;
-        this.card.add(offer);
+        this.fitter.add(offer);
     }
 
 
@@ -571,6 +577,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
         this.counts[key]--;
         writeStore(this.counts);
+        this.changed();
 
         if (this.counts[key] <= 0) this.picked[key] = false;
 
@@ -641,8 +648,41 @@ export class LevelScreen extends Phaser.GameObjects.Container {
             onComplete: () => {
                 offer.visible = false;
                 if (onDone) onDone();
+
+                if (this.inPlay && !this.isOpen) {
+                    const done = this.inPlay;
+
+                    this.inPlay = null;
+                    this.visible = false;
+                    this.dim.visible = true;
+                    this.card.visible = true;
+
+                    done();
+                }
             }
         });
+    }
+
+    changed() {
+        if (this.onChange) this.onChange(this.counts);
+    }
+
+    /**
+     * Puts the "get more" offer up on its own, over a level, for a booster
+     * that has run out on the board. onDone runs once it is closed, bought or
+     * not.
+     */
+    offerDuringPlay(key, onDone = null) {
+        const booster = BOOSTERS.find((b) => b.key === key);
+
+        if (!booster || this.isOpen || this.offer.visible) return;
+
+        this.inPlay = onDone || (() => { });
+        this.visible = true;
+        this.dim.visible = false;
+        this.card.visible = false;
+
+        this.showOffer(booster);
     }
 
     // Paid for out of the coin counter. Short of coins, the store is opened
@@ -661,6 +701,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
         this.counts[booster.key] += PACK_COUNT;
         writeStore(this.counts);
+        this.changed();
 
         this.hideOffer(() => {
             this.picked[booster.key] = true;
@@ -700,6 +741,8 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
         this.isOpen = true;
         this.visible = true;
+        this.dim.visible = true;
+        this.card.visible = true;
 
         this.levelText.setText('Level ' + level);
 
