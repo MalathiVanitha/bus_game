@@ -1,3 +1,4 @@
+import SoundManager from '../objects/SoundManager.js';
 import { fullScreen } from '../utils/screen.js'
 import { pointerUp } from '../utils/buttons.js'
 import { CTA } from '../objects/cta.js';
@@ -85,7 +86,6 @@ export default class GameScene extends Phaser.Scene {
         this.level = readLevel();
         this.game.gameScene = this;
         this.animationManager = new AnimationManager(this);
-        // SoundManager.playMusic("bgm");
 
         this.superGroup = this.add.container()
         this.gameGroup = this.add.container()
@@ -155,6 +155,9 @@ export default class GameScene extends Phaser.Scene {
 
         this.settings = new Settings(this, 0, 0);
         this.gameGroup.add(this.settings);
+
+        // After the settings, so it starts muted if Music was left off.
+        SoundManager.playMusic(this);
 
         // A booster's first time: over the board, the clock and the gear, so
         // its dim takes them all in, and under the end card.

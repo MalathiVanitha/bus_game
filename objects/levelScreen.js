@@ -1,3 +1,4 @@
+import SoundManager from './SoundManager.js';
 import { pressable } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
 import { openModal, shutModal } from '../utils/modal.js';
@@ -622,6 +623,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
     }
 
     shake(tile) {
+        SoundManager.fx(this.scene, 'bump', 0.5);
         this.scene.tweens.killTweensOf(tile);
         tile.angle = 0;
 
@@ -637,6 +639,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
     }
 
     popCheck(check) {
+        SoundManager.fx(this.scene, 'grab', 0.5);
         this.scene.tweens.killTweensOf(check);
 
         check.setScale(0);

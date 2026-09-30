@@ -1,3 +1,5 @@
+import SoundManager from './SoundManager.js';
+
 const VEHICLE_SHEET = "luggages";
 
 const ART_CELL = 170;
@@ -214,6 +216,7 @@ export class Garage {
             duration: VANISH_SQUASH_TIME,
             ease: "Sine.easeOut",
             onComplete: () => {
+                SoundManager.fx(this.scene, 'shatter', 0.6);
                 this.burst(color, then);
 
                 this.gapeTween = this.scene.tweens.add({

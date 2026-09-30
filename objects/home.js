@@ -794,8 +794,7 @@ export class Home extends Phaser.GameObjects.Container {
         this.leaving = true;
         this.introRun = (this.introRun || 0) + 1;
 
-        // Out of reach while it flies off: the press's own pointerout would
-        // otherwise kill its tweens and leave it stuck where it was tapped.
+        // Out of reach while it flies off, so it can't be pressed again.
         this.playButton.disableInteractive();
 
         this.stopIdle();

@@ -33,6 +33,14 @@ export default class BootScene extends Phaser.Scene {
         //---------------------------------------------------------------------->
         this.load.setPath('assets/sounds');
 
+        const sounds = soundsData.fx.concat(soundsData.music);
+
+        for (let i = 0; i < sounds.length; i++) {
+            this.load.audio(sounds[i], sounds[i] + '.mp3');
+        }
+
+        this.load.setPath('');
+
         this.loadFont('Oduda-Bold-Demo', 'fonts/Oduda-Bold-Demo.otf');
         this.loadFont('FredokaOne_Regular', 'fonts/FredokaOne_Regular.otf');
         this.loadFont('Baloo2-ExtraBold', 'fonts/Baloo2-ExtraBold.woff2');
@@ -46,16 +54,6 @@ export default class BootScene extends Phaser.Scene {
         this.load.on('complete', () => {
             this.assetsLoaded = true;
         });
-    }
-
-    createSounds() {
-        for (let i = 0; i < soundsData.music.length; i++) {
-            soundsData[soundsData.music[i]] = this.sound.add(soundsData.music[i]);
-        }
-
-        for (let i = 0; i < soundsData.sounds.length; i++) {
-            soundsData[soundsData.sounds[i]] = this.sound.add(soundsData.sounds[i]);
-        }
     }
 
     loadFont(name, url) {

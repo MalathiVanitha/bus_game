@@ -1,3 +1,4 @@
+import SoundManager from './SoundManager.js';
 import { pressable } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
 
@@ -162,6 +163,7 @@ const SHUT_TILT = 6;
 
 const STARS_DELAY = 140;
 const STARS_TIME = 420;
+const STAR_DING_GAP = 130;
 const STARS_FROM = 0.4;
 
 const CLOCK_SHAKE = 7;
@@ -459,6 +461,8 @@ export class CTA extends Phaser.GameObjects.Container {
         this.isOpen = true;
         this.visible = true;
 
+        SoundManager.duckMusic(this.scene, true);
+
         this.adjust();
 
         const card = this.userWon ? this.winGroup : this.failGroup;
@@ -574,8 +578,10 @@ export class CTA extends Phaser.GameObjects.Container {
         if (this.userWon) {
             this.popStars();
             this.pop();
+            SoundManager.fx(this.scene, 'win', 0.8);
         } else {
             this.shakeClock();
+            SoundManager.fx(this.scene, 'fail', 0.75);
         }
 
         for (let i = 0; i < rows.length; i++) {
@@ -620,6 +626,11 @@ export class CTA extends Phaser.GameObjects.Container {
             delay: STARS_DELAY,
             ease: 'Back.easeOut'
         });
+
+        // One ding a star, each a step higher.
+        for (let i = 0; i < 3; i++) {
+            SoundManager.fxLater(this.scene, STARS_DELAY + i * STAR_DING_GAP, 'star', 0.5, i * 200);
+        }
     }
 
     shakeClock() {
@@ -771,6 +782,8 @@ export class CTA extends Phaser.GameObjects.Container {
         if (!this.isOpen) return;
 
         this.isOpen = false;
+
+        SoundManager.duckMusic(this.scene, false);
 
         this.stopRain();
         this.stopPop();

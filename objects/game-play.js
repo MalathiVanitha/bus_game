@@ -1,3 +1,4 @@
+import SoundManager from './SoundManager.js';
 import { astar, Graph } from '../utils/astar.js';
 import { Trail } from './trail.js';
 import { Board } from './board.js';
@@ -721,7 +722,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
         // The knock goes off the moment the convoy runs up against it -
         // that is when it hits it - and is not sounded again until it has come
         // off the thing and been driven back at it.
-        if (hit && !convoy.hitObstacle) this.bumpConvoy(convoy);
+        if (hit && !convoy.hitObstacle) {
+            this.bumpConvoy(convoy);
+            SoundManager.fx(this.scene, 'bump', 0.8);
+        }
 
         convoy.hitObstacle = hit;
     }
@@ -896,6 +900,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
             this.beginSwallow(convoy);
             return;
         }
+
+        SoundManager.fx(this.scene, 'step', 0.35);
 
         if (this.nextToExit(convoy, cell)) this.queueExitStep(convoy);
     }
@@ -1116,6 +1122,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         while (convoy.gulped < taken) {
             convoy.gulped++;
             garage.gulp();
+            SoundManager.fx(this.scene, 'gulp', 0.7, (convoy.gulped - 1) * 200);
             this.board.pulseCell(convoy.exit[0], convoy.exit[1]);
         }
     }
@@ -1146,6 +1153,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
             this.burstFrom(garage, splash);
             this.confettiFrom(garage.x, garage.y, CONFETTI_COUNT, tint);
+            SoundManager.fx(this.scene, 'home', 0.8);
 
             // Gone as soon as the last vehicle is in: nothing left to wait for.
             garage.vanish(() => {
@@ -1492,6 +1500,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.updateConvoyView(grabbed.convoy, 0);
 
         this.drag = { convoy: grabbed.convoy };
+        SoundManager.fx(this.scene, 'grab', 0.55);
         this.routeDrag(p);
     }
 
@@ -1731,6 +1740,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 delay: delay,
                 ease: 'Quad.easeOut',
                 onStart: () => {
+                    SoundManager.fx(this.scene, 'poof', 0.7, i * 150);
                     art.setTintFill(0xffffff);
                     this.confettiFrom(spot.x, spot.y, REMOVE_CONFETTI, tint);
                     this.ringAt(spot.x, spot.y, splash);
@@ -1955,6 +1965,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         this.bumpConvoy(best.convoy);
         this.markHint(best.from);
+        SoundManager.fx(this.scene, 'hint', 0.7);
 
         const start = this.cellToPixel(best.from.col, best.from.row);
 

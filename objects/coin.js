@@ -1,3 +1,5 @@
+import SoundManager from './SoundManager.js';
+
 const PILL = 'home/coin-base';
 const PILL_X = 132;
 const PILL_Y = 62;
@@ -128,6 +130,7 @@ export class Coin extends Phaser.GameObjects.Container {
     }
 
     pop() {
+        SoundManager.fx(this.scene, 'coin', 0.6);
         this.scene.tweens.killTweensOf(this.pill);
 
         this.pill.setScale(1);

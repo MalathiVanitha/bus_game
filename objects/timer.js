@@ -1,3 +1,4 @@
+import SoundManager from './SoundManager.js';
 import { bakeShape } from '../utils/bake.js';
 
 // The level clock, top left, as in the storyboard: an icy-blue rounded panel
@@ -138,6 +139,7 @@ export class Timer extends Phaser.GameObjects.Container {
     }
 
     tick() {
+        SoundManager.fx(this.scene, 'tick', 0.7);
         this.scene.tweens.killTweensOf(this.pill);
 
         this.pill.setScale(1);

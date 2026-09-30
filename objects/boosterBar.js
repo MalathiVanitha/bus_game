@@ -1,3 +1,4 @@
+import SoundManager from './SoundManager.js';
 import { pressable } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
 import { unlocks, UNLOCK_AT } from './boosterUnlocks.js';
@@ -389,6 +390,8 @@ export class BoosterBar extends Phaser.GameObjects.Container {
      */
     unlock(key, onDone = null) {
         const button = this.buttons[key];
+
+        SoundManager.fx(this.scene, 'unlock', 0.75);
         const lock = button.lock;
         const rest = lock.restScale;
 
@@ -530,6 +533,7 @@ export class BoosterBar extends Phaser.GameObjects.Container {
 
     // A locked button shakes its head.
     shake(button) {
+        SoundManager.fx(this.scene, 'bump', 0.5);
         this.scene.tweens.killTweensOf(button);
         button.angle = 0;
 

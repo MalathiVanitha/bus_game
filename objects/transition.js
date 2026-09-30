@@ -276,6 +276,8 @@ export class Transition extends Phaser.GameObjects.Container {
 
         this.draw(0);
 
+        SoundManager.fx(this.scene, 'whoosh', 0.55);
+
         this.scene.events.on('update', this.tick, this);
 
         return true;
@@ -293,6 +295,8 @@ export class Transition extends Phaser.GameObjects.Container {
 
     reveal() {
         this.revealed = true;
+
+        SoundManager.fx(this.scene, 'whoosh', 0.4, 300);
 
         const reveals = this.reveals.splice(0);
 

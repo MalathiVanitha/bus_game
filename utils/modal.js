@@ -1,7 +1,9 @@
 // The open and close every modal card shares. Opening, the dim fades in while
 // the card rises into place, swelling a touch past full size before it
 // settles, and what is on it follows top to bottom a beat behind, so the
-// card lands first and its contents drift in after. Closing, it sinks and
+// card lands first and its contents drift in after: each fades up as it rises,
+// and the buttons, icons and centred text on it pop from small to a touch past
+// full size and settle. Closing, it sinks and
 // shrinks a little as it fades, quicker than it came.
 //
 // Each run is one counter stepping everything from its own clock, rather than
@@ -22,6 +24,9 @@ const CASCADE_RISE = 20;
 const CASCADE_SPREAD = 150;
 const CASCADE_DELAY = 50;
 const CASCADE_TIME = 340;
+// Where a popping piece starts, and its Back overshoot on the way to full size.
+const POP_FROM = 0.6;
+const POP_OVERSHOOT = 2.2;
 
 const SHUT_TIME = 190;
 const SHUT_TO = 0.9;
@@ -39,6 +44,34 @@ function shift(piece, by) {
     piece.modalShift = by;
 }
 
+// Whether a piece can grow from its middle: a container, or art and text
+// anchored at their centre. Backings drawn from a corner only fade and rise.
+function poppable(piece) {
+    if (piece instanceof Phaser.GameObjects.Container) return true;
+    if (piece instanceof Phaser.GameObjects.Graphics) return false;
+    if (piece instanceof Phaser.GameObjects.Rectangle) return false;
+    if (piece instanceof Phaser.GameObjects.NineSlice) return false;
+
+    return piece.originX === 0.5 && piece.originY === 0.5;
+}
+
+// Scales and fades a piece to a fraction of how it was when the run began,
+// and puts it back exactly once both fractions reach 1.
+function grow(piece, scale, alpha) {
+    if (!piece.modalBase) {
+        if (scale === 1 && alpha === 1) return;
+
+        piece.modalBase = { x: piece.scaleX, y: piece.scaleY, alpha: piece.alpha };
+    }
+
+    const base = piece.modalBase;
+
+    piece.setScale(base.x * scale, base.y * scale);
+    piece.alpha = base.alpha * alpha;
+
+    if (scale === 1 && alpha === 1) piece.modalBase = null;
+}
+
 // What on the card cascades: everything but the panel behind it (the first
 // child) and invisible hit zones, each with how far down the card it sits.
 function contents(card) {
@@ -49,6 +82,7 @@ function contents(card) {
 
         if (piece instanceof Phaser.GameObjects.Zone) continue;
 
+        piece.modalPop = poppable(piece);
         pieces.push(piece);
     }
 
@@ -85,6 +119,7 @@ function stop(scene, dim, card) {
 
     card.list.forEach((piece) => {
         if (piece.modalShift) shift(piece, 0);
+        if (piece.modalBase) grow(piece, 1, 1);
     });
 }
 
@@ -126,6 +161,11 @@ export function openModal(scene, dim, card, dimAlpha, onDone = null) {
             const p = clamp01((at - piece.modalDelay) / CASCADE_TIME);
 
             shift(piece, CASCADE_RISE * (1 - Ease.Cubic.Out(p)));
+            grow(
+                piece,
+                piece.modalPop ? POP_FROM + (1 - POP_FROM) * Ease.Back.Out(p, POP_OVERSHOOT) : 1,
+                p >= 1 ? 1 : Ease.Quadratic.Out(clamp01(p * 1.6))
+            );
         });
     }, onDone);
 }
