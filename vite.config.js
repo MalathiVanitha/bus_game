@@ -10,7 +10,7 @@ const RUNTIME_FILES = [
     { dir: 'js', match: /\.js$/ },
     { dir: 'fonts', match: /\.(otf|ttf|woff2?)$/ },
     { dir: 'assets', match: /\.png$/ },
-    { dir: 'assets/sheet', match: /\.(png|json)$/ },
+    { dir: 'assets/sheet', match: /\.(png|webp|json)$/ },
     { dir: 'assets/sounds', match: /\.mp3$/ }
 ];
 

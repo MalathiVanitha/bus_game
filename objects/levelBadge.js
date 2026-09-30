@@ -92,7 +92,7 @@ export class LevelBadge extends Phaser.GameObjects.Container {
     }
 
     adjust() {
-        this.x = dimensions.gameWidth / 2;
+        this.x = dimensions.gameWidth / 2 + 30;
         this.y = BADGE_Y;
     }
 }

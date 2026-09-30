@@ -148,19 +148,44 @@ const GLINT = "fx-glint";
 const GLINT_ART = 256;
 
 // The Hint booster: the convoy that can get home glows, and a wave of lit
-// cells runs along its way to the garage, over and over for a while.
-const HINT_TIME = 2800;
+// cells runs along its way to the garage, over and over. It stands until that
+// convoy is taken hold of, something moves into its way, or HINT_TIME is up.
+const HINT_TIME = 12000;
 const HINT_STEP = 70;
 const HINT_REST = 5;
-// A golden ring breathes round the end to drive, and glints spark off each
-// cell as the wave passes, with a bigger one at the garage.
+// Gold, for everything the hint puts down. Glints spark off each cell as the
+// wave passes, with a bigger one at the garage.
 const HINT_RING = 0xffc93c;
-const HINT_RING_SCALE = 1.25;
-const HINT_RING_PULSE = 1.18;
-const HINT_RING_TIME = 380;
 const HINT_GLINT = 0.8;
 const HINT_GLINT_HOME = 1.5;
 const HINT_GLINT_TIME = 420;
+// Gold road arrows down the way, white-edged like the lesson's arrow, popping
+// in one after another from the convoy to the garage; then a brightening runs
+// down them, over and over, the way to drive.
+const HINT_EDGE = 0xffffff;
+const HINT_SHADE = 0x101a33;
+const HINT_ARROW_TEXTURE = "hint-arrow";
+const HINT_ARROW_ART = 40;
+const HINT_ARROW_SIZE = 0.56;
+const HINT_ARROW_IN = 70;
+const HINT_ARROW_IN_TIME = 260;
+const HINT_ARROW_ALPHA = 0.7;
+const HINT_MARCH = 1000;
+const HINT_MARCH_LAG = 0.12;
+const HINT_MARCH_SWELL = 0.25;
+// A fingertip shows the drag: it presses on the end to drive, glides along
+// the arrows into the garage, lifts off with a ripple there, and goes again.
+const HINT_TOUCH_TEXTURE = "hint-touch";
+const HINT_TOUCH_ART = 44;
+const HINT_TOUCH_SIZE = 0.7;
+const HINT_TOUCH_PRESS = 0.8;
+const HINT_TOUCH_WAIT = 450;
+const HINT_TOUCH_IN = 240;
+const HINT_TOUCH_CELL = 210;
+const HINT_TOUCH_OUT = 240;
+const HINT_TOUCH_REST = 420;
+// All of it fades together when the hint is over.
+const HINT_OUT_TIME = 240;
 
 const byDepth = (a, b) => a.depth - b.depth;
 
@@ -282,6 +307,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.drag = null;
         this.dragPoint = null;
         this.picking = null;
+        this.removing = 0;
         this.hint = null;
         this.convoys = [];
         this.garages = [];
@@ -1486,6 +1512,12 @@ export class GamePlay extends Phaser.GameObjects.Container {
             return;
         }
 
+        // Held still (a lesson, an offer, the settings) or a booster still
+        // taking effect: the board is not to be played until it is let go.
+        // Input may be attached under a hold (the intro's landing attaches
+        // it), so the hold is kept here rather than by detaching alone.
+        if (this.paused || this.removing > 0) return;
+
         if (!grabbed) return;
 
         if (this.hint && this.hint.convoy === grabbed.convoy) this.hint = null;
@@ -1669,7 +1701,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         }
 
         if (this.hint) this.stepHint(step);
-        if (!this.hint && this.hintMark) this.clearHintMark();
+        if (!this.hint && this.hintFx && !this.hintFx.leaving) this.fadeHint();
 
         if (this.stackDirty) this.sortStage();
 
@@ -1701,6 +1733,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
             this.drag = null;
             this.dragPoint = null;
         }
+
+        // Nothing else moves on the board while it goes.
+        this.dropDrag();
+        this.removing++;
 
         if (this.hint && this.hint.convoy === convoy) this.hint = null;
 
@@ -1783,6 +1819,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             to: 1,
             duration: (vehicles.length - 1) * REMOVE_STAGGER + REMOVE_POP_TIME * 2 + REMOVE_OUT_TIME,
             onComplete: () => {
+                this.removing = Math.max(0, this.removing - 1);
                 convoy.rig.setVisible(false);
 
                 if (this.convoys.every((c) => c.escaped)) this.finish(true);
@@ -1894,46 +1931,211 @@ export class GamePlay extends Phaser.GameObjects.Container {
         });
     }
 
-    // The breathing ring round the end the hint says to drive from.
-    markHint(cell) {
+    // Everything the hint lays on the board: the arrows down the way and the
+    // fingertip showing the drag. route runs from the cell next to the end to
+    // drive from, to the garage.
+    markHint(cell, route) {
         this.clearHintMark();
-        this.ringTexture();
 
+        const fx = { parts: [], arrows: [], leaving: false };
         const at = this.cellToPixel(cell.col, cell.row);
-        const ring = this.scene.add.image(at.x, at.y, RING_TEXTURE);
-        const fit = this.cellSize / (RING_R * 2) * HINT_RING_SCALE;
 
-        ring.setTint(HINT_RING);
-        ring.setScale(0);
-        this.effectGroup.add(ring);
+        this.hintFx = fx;
 
-        this.hintMark = ring;
+        // One arrow on each cell of the way but the garage's, pointing on to
+        // the next, so a corner shows the turn.
+        for (let i = 0; i < route.length - 1; i++) {
+            const here = this.cellToPixel(route[i].col, route[i].row);
+            const next = this.cellToPixel(route[i + 1].col, route[i + 1].row);
+            const arrow = this.hintArrow(here.x, here.y);
 
+            arrow.rotation = Math.atan2(next.y - here.y, next.x - here.x);
+            arrow.fit = arrow.restScale * this.cellSize * HINT_ARROW_SIZE / HINT_ARROW_ART;
+            arrow.setScale(0);
+            arrow.alpha = HINT_ARROW_ALPHA;
+            arrow.ready = false;
+
+            fx.arrows.push(arrow);
+            fx.parts.push(arrow);
+
+            this.scene.tweens.add({
+                targets: arrow,
+                scale: arrow.fit,
+                duration: HINT_ARROW_IN_TIME,
+                delay: i * HINT_ARROW_IN,
+                ease: 'Back.easeOut',
+                onComplete: () => { arrow.ready = true; }
+            });
+        }
+
+        this.showHintTouch(fx, [at].concat(route.map((c) => this.cellToPixel(c.col, c.row))));
+    }
+
+    // A chevron pointing along +x: gold, edged in white, on a soft shadow.
+    hintArrow(x, y) {
+        const h = HINT_ARROW_ART / 2;
+        const points = [
+            { x: -h * 0.7, y: -h * 0.9 }, { x: -h * 0.05, y: -h * 0.9 }, { x: h * 0.75, y: 0 },
+            { x: -h * 0.05, y: h * 0.9 }, { x: -h * 0.7, y: h * 0.9 }, { x: h * 0.05, y: 0 }
+        ];
+        const arrow = bakeShape(this.scene, { left: -h - 4, top: -h - 4, width: HINT_ARROW_ART + 8, height: HINT_ARROW_ART + 12 }, (g) => {
+            g.fillStyle(HINT_SHADE, 0.22);
+            g.fillPoints(points.map((p) => ({ x: p.x, y: p.y + 4 })), true);
+            g.fillStyle(HINT_RING, 1);
+            g.fillPoints(points, true);
+            g.lineStyle(3.5, HINT_EDGE, 1);
+            g.strokePoints(points, true);
+        }, HINT_ARROW_TEXTURE);
+
+        arrow.setPosition(x, y);
+        this.effectGroup.add(arrow);
+
+        return arrow;
+    }
+
+    // A brightening that runs down the arrows towards the garage, again and
+    // again, so they read as the way to go.
+    marchHintArrows(time) {
+        const fx = this.hintFx;
+
+        if (!fx || fx.leaving) return;
+
+        for (let i = 0; i < fx.arrows.length; i++) {
+            const arrow = fx.arrows[i];
+
+            if (!arrow.ready) continue;
+
+            const phase = ((time / HINT_MARCH - i * HINT_MARCH_LAG) % 1 + 1) % 1;
+            const lit = phase < 0.35 ? Math.sin(phase / 0.35 * Math.PI) : 0;
+
+            arrow.setScale(arrow.fit * (1 + HINT_MARCH_SWELL * lit));
+            arrow.alpha = HINT_ARROW_ALPHA + (1 - HINT_ARROW_ALPHA) * lit;
+        }
+    }
+
+    // The fingertip, pressing on the end to drive and dragging it home along
+    // points, on one repeating counter of its own.
+    showHintTouch(fx, points) {
+        const r = HINT_TOUCH_ART / 2;
+        const touch = bakeShape(this.scene, { left: -r - 2, top: -r - 2, width: HINT_TOUCH_ART + 4, height: HINT_TOUCH_ART + 8 }, (g) => {
+            g.fillStyle(HINT_SHADE, 0.25);
+            g.fillCircle(0, 4, r);
+            g.fillStyle(HINT_EDGE, 1);
+            g.fillCircle(0, 0, r);
+            g.fillStyle(HINT_RING, 1);
+            g.fillCircle(0, 0, r * 0.62);
+            g.fillStyle(HINT_EDGE, 0.7);
+            g.fillCircle(-r * 0.2, -r * 0.2, r * 0.18);
+        }, HINT_TOUCH_TEXTURE);
+        const fit = touch.restScale * this.cellSize * HINT_TOUCH_SIZE / HINT_TOUCH_ART;
+
+        touch.alpha = 0;
+        this.effectGroup.add(touch);
+        fx.parts.push(touch);
+        fx.touch = touch;
+
+        const path = new Phaser.Curves.Path(points[0].x, points[0].y);
+
+        for (let i = 1; i < points.length; i++) path.lineTo(points[i].x, points[i].y);
+
+        const glide = Math.max(2, points.length - 1) * HINT_TOUCH_CELL;
+        const glideAt = HINT_TOUCH_IN;
+        const outAt = glideAt + glide;
+        const cycle = outAt + HINT_TOUCH_OUT + HINT_TOUCH_REST;
+        const start = points[0];
+        const end = points[points.length - 1];
+        const spot = new Phaser.Math.Vector2();
+        let lastAt = 0;
+
+        const place = (t) => {
+            if (t < glideAt) {
+                // Comes down on the end and presses.
+                const k = t / HINT_TOUCH_IN;
+
+                touch.setPosition(start.x, start.y);
+                touch.alpha = Math.min(1, k * 2);
+                touch.setScale(fit * (1.35 - (1.35 - HINT_TOUCH_PRESS) * Phaser.Math.Easing.Quadratic.Out(k)));
+            } else if (t < outAt) {
+                // Pressed, along the way.
+                path.getPoint(Phaser.Math.Easing.Sine.InOut((t - glideAt) / glide), spot);
+                touch.setPosition(spot.x, spot.y);
+                touch.alpha = 1;
+                touch.setScale(fit * HINT_TOUCH_PRESS);
+            } else {
+                // Lets go in the garage.
+                const k = Math.min(1, (t - outAt) / HINT_TOUCH_OUT);
+
+                touch.setPosition(end.x, end.y);
+                touch.alpha = 1 - k;
+                touch.setScale(fit * (HINT_TOUCH_PRESS + 0.5 * k));
+            }
+        };
+
+        touch.setPosition(start.x, start.y);
+
+        fx.touchRun = this.scene.tweens.addCounter({
+            from: 0,
+            to: cycle,
+            duration: cycle,
+            delay: HINT_TOUCH_WAIT,
+            repeat: -1,
+            onUpdate: (tween) => {
+                const t = tween.getValue();
+
+                // A ripple where it presses and where it lets go, once a pass.
+                if (t < lastAt) lastAt = 0;
+                if (lastAt < glideAt && t >= glideAt) this.ringAt(start.x, start.y, HINT_EDGE);
+                if (lastAt < outAt && t >= outAt) this.ringAt(end.x, end.y, HINT_EDGE);
+
+                lastAt = t;
+                place(t);
+            }
+        });
+    }
+
+    // Something has moved into the way it lights, so it no longer holds.
+    hintBlocked(hint) {
+        for (let i = 0; i < hint.route.length - 1; i++) {
+            const cell = hint.route[i];
+
+            if (this.tiles[cell.row][cell.col].owner !== -1) return true;
+        }
+
+        return false;
+    }
+
+    // Over: everything it put down fades out together.
+    fadeHint() {
+        const fx = this.hintFx;
+
+        fx.leaving = true;
+
+        if (fx.touchRun) fx.touchRun.remove();
+
+        this.scene.tweens.killTweensOf(fx.parts);
         this.scene.tweens.add({
-            targets: ring,
-            scale: fit,
-            duration: HINT_RING_TIME,
-            ease: 'Back.easeOut',
+            targets: fx.parts,
+            alpha: 0,
+            duration: HINT_OUT_TIME,
+            ease: 'Sine.easeIn',
             onComplete: () => {
-                this.scene.tweens.add({
-                    targets: ring,
-                    scale: fit * HINT_RING_PULSE,
-                    alpha: 0.55,
-                    duration: HINT_RING_TIME,
-                    ease: 'Sine.easeInOut',
-                    yoyo: true,
-                    repeat: -1
-                });
+                if (this.hintFx === fx) this.clearHintMark();
             }
         });
     }
 
     clearHintMark() {
-        if (!this.hintMark) return;
+        const fx = this.hintFx;
 
-        this.scene.tweens.killTweensOf(this.hintMark);
-        this.hintMark.destroy();
-        this.hintMark = null;
+        if (!fx) return;
+
+        if (fx.touchRun) fx.touchRun.remove();
+
+        this.scene.tweens.killTweensOf(fx.parts);
+
+        for (let i = 0; i < fx.parts.length; i++) fx.parts[i].destroy();
+
+        this.hintFx = null;
     }
 
     /**
@@ -1964,7 +2166,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.hint = { convoy: best.convoy, route: best.route, time: 0 };
 
         this.bumpConvoy(best.convoy);
-        this.markHint(best.from);
+        this.markHint(best.from, best.route);
         SoundManager.fx(this.scene, 'hint', 0.7);
 
         const start = this.cellToPixel(best.from.col, best.from.row);
@@ -2033,10 +2235,12 @@ export class GamePlay extends Phaser.GameObjects.Container {
         const hint = this.hint;
 
         // A held hint (a booster's first-time lesson) runs until let go.
-        if (hint.convoy.escaped || (!hint.hold && hint.time >= HINT_TIME)) {
+        if (hint.convoy.escaped || this.hintBlocked(hint) || (!hint.hold && hint.time >= HINT_TIME)) {
             this.hint = null;
             return;
         }
+
+        this.marchHintArrows(hint.time);
 
         const was = Math.floor(hint.time / HINT_STEP);
 

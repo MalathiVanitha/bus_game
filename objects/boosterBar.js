@@ -75,6 +75,8 @@ const UNLOCK_BOUNCE_TIME = 520;
 const UNLOCK_TINT_TIME = 320;
 const UNLOCK_TIME = 760;
 const GLINT = 'fx-glint';
+// Gold, as the glints the hint throws off on the board.
+const GLINT_TINT = 0xffc93c;
 const GLINTS = 7;
 const GLINT_REACH = 70;
 const GLINT_SCALE = 0.35;
@@ -489,6 +491,7 @@ export class BoosterBar extends Phaser.GameObjects.Container {
             const turn = (i / count) * Math.PI * 2 + Math.random() * 0.4;
             const glint = this.scene.add.image(button.x, button.y, GLINT);
 
+            glint.setTint(GLINT_TINT);
             glint.setScale(0);
             this.add(glint);
 

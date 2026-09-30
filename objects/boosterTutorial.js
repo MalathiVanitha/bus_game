@@ -14,8 +14,12 @@ const DIM_TIME = 260;
 
 // The hole left in the dim over the button, and the ring pulsing round it.
 const SPOT_R = 62;
-const RING = 0xffffff;
+// Gold, the game's colour for "this one" (the arrow, the booster glow, the
+// hint's ring), edged in white like the arrow so it holds up on the dim.
+const RING = 0xffc93c;
+const RING_EDGE = 0xffffff;
 const RING_THICK = 5;
+const RING_EDGE_THICK = 3;
 const RING_PULSE = 1.12;
 const RING_TIME = 520;
 
@@ -67,6 +71,14 @@ const WIDE_CARD_SCALE = 0.72;
 // buttons to have risen in under the board.
 const LESSON_WAIT = 820;
 
+// The tap on the lit button: the ring bursts out from it as the dim, arrow
+// and bubble fade, rather than all of it blinking off at once.
+const GUIDE_OUT_TIME = 260;
+const RING_BURST = 1.7;
+// The hint is left to run by itself this long (one wave out to the garage)
+// before the card comes up to say what it was.
+const EXPLAIN_WAIT = 900;
+
 
 const LESSONS = {
     hint: {
@@ -106,10 +118,14 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
         this.dim.setMask(this.hole.createGeometryMask());
         this.dim.mask.setInvertAlpha(true);
 
+        const ringR = SPOT_R + RING_THICK / 2 + RING_EDGE_THICK;
+
         this.ring = bakeShape(this.scene, {
-            left: -SPOT_R - RING_THICK, top: -SPOT_R - RING_THICK,
-            width: (SPOT_R + RING_THICK) * 2, height: (SPOT_R + RING_THICK) * 2
+            left: -ringR, top: -ringR,
+            width: ringR * 2, height: ringR * 2
         }, (g) => {
+            g.lineStyle(RING_THICK + RING_EDGE_THICK * 2, RING_EDGE, 1);
+            g.strokeCircle(0, 0, SPOT_R);
             g.lineStyle(RING_THICK, RING, 1);
             g.strokeCircle(0, 0, SPOT_R);
         }, 'lesson-ring');
@@ -306,26 +322,95 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
         this.scene.tweens.add({ targets: this.dim, alpha: DIM_ALPHA, duration: DIM_TIME, ease: 'Sine.easeOut' });
 
         this.popIn(this.bubble);
+        this.fadeIn(this.arrow);
     }
 
     pressed(key) {
         if (this.stage !== 'tap' || key !== this.key) return;
 
+        // Taps are held off (the blocker has no hole now) until the booster
+        // has done its part and the next thing is asked for.
         this.stage = 'using';
+
+        // Played as a real use looks: the icon pops and glints fly.
+        this.bar.used(this.bar.buttons[key]);
+
+        if (key === 'hint') {
+            // Free this once: the hint as it would be played, kept lit until
+            // the card that explains it is closed. It starts on the tap, and
+            // the card waits until it has been seen.
+            if (this.gamePlay.showHint()) this.gamePlay.hint.hold = true;
+
+            this.releaseGuide();
+            this.later(EXPLAIN_WAIT, () => this.explain());
+            return;
+        }
+
+        this.bar.glow(this.bar.buttons.remove, true);
+        this.releaseGuide(() => this.askForConvoy());
+    }
+
+    // The guide lets go of the button it pointed at.
+    releaseGuide(onDone = null) {
+        const tweens = this.scene.tweens;
+        const fading = [this.dim, this.arrow, this.bubble];
+
+        tweens.killTweensOf([this.dim, this.arrow, this.bubble, this.ring]);
+
+        tweens.add({
+            targets: this.ring,
+            scale: this.ring.restScale * RING_BURST,
+            alpha: 0,
+            duration: GUIDE_OUT_TIME,
+            ease: 'Quad.easeOut'
+        });
+
+        tweens.add({
+            targets: fading,
+            alpha: 0,
+            duration: GUIDE_OUT_TIME,
+            ease: 'Sine.easeIn'
+        });
+
+        // Its own counter, apart from this.wait, so the hint's wait for its
+        // card can run alongside it.
+        if (this.releasing) this.releasing.remove();
+
+        this.releasing = tweens.addCounter({
+            from: 0,
+            to: 1,
+            duration: GUIDE_OUT_TIME,
+            onComplete: () => {
+                this.releasing = null;
+                this.hideGuide(fading, onDone);
+            }
+        });
+    }
+
+    // Faded out: hidden, and put back to full for the next time it shows.
+    hideGuide(fading, onDone) {
         this.showGuide(false);
         this.spot = null;
         this.layout();
 
-        if (key === 'hint') {
-            // Free this once: the hint as it would be played, kept lit until
-            // the card that explains it is closed.
-            if (this.gamePlay.showHint()) this.gamePlay.hint.hold = true;
+        for (let i = 0; i < fading.length; i++) fading[i].alpha = 1;
 
-            this.explain();
-            return;
-        }
+        if (onDone) onDone();
+    }
 
-        this.askForConvoy();
+    // Runs fn after ms on a counter of its own, dropped with the lesson.
+    later(ms, fn) {
+        if (this.wait) this.wait.remove();
+
+        this.wait = this.scene.tweens.addCounter({
+            from: 0,
+            to: 1,
+            duration: ms,
+            onComplete: () => {
+                this.wait = null;
+                fn();
+            }
+        });
     }
 
     // Remove: point at a convoy and wait for it to be tapped.
@@ -334,14 +419,15 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
         const convoy = play.convoys.find((c) => !c.escaped && c.cells.length);
 
         if (!convoy) {
+            this.bar.glow(this.bar.buttons.remove, false);
             this.explain();
             return;
         }
 
+        // The blocker stays up, so the gear and the other buttons stay shut:
+        // the board hears taps on the scene itself, not on a game object, so
+        // the pick still reaches it through the blocker.
         this.stage = 'pick';
-        this.blocker.disableInteractive();
-
-        this.bar.glow(this.bar.buttons.remove, true);
 
         const head = play.cellToPixel(play.headCell(convoy).col, play.headCell(convoy).row);
 
@@ -355,6 +441,7 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
         this.showGuide(true, false);
         this.layout();
         this.popIn(this.bubble);
+        this.fadeIn(this.arrow);
 
         play.attachInput();
         play.pickConvoy((picked) => {
@@ -495,6 +582,11 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
             this.wait = null;
         }
 
+        if (this.releasing) {
+            this.releasing.remove();
+            this.releasing = null;
+        }
+
         this.scene.tweens.killTweensOf([this.dim, this.card, this.bubble, this.arrow, this.ring]);
 
         this.key = null;
@@ -555,6 +647,17 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
 
         this.arrow.x = this.spot.x;
         this.arrow.y = this.spot.y - reach - (this.arrow.bob || 0) * ARROW_BOB;
+    }
+
+    fadeIn(piece) {
+        piece.alpha = 0;
+
+        this.scene.tweens.add({
+            targets: piece,
+            alpha: 1,
+            duration: 200,
+            ease: 'Sine.easeOut'
+        });
     }
 
     popIn(piece) {
