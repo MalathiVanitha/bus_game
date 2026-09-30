@@ -20,8 +20,8 @@ const WIDE_TOP = 108;
 const WIDE_BOTTOM = 52;
 const WIDE_SIDE = 170;
 
-const DRAG_SPEED = 3.5;
-const CHASE_SPEED = 8;
+const DRAG_SPEED = 4.6;
+const CHASE_SPEED = 10;
 const SETTLE_SPEED = 5.5;
 
 // Cells a second, a second: how hard the lead picks up speed, and how hard it

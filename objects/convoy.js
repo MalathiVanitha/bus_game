@@ -2,7 +2,7 @@ const ART_MARGIN = 200 / 220;
 const TRACTOR_ART_CELL = 220 * ART_MARGIN;
 const CART_ART_CELL = 314 * ART_MARGIN;
 
-const VEHICLE_FIT = 1.06;
+const VEHICLE_FIT = 0.98;
 
 const TRACTOR_ART = "tractor_front";
 const CART_ART = "luggage_cart";

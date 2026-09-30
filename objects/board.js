@@ -1,11 +1,11 @@
 import { bakeShape, bakeResolution, dropBaked } from '../utils/bake.js';
 
 const RIM = 0xffffff;
-const WELL = 0x9aa3b3;
+const WELL = 0x7e8799;
 
-const TILE_FACE = 0xb8c0cf;
-const TILE_LIGHT = 0xcbd2df;
-const TILE_SHADE = 0xa7afbf;
+const TILE_FACE = 0x9ca4b5;
+const TILE_LIGHT = 0xafb7c6;
+const TILE_SHADE = 0x8b93a5;
 
 const SHADOW = 0x000000;
 
