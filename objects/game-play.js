@@ -8,7 +8,15 @@ import levels from '../data/level-data.js';
 const BOARD_WIDTH = 500;
 const BOARD_HEIGHT = 615;
 
-const BOARD_SCREEN = 0.5;
+// Portrait: the tiles centred on the screen, no wider or taller than this.
+const BOARD_FIT_W = 450;
+const BOARD_FIT_H = 560;
+
+// Landscape: the board takes the height between the top bar and the bottom
+// edge, and leaves room either side for the boosters.
+const WIDE_TOP = 108;
+const WIDE_BOTTOM = 52;
+const WIDE_SIDE = 170;
 
 const DRAG_SPEED = 3.5;
 const CHASE_SPEED = 8;
@@ -1753,7 +1761,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
     stepHint(step) {
         const hint = this.hint;
 
-        if (hint.convoy.escaped || hint.time >= HINT_TIME) {
+        // A held hint (a booster's first-time lesson) runs until let go.
+        if (hint.convoy.escaped || (!hint.hold && hint.time >= HINT_TIME)) {
             this.hint = null;
             return;
         }
@@ -1898,13 +1907,28 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
     adjust() {
         this.x = dimensions.gameWidth / 2;
-        this.restY = dimensions.gameHeight / 2;
-        this.y = this.restY;
 
-        const room = Math.min(
-            dimensions.gameWidth / this.boardWidth,
-            (dimensions.gameHeight * BOARD_SCREEN) / this.boardHeight
-        );
+        let room;
+
+        if (dimensions.isLandscape) {
+            const tall = dimensions.gameHeight - WIDE_TOP - WIDE_BOTTOM;
+
+            this.restY = WIDE_TOP + tall / 2;
+
+            room = Math.min(
+                (dimensions.gameWidth - WIDE_SIDE * 2) / this.boardWidth,
+                tall / this.boardHeight
+            );
+        } else {
+            this.restY = dimensions.gameHeight / 2;
+
+            room = Math.min(
+                BOARD_FIT_W / this.boardWidth,
+                BOARD_FIT_H / this.boardHeight
+            );
+        }
+
+        this.y = this.restY;
 
         this.fitScale = Math.min(1, room);
         this.setScale(this.fitScale);

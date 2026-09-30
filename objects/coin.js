@@ -41,7 +41,7 @@ const INTRO_DELAY = 260;
 
 const OUTRO_TIME = 300;
 
-const START_COINS = 850;
+const START_COINS = 0;
 
 const STORE_KEY = 'baggage-out.coins';
 

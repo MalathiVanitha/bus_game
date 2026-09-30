@@ -13,6 +13,8 @@ const PANEL_CORNER_Y = 150;
 const PANEL_DRIFT_Y = -1.5;
 
 const MODAL_MARGIN = 24;
+// The card sits this far below the middle, so it is fitted as if that much taller at both ends.
+const CARD_DROP = 17;
 
 const DIM = 0x101a33;
 const DIM_ALPHA = 0.55;
@@ -68,14 +70,11 @@ const GEAR_HIT = 104;
 // In a level the clock takes the top left, so the gear moves over to the
 // storyboard's top-right button spot and turns into the blue pause button.
 // It opens the same panel, which stops the clock while it is up.
-const PLAY_GEAR_X = 86;
-const PLAY_GEAR_Y = 51;
+const PLAY_GEAR_X = 102;
+const PLAY_GEAR_Y = 52;
 
-const PAUSE_SIZE = 64;
+const PAUSE_SIZE = 60;
 
-// How far in from the right edge the pause button starts, for the level badge
-// to its left.
-export const PAUSE_INSET = PLAY_GEAR_X + PAUSE_SIZE / 2;
 const PAUSE_FACE = 'button_blue';
 // The button in the art is 144 tall, with 50 clear on either side of it. Its
 // round ends are kept whole and the middle stretched.
@@ -451,12 +450,12 @@ export class Settings extends Phaser.GameObjects.Container {
 
         this.fitter.setScale(Math.min(
             1,
-            (dimensions.gameHeight - MODAL_MARGIN * 2) / PANEL_H,
+            (dimensions.gameHeight - MODAL_MARGIN * 2) / (PANEL_H + CARD_DROP * 2),
             (dimensions.gameWidth - MODAL_MARGIN * 2) / PANEL_W
         ));
 
         this.fitter.x = 0;
-        this.fitter.y = 17;
+        this.fitter.y = CARD_DROP * this.fitter.scaleY;
 
         this.placeGear();
     }

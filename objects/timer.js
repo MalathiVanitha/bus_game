@@ -4,13 +4,11 @@ import { bakeShape } from '../utils/bake.js';
 // with the stopwatch sat in its left end and the time left read out in mm:ss.
 // The board keeps the time; this only shows it.
 
-const PANEL_X = 114;
+const PANEL_X = 129;
 const PANEL_Y = 51;
-const PANEL_W = 128;
-const PANEL_H = 52;
+const PANEL_W = 122;
+const PANEL_H = 53;
 
-// Where the clock ends, for the level badge to its right.
-export const TIMER_RIGHT = PANEL_X + PANEL_W / 2;
 const PANEL_RADIUS = 18;
 const PANEL_FACE = 0xdcf0fe;
 // A white rim round the face, and the blue it casts on the sky below it.

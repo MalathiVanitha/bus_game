@@ -29,6 +29,8 @@ const SHADOW_ALPHA = 0.22;
 const SHADOW_Y = 8;
 
 const MODAL_MARGIN = 24;
+// The card sits this far below the middle, so it is fitted as if that much taller at both ends.
+const CARD_DROP = 20;
 
 const DIM = 0x101a33;
 const DIM_ALPHA = 0.55;
@@ -628,12 +630,12 @@ export class StorePanel extends Phaser.GameObjects.Container {
 
         this.fitter.setScale(Math.min(
             1,
-            (dimensions.gameHeight - MODAL_MARGIN * 2) / PANEL_H,
+            (dimensions.gameHeight - MODAL_MARGIN * 2) / (PANEL_H + CARD_DROP * 2),
             (dimensions.gameWidth - MODAL_MARGIN * 2) / PANEL_W
         ));
 
 
         this.fitter.x = 0;
-        this.fitter.y = 20;
+        this.fitter.y = CARD_DROP * this.fitter.scaleY;
     }
 }

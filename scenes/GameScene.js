@@ -12,6 +12,8 @@ import { Timer } from '../objects/timer.js';
 import { LevelBadge } from '../objects/levelBadge.js';
 import { Transition } from '../objects/transition.js';
 import { BoosterBar } from '../objects/boosterBar.js';
+import { BoosterTutorial } from '../objects/boosterTutorial.js';
+import { unlocks, UNLOCK_AT } from '../objects/boosterUnlocks.js';
 import data from '../data/data.js';
 import perf from '../utils/perf.js';
 
@@ -130,6 +132,11 @@ export default class GameScene extends Phaser.Scene {
         this.settings = new Settings(this, 0, 0);
         this.gameGroup.add(this.settings);
 
+        // A booster's first time: over the board, the clock and the gear, so
+        // its dim takes them all in, and under the end card.
+        this.boosterTutorial = new BoosterTutorial(this, 0, 0);
+        this.gameGroup.add(this.boosterTutorial);
+
         // Last in, so the end card covers the board, the gear, and whatever
         // else happens to be on the screen when a level lands.
         this.cta = new CTA(this, 0, 0);
@@ -220,6 +227,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     layoutLevel() {
+        this.boosterTutorial.abort();
         this.boosterBar.hide();
 
         this.gamePlay.reset();
@@ -232,9 +240,21 @@ export default class GameScene extends Phaser.Scene {
 
         this.gamePlay.start();
 
+        // Boosters open one at a time as levels are reached. One just opened
+        // is shown locked as the level comes in, then unlocked and taught.
+        unlocks.reach(this.level);
+
+        const lesson = Object.keys(UNLOCK_AT)
+            .sort((a, b) => UNLOCK_AT[a] - UNLOCK_AT[b])
+            .find((key) => unlocks.needsLesson(key));
+
+        if (lesson) this.boosterBar.holdLocked(lesson);
+
         this.timer.intro(this.gamePlay.timeLeft);
         this.levelBadge.intro(this.level);
         this.boosterBar.intro();
+
+        if (lesson) this.boosterTutorial.teach(lesson);
     }
 
     leaveGame() {
@@ -414,6 +434,7 @@ export default class GameScene extends Phaser.Scene {
         this.levelBadge.adjust();
         this.storePanel.adjust();
         this.settings.adjust();
+        this.boosterTutorial.adjust();
         this.transition.adjust();
 
     }

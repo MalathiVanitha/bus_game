@@ -1,6 +1,7 @@
 import { pressable } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
 import { openModal, shutModal } from '../utils/modal.js';
+import { unlocks, UNLOCK_AT } from './boosterUnlocks.js';
 
 const PANEL_W = 450;
 const PANEL_H = 560;
@@ -149,6 +150,15 @@ const OFFER_CANCEL_HIT_H = 50;
 
 const OFFER_CLOSE_X = OFFER_W / 2 - 20;
 const OFFER_CLOSE_Y = -OFFER_H / 2 + 20;
+
+// A booster not yet earned: greyed, a padlock where its count goes, and the
+// level it opens on under its name.
+const LOCKED_BASE = 0xb9c0d2;
+const LOCKED_ICON = 0x8b93a9;
+const LOCKED_ICON_ALPHA = 0.75;
+const LOCK_R = 21;
+const LOCK_FILL = 0x3a4aa8;
+const LOCKED_INK = '#8a93b8';
 
 const CHECK_POP = 1.3;
 const CHECK_POP_TIME = 120;
@@ -321,12 +331,17 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         const icon = this.scene.add.sprite(0, 0, 'sheet', booster.icon);
         icon.setScale(ICON_SCALE);
         tile.add(icon);
+        tile.icon = icon;
 
         tile.count = this.badge(COUNT_X, COUNT_Y, BADGE_R, '');
         tile.add(tile.count);
 
         tile.check = this.badge(CHECK_X, CHECK_Y, BADGE_R, null);
         tile.add(tile.check);
+
+        tile.lock = this.lockBadge();
+        tile.lock.setPosition(COUNT_X, COUNT_Y);
+        tile.add(tile.lock);
 
         this.pressable(tile, TILE_HIT, TILE_HIT, () => this.pick(booster));
 
@@ -448,6 +463,32 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         return close;
     }
 
+    // A navy disc with a white padlock on it, where the count would be.
+    lockBadge() {
+        const outer = LOCK_R + BADGE_EDGE_THICK;
+        const s = LOCK_R / 17;
+
+        return bakeShape(this.scene, { left: -outer, top: -outer, width: outer * 2, height: outer * 2 }, (g) => {
+            g.fillStyle(BADGE_EDGE, 1);
+            g.fillCircle(0, 0, outer);
+            g.fillStyle(LOCK_FILL, 1);
+            g.fillCircle(0, 0, LOCK_R);
+
+            g.lineStyle(3.5 * s, 0xffffff, 1);
+            g.beginPath();
+            g.arc(0, -2 * s, 5.5 * s, Math.PI, 0);
+            g.strokePath();
+            g.fillStyle(0xffffff, 1);
+            g.fillRoundedRect(-8.5 * s, -2 * s, 17 * s, 12 * s, 3 * s);
+            g.fillStyle(LOCK_FILL, 1);
+            g.fillCircle(0, 3.5 * s, 2 * s);
+        }, 'level-lock');
+    }
+
+    isLocked(key) {
+        return !unlocks.isUnlocked(key, this.level || 1);
+    }
+
     // A round purple badge. A null label draws a tick instead of text.
     badge(x, y, radius, label) {
         const badge = this.scene.add.container(x, y);
@@ -528,6 +569,10 @@ export class LevelScreen extends Phaser.GameObjects.Container {
             const key = BOOSTERS[i].key;
             const tile = this.tiles[key];
             const left = this.counts[key];
+            const locked = this.isLocked(key);
+
+            if (locked) this.picked[key] = false;
+
             const on = !!this.picked[key];
 
             tile.base.visible = !on;
@@ -536,12 +581,34 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
             tile.count.label.setText(left > 0 ? String(left) : '+');
             tile.count.label.setFontSize(left > 0 ? BADGE_SIZE : PLUS_SIZE);
-            tile.more.visible = left <= 0;
+
+            tile.count.visible = !locked;
+            tile.lock.visible = locked;
+
+            if (locked) {
+                tile.base.setTint(LOCKED_BASE);
+                tile.icon.setTint(LOCKED_ICON);
+                tile.icon.alpha = LOCKED_ICON_ALPHA;
+            } else {
+                tile.base.clearTint();
+                tile.icon.clearTint();
+                tile.icon.alpha = 1;
+            }
+
+            tile.label.setColor(locked ? LOCKED_INK : INK);
+            tile.more.setText(locked ? 'Unlocks at Level ' + UNLOCK_AT[key] : 'Get more');
+            tile.more.setColor(locked ? LOCKED_INK : PURPLE);
+            tile.more.visible = locked || left <= 0;
         }
     }
 
     pick(booster) {
         const key = booster.key;
+
+        if (this.isLocked(key)) {
+            this.shake(this.tiles[key]);
+            return;
+        }
 
         if (this.counts[key] <= 0) {
             this.showOffer(booster);
@@ -552,6 +619,21 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.refresh();
 
         if (this.picked[key]) this.popCheck(this.tiles[key].check);
+    }
+
+    shake(tile) {
+        this.scene.tweens.killTweensOf(tile);
+        tile.angle = 0;
+
+        this.scene.tweens.add({
+            targets: tile,
+            angle: { from: -6, to: 6 },
+            duration: 60,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut',
+            onComplete: () => { tile.angle = 0; }
+        });
     }
 
     popCheck(check) {
@@ -698,6 +780,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.dim.visible = true;
         this.card.visible = true;
 
+        this.level = level;
         this.levelText.setText('Level ' + level);
 
         this.offer.visible = false;
