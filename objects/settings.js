@@ -1,5 +1,6 @@
 import soundsData from "../sounds-data.js";
 import { openModal, shutModal } from "../utils/modal.js";
+import { pressable } from "../utils/buttons.js";
 
 const PANEL_W = 470;
 const PANEL_H = 600;
@@ -89,9 +90,6 @@ const PAUSE_ICON_SCALE = 0.5;
 const GEAR_INTRO_TIME = 460;
 const GEAR_INTRO_DELAY = 180;
 const GEAR_INTRO_TURN = -120;
-
-const PRESS = 0.94;
-const PRESS_TIME = 90;
 
 const ROWS = [
     { key: 'music', icon: 'icons/icon-music', label: 'Music' },
@@ -302,28 +300,7 @@ export class Settings extends Phaser.GameObjects.Container {
     }
 
     pressable(target, width, height, onPress, feedback = target) {
-        feedback.restScale = feedback.scaleX;
-
-        target.setSize(width, height);
-        target.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
-
-        const sink = (to) => {
-            this.scene.tweens.killTweensOf(feedback);
-            this.scene.tweens.add({
-                targets: feedback,
-                scale: feedback.restScale * to,
-                duration: PRESS_TIME,
-                ease: 'Quad.easeOut'
-            });
-        };
-
-        target.on('pointerdown', () => sink(PRESS));
-        target.on('pointerout', () => sink(1));
-
-        target.on('pointerup', () => {
-            sink(1);
-            onPress();
-        });
+        pressable(this.scene, target, width, height, onPress, feedback);
     }
 
     paint(toggle) {

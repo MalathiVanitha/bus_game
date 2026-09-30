@@ -1,4 +1,4 @@
-import { pressable } from '../utils/buttons.js';
+import { pressable, pointerUp } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
 import { openModal, shutModal } from '../utils/modal.js';
 
@@ -266,7 +266,7 @@ export class StorePanel extends Phaser.GameObjects.Container {
 
         this.dim = this.scene.add.rectangle(0, 0, 10, 10, DIM, DIM_ALPHA);
         this.dim.setInteractive();
-        this.dim.on('pointerup', () => this.hide());
+        pointerUp(() => this.hide(), this.dim);
         this.add(this.dim);
 
         this.fitter = this.scene.add.container(0, 0);
