@@ -18,7 +18,8 @@ function copyRuntimeFiles(outDir) {
         name: 'copy-runtime-files',
         apply: 'build',
         closeBundle() {
-            for (const { dir, match } of RUNTIME_FILES) {
+            for (const { dir, match }
+                of RUNTIME_FILES) {
                 const from = path.resolve(__dirname, dir);
                 const to = path.resolve(__dirname, outDir, dir);
 

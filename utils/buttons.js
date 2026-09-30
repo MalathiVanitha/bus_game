@@ -1,12 +1,12 @@
 function pointerOver(gameObjet, hex = 0xEFF0F1) {
-    gameObjet.on('pointerover', function () {
+    gameObjet.on('pointerover', function() {
         this.setTint(hex);
     });
     pointerOut(gameObjet);
 }
 
 function pointerOut(gameObjet) {
-    gameObjet.on('pointerout', function () {
+    gameObjet.on('pointerout', function() {
         this.clearTint();
     });
 }
@@ -63,7 +63,7 @@ function pressable(scene, target, width, height, onPress, feedback = target) {
 
 // A bare tap with no press feedback, held to the same rule as pressable: the
 // pointer has to go down and come up on this object.
-function pointerUp(res = () => { }, gameObjet) {
+function pointerUp(res = () => {}, gameObjet) {
     let held = null;
 
     gameObjet.on('pointerdown', (pointer) => { held = pointer.id; });

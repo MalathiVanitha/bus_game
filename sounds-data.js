@@ -1,16 +1,16 @@
-export default{
+export default {
 
-    "sounds":[
-       "special"
+    "sounds": [
+        "special"
     ],
 
-    "fx":[
+    "fx": [
         "block",
         "bomb",
         "rocket"
     ],
 
-    "music":[
+    "music": [
         "bgm"
     ]
 }

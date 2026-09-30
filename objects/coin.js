@@ -68,9 +68,9 @@ function writeStore(value) {
 export function makeCoinPill(scene, value, textRes, tile = false) {
     const pill = scene.add.container(0, 0);
 
-    const base = tile
-        ? scene.add.nineslice(0, 0, 'sheet', TILE, TILE_W, TILE_H, TILE_SLICE, TILE_SLICE, TILE_SLICE, TILE_SLICE)
-        : scene.add.sprite(0, 0, 'sheet', PILL);
+    const base = tile ?
+        scene.add.nineslice(0, 0, 'sheet', TILE, TILE_W, TILE_H, TILE_SLICE, TILE_SLICE, TILE_SLICE, TILE_SLICE) :
+        scene.add.sprite(0, 0, 'sheet', PILL);
     base.setScale(tile ? TILE_SCALE : PILL_SCALE);
     pill.add(base);
 

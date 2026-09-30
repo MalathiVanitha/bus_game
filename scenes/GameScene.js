@@ -212,8 +212,12 @@ export default class GameScene extends Phaser.Scene {
         this.level++;
         this.levelBadge.set(this.level);
 
+        // Laid out but kept hidden: the card stands over an empty screen, and
+        // its Play (enterGame) brings the board on.
         this.layoutLevel();
-        this.bringBoardOn();
+        this.gamePlay.readyIntro();
+        this.timer.hide();
+        this.levelBadge.hide();
 
         this.betweenLevels = true;
         this.transition.whenOpen(() => this.levelScreen.show(this.level));

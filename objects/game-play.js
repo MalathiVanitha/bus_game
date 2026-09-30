@@ -395,7 +395,12 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
     validateGarage(convoy) {
         const [col, row] = convoy.exit;
-        const sides = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        const sides = [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1]
+        ];
 
         for (let i = 0; i < sides.length; i++) {
             const c = col + sides[i][0];
@@ -1087,7 +1092,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             // Gone as soon as the last vehicle is in: nothing left to wait for.
             garage.vanish(() => {
                 this.boardStamp++;
-            });
+            }, this.garageColor(convoy));
         }
 
         for (let i = 0; i < this.convoys.length; i++) {
@@ -1149,6 +1154,11 @@ export class GamePlay extends Phaser.GameObjects.Container {
         canvas.refresh();
 
         return key;
+    }
+
+    // The garage's own colour, as a number, for the pop it goes out with.
+    garageColor(convoy) {
+        return Phaser.Display.Color.HexStringToColor(CONVOY_SPLASH[convoy.key] || "#ffffff").color;
     }
 
     burstFrom(garage, color) {
@@ -1665,7 +1675,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             });
         }
 
-        if (convoy.garage) convoy.garage.vanish(() => { this.boardStamp++; });
+        if (convoy.garage) convoy.garage.vanish(() => { this.boardStamp++; }, this.garageColor(convoy));
 
         // Its own counter, the length of the whole pop, before the level can
         // be called: the last convoy off the board should be seen to go.
@@ -1725,7 +1735,12 @@ export class GamePlay extends Phaser.GameObjects.Container {
         const seen = new Map();
         const queue = [from];
         const key = (col, row) => row * this.columns + col;
-        const sides = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        const sides = [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1]
+        ];
 
         seen.set(key(from.col, from.row), null);
 

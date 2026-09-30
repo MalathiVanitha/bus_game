@@ -1,3 +1,5 @@
+import SoundManager from './SoundManager.js';
+
 // The change from one screen to the next, as a candy iris: rings in the
 // luggage colours close in on the middle one after another, each with a wavy
 // edge that turns, the last a deep blue sunburst. Once the screen is covered
