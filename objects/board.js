@@ -54,6 +54,10 @@ const SHADOW_Y = 0.1;
 
 const WALL_SHEET = 'walls';
 const WALL_ART = 384;
+// The walls sheet is packed at this fraction of the art's size (walls.tps):
+// a wall is never drawn at more than about half its art size, even on the
+// biggest canvas. WALL_ART and WALL_MARGIN stay in the art's own pixels.
+const WALL_PACK = 0.5;
 
 const WALL_MARGIN = 30;
 const WALL_BLEED = 0.04;
@@ -233,7 +237,7 @@ export class Board {
     }
 
     placeWalls() {
-        const scale = (this.cell * (1 + WALL_BLEED)) / (WALL_ART - WALL_MARGIN * 2);
+        const scale = (this.cell * (1 + WALL_BLEED)) / ((WALL_ART - WALL_MARGIN * 2) * WALL_PACK);
 
         this.wallLayer.removeAll(true);
 

@@ -243,10 +243,10 @@
 "meta": {
 	"app": "https://www.codeandweb.com/texturepacker",
 	"version": "1.0",
-	"image": "luggages.png",
+	"image": "luggages.webp",
 	"format": "RGBA8888",
 	"size": {"w":904,"h":1934},
 	"scale": "1",
-	"smartupdate": "$TexturePacker:SmartUpdate:8cef8207d38861fb0cd74727471b8d7d:e8d29c30042c46d38f421e55b0a3fea7:04b4ce3ab139be505dc1fee9c64dca46$"
+	"smartupdate": "$TexturePacker:SmartUpdate:b6f35a8ca05d396e94770360438a667c:e8d29c30042c46d38f421e55b0a3fea7:ab9491758576783e664f8150815939cc$"
 }
 }
