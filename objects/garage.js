@@ -3,7 +3,7 @@ import SoundManager from './SoundManager.js';
 const VEHICLE_SHEET = "luggages";
 
 const ART_CELL = 170;
-const GARAGE_FIT = 1;
+const GARAGE_FIT = 0.92;
 
 const DOOR_FACING = Math.PI / 2;
 
