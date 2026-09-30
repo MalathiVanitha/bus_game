@@ -85,6 +85,8 @@ export class Garage {
         this.back = this.drawing(scene, config, config.behind);
         this.front = this.drawing(scene, config, config.parent);
 
+        this.mouthMask = config.mask;
+        this.clipped = true;
         this.front.setMask(config.mask);
         this.front.depth = config.y + config.size * (FOOT + NOSE);
 
@@ -112,6 +114,18 @@ export class Garage {
         parent.add(art);
 
         return art;
+    }
+
+    // The front is cut at its mouth only while something is near enough to
+    // pass under the roof edge: every masked sprite costs the GPU its own
+    // stencil pass each frame.
+    clip(on) {
+        if (on === this.clipped) return;
+
+        this.clipped = on;
+
+        if (on) this.front.setMask(this.mouthMask);
+        else this.front.clearMask();
     }
 
     // Turns the doorway to the side a convoy is coming in from. The art stays

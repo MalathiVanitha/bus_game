@@ -19,9 +19,10 @@ const config = {
     },
     render: {
         powerPreference: 'high-performance',
-        // Multisampling the whole canvas is a fill cost low-end GPUs feel;
-        // the art's own edges are already soft, so only they go without.
-        antialiasGL: !perf.lowEnd
+        // No multisampling on any device: it multiplies the cost of every
+        // pixel drawn, full-screen layers most of all, and the art's own
+        // edges are already soft at the ratio the canvas is drawn at.
+        antialiasGL: false
     },
     dom: {
         createContainer: true

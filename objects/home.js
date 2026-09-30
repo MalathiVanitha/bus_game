@@ -1,6 +1,5 @@
 import { pressable } from '../utils/buttons.js';
 import { Store } from './store.js';
-import perf from '../utils/perf.js';
 
 const SKY = 0x98ddfc;
 
@@ -11,17 +10,6 @@ const LOGO = 'home/logo';
 const LOGO_Y = -240;
 const LOGO_SCALE = 0.525;
 
-const GLEAM_WARM = 0xfff4d8;
-
-const GLEAM_TIME = 1100;
-const GLEAM_HOLD = 140;
-const GLEAM_DELAY = 1250;
-
-// The halo never goes out: it breathes between HALO_REST and HALO_STRENGTH.
-const HALO_REST = 2.5;
-const HALO_STRENGTH = 7;
-const HALO_QUALITY = 0.2;
-const HALO_DISTANCE = 32;
 
 const GLINT = 'fx-glint';
 const GLINT_ART = 256;
@@ -615,19 +603,8 @@ export class Home extends Phaser.GameObjects.Container {
         this.flourish.setVisible(false);
     }
 
+    // The logo catches the light in glints alone; it has no glow behind it.
     buildGleam() {
-        // The glow is a shader run over every pixel of the logo, every frame -
-        // more than a low-end GPU can spare. Those get the glints alone, and the
-        // breathing tween runs on a stand-in.
-        if (perf.lowEnd) {
-            this.halo = { outerStrength: HALO_REST };
-        } else {
-            this.halo = this.logo.postFX.addGlow(GLEAM_WARM, HALO_REST, 0, false, HALO_QUALITY, HALO_DISTANCE);
-            this.haloFX = true;
-
-            this.scene.game.events.once('quality:low', this.dropHalo, this);
-        }
-
         this.glints = [];
 
         let above = this.content.getIndex(this.logo);
@@ -644,30 +621,8 @@ export class Home extends Phaser.GameObjects.Container {
         }
     }
 
-    // The game found the device too slow: the glow goes, the glints stay.
-    dropHalo() {
-        if (!this.haloFX) return;
-
-        this.scene.tweens.killTweensOf(this.halo);
-        this.logo.postFX.remove(this.halo);
-
-        this.haloFX = false;
-        this.halo = { outerStrength: HALO_REST };
-    }
-
     startGleam() {
         this.stopGleam();
-
-        this.gleam = this.scene.tweens.add({
-            targets: this.halo,
-            outerStrength: HALO_STRENGTH,
-            duration: GLEAM_TIME,
-            delay: GLEAM_DELAY,
-            hold: GLEAM_HOLD,
-            repeat: -1,
-            yoyo: true,
-            ease: 'Sine.easeInOut'
-        });
 
         this.glintTimer = this.scene.time.addEvent({
             delay: GLINT_INTERVAL,
@@ -743,13 +698,7 @@ export class Home extends Phaser.GameObjects.Container {
     }
 
     stopGleam() {
-        this.scene.tweens.killTweensOf(this.halo);
-
         this.stopGlints();
-
-        this.gleam = null;
-
-        this.halo.outerStrength = HALO_REST;
     }
 
     startIdle() {
@@ -1101,7 +1050,6 @@ export class Home extends Phaser.GameObjects.Container {
     }
 
     destroy(fromScene) {
-        this.scene.game.events.off('quality:low', this.dropHalo, this);
         this.stopGleam();
         this.stopFlourish();
         this.stopIdle();

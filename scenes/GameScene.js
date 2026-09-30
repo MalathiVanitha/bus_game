@@ -296,6 +296,9 @@ export default class GameScene extends Phaser.Scene {
     // The home screen and the counter over it come on together, as the
     // transition opens if one is under way.
     showHome() {
+        // Out of sight, and so not drawn: the home screen's sky covers it
+        // anyway, and the board under it costs a full redraw every frame.
+        this.gamePlay.readyIntro();
         this.timer.hide();
         this.levelBadge.hide();
         this.boosterBar.hide();

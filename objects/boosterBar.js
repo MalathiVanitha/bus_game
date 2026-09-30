@@ -79,6 +79,11 @@ const GLINT_REACH = 70;
 const GLINT_SCALE = 0.35;
 const GLINT_TIME = 520;
 
+// Spent: the icon jumps and settles, the count pops, and a few glints fly.
+const USE_POP = 1.4;
+const USE_TIME = 460;
+const USE_GLINTS = 5;
+
 const INTRO_DROP = 150;
 const INTRO_TIME = 460;
 const INTRO_DELAY = 180;
@@ -251,6 +256,7 @@ export class BoosterBar extends Phaser.GameObjects.Container {
 
             if (this.levelScreen.counts.remove > 0 && this.gamePlay.removeConvoy(convoy)) {
                 this.levelScreen.spend('remove');
+                this.used(this.buttons.remove);
             }
         });
     }
@@ -266,8 +272,10 @@ export class BoosterBar extends Phaser.GameObjects.Container {
     }
 
     hint() {
-        if (this.gamePlay.showHint()) this.levelScreen.spend('hint');
-        else this.say(TIP_NONE, TIP_SHOW);
+        if (this.gamePlay.showHint()) {
+            this.levelScreen.spend('hint');
+            this.used(this.buttons.hint);
+        } else this.say(TIP_NONE, TIP_SHOW);
     }
 
     // Run out: the level card's offer, over the board, with the clock held
@@ -473,9 +481,9 @@ export class BoosterBar extends Phaser.GameObjects.Container {
         });
     }
 
-    glints(button) {
-        for (let i = 0; i < GLINTS; i++) {
-            const turn = (i / GLINTS) * Math.PI * 2 + Math.random() * 0.4;
+    glints(button, count = GLINTS) {
+        for (let i = 0; i < count; i++) {
+            const turn = (i / count) * Math.PI * 2 + Math.random() * 0.4;
             const glint = this.scene.add.image(button.x, button.y, GLINT);
 
             glint.setScale(0);
@@ -492,6 +500,32 @@ export class BoosterBar extends Phaser.GameObjects.Container {
                 onComplete: () => glint.destroy()
             });
         }
+    }
+
+    // The icon, not the button, moves: the button's own tweens belong to its press.
+    used(button) {
+        const icon = button.icon;
+
+        this.scene.tweens.killTweensOf([icon, button.count]);
+        icon.angle = 0;
+
+        this.scene.tweens.add({
+            targets: icon,
+            scale: { from: ICON_SCALE * USE_POP, to: ICON_SCALE },
+            angle: { from: -14, to: 0 },
+            duration: USE_TIME,
+            ease: 'Elastic.easeOut',
+            easeParams: [1.2, 0.45]
+        });
+
+        this.scene.tweens.add({
+            targets: button.count,
+            scale: { from: 1.6, to: 1 },
+            duration: USE_TIME * 0.6,
+            ease: 'Back.easeOut'
+        });
+
+        this.glints(button, USE_GLINTS);
     }
 
     // A locked button shakes its head.

@@ -4,6 +4,7 @@ import { Board } from './board.js';
 import { Convoy } from './convoy.js';
 import { Garage } from './garage.js';
 import levels from '../data/level-data.js';
+import { bakeShape } from '../utils/bake.js';
 
 const BOARD_WIDTH = 500;
 const BOARD_HEIGHT = 615;
@@ -101,6 +102,11 @@ const CONVOY_SPLASH = {
 
 const LOOK_AHEAD_CELLS = 2;
 
+// How close (in cells, either way) a vehicle has to be to a garage for its
+// front to need cutting at the mouth: the mouth reaches about 1.1 cells out,
+// and a vehicle about half a cell past its middle.
+const GARAGE_NEAR = 2;
+
 const DOOR_HALF = 0.75;
 const DOOR_DEPTH = 12;
 
@@ -122,12 +128,38 @@ const REMOVE_OUT_TIME = 260;
 const REMOVE_STAGGER = 70;
 const REMOVE_SPIN = 25;
 const REMOVE_CONFETTI = 8;
+// Each one flashes white and squashes before it goes, a ring washes out from
+// where it stood, a few glints fly, and the board gives a little shudder.
+const REMOVE_SQUASH_X = 1.3;
+const REMOVE_SQUASH_Y = 0.8;
+const REMOVE_RISE = 0.45;
+const REMOVE_RING_FROM = 0.3;
+const REMOVE_RING_TO = 1.5;
+const REMOVE_RING_TIME = 420;
+const REMOVE_GLINTS = 4;
+const REMOVE_SHAKE = 5;
+const REMOVE_SHAKE_TIME = 260;
+
+const RING_TEXTURE = "booster-ring";
+const RING_R = 32;
+const RING_THICK = 6;
+const GLINT = "fx-glint";
+const GLINT_ART = 256;
 
 // The Hint booster: the convoy that can get home glows, and a wave of lit
 // cells runs along its way to the garage, over and over for a while.
 const HINT_TIME = 2800;
 const HINT_STEP = 70;
 const HINT_REST = 5;
+// A golden ring breathes round the end to drive, and glints spark off each
+// cell as the wave passes, with a bigger one at the garage.
+const HINT_RING = 0xffc93c;
+const HINT_RING_SCALE = 1.25;
+const HINT_RING_PULSE = 1.18;
+const HINT_RING_TIME = 380;
+const HINT_GLINT = 0.8;
+const HINT_GLINT_HOME = 1.5;
+const HINT_GLINT_TIME = 420;
 
 const byDepth = (a, b) => a.depth - b.depth;
 
@@ -988,13 +1020,17 @@ export class GamePlay extends Phaser.GameObjects.Container {
             const outX = Math.cos(garage.facing);
             const outY = Math.sin(garage.facing);
 
-            this.fillSlab(
-                mouths, spot, outX, outY,
-                garage.doorMouth, garage.doorBack, garage.doorHalf
-            );
-
             const going = !convoy.escaped &&
                 (convoy.swallowing || this.enteringGarage(convoy));
+
+            garage.clip(going || this.vehicleNear(garage));
+
+            if (garage.clipped) {
+                this.fillSlab(
+                    mouths, spot, outX, outY,
+                    garage.doorMouth, garage.doorBack, garage.doorHalf
+                );
+            }
 
             if (going) {
                 const doors = convoy.rig.doorShape;
@@ -1009,6 +1045,28 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
             convoy.rig.maskDoor(going);
         }
+    }
+
+    // Whether any vehicle still on the board is close enough to the garage
+    // to be under its roof edge.
+    vehicleNear(garage) {
+        const reach = this.cellSize * GARAGE_NEAR;
+
+        for (let i = 0; i < this.convoys.length; i++) {
+            const convoy = this.convoys[i];
+
+            if (convoy.escaped) continue;
+
+            const vehicles = convoy.rig.vehicles;
+
+            for (let j = 0; j < vehicles.length; j++) {
+                const art = vehicles[j].art;
+
+                if (Math.abs(art.x - garage.x) < reach && Math.abs(art.y - garage.y) < reach) return true;
+            }
+        }
+
+        return false;
     }
 
     placeShape(g, at) {
@@ -1322,6 +1380,13 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
     clearEffects() {
+        this.clearHintMark();
+
+        if (this.shudderRun) {
+            this.shudderRun.remove();
+            this.shudderRun = null;
+        }
+
         for (let i = 0; i < this.effects.length; i++) this.effects[i].blob.destroy();
 
         this.effects.length = 0;
@@ -1595,6 +1660,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         }
 
         if (this.hint) this.stepHint(step);
+        if (!this.hint && this.hintMark) this.clearHintMark();
 
         if (this.stackDirty) this.sortStage();
 
@@ -1631,6 +1697,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         const spots = convoy.cells.map((cell) => this.cellToPixel(cell.col, cell.row));
         const tint = CONFETTI_TINT[convoy.key] || null;
+        const splash = this.garageColor(convoy);
 
         convoy.escaped = true;
         convoy.queue.length = 0;
@@ -1654,26 +1721,48 @@ export class GamePlay extends Phaser.GameObjects.Container {
             const scale = vehicles[i].scale;
             const delay = i * REMOVE_STAGGER;
             const spot = spots[convoy.leadIsHead ? i : spots.length - 1 - i] || spots[0];
+            const cell = convoy.cells[convoy.leadIsHead ? i : spots.length - 1 - i];
 
             this.scene.tweens.add({
                 targets: art,
-                scale: scale * REMOVE_POP,
+                scaleX: scale * REMOVE_SQUASH_X,
+                scaleY: scale * REMOVE_SQUASH_Y,
                 duration: REMOVE_POP_TIME,
                 delay: delay,
                 ease: 'Quad.easeOut',
-                onStart: () => this.confettiFrom(spot.x, spot.y, REMOVE_CONFETTI, tint),
+                onStart: () => {
+                    art.setTintFill(0xffffff);
+                    this.confettiFrom(spot.x, spot.y, REMOVE_CONFETTI, tint);
+                    this.ringAt(spot.x, spot.y, splash);
+                    this.glintsAt(spot.x, spot.y, REMOVE_GLINTS, splash);
+                    if (cell) this.board.pulseCell(cell.col, cell.row);
+                },
                 onComplete: () => {
+                    art.clearTint();
+
                     this.scene.tweens.add({
                         targets: art,
-                        scale: 0,
-                        alpha: 0,
-                        angle: art.angle + (i % 2 ? REMOVE_SPIN : -REMOVE_SPIN),
-                        duration: REMOVE_OUT_TIME,
-                        ease: 'Back.easeIn'
+                        scaleX: scale * REMOVE_POP,
+                        scaleY: scale * REMOVE_POP,
+                        duration: REMOVE_POP_TIME,
+                        ease: 'Back.easeOut',
+                        onComplete: () => {
+                            this.scene.tweens.add({
+                                targets: art,
+                                scale: 0,
+                                alpha: 0,
+                                y: art.y - this.cellSize * REMOVE_RISE,
+                                angle: art.angle + (i % 2 ? REMOVE_SPIN : -REMOVE_SPIN) * 4,
+                                duration: REMOVE_OUT_TIME,
+                                ease: 'Back.easeIn'
+                            });
+                        }
                     });
                 }
             });
         }
+
+        this.shudder();
 
         if (convoy.garage) convoy.garage.vanish(() => { this.boardStamp++; }, this.garageColor(convoy));
 
@@ -1682,7 +1771,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.scene.tweens.addCounter({
             from: 0,
             to: 1,
-            duration: (vehicles.length - 1) * REMOVE_STAGGER + REMOVE_POP_TIME + REMOVE_OUT_TIME,
+            duration: (vehicles.length - 1) * REMOVE_STAGGER + REMOVE_POP_TIME * 2 + REMOVE_OUT_TIME,
             onComplete: () => {
                 convoy.rig.setVisible(false);
 
@@ -1691,6 +1780,150 @@ export class GamePlay extends Phaser.GameObjects.Container {
         });
 
         return true;
+    }
+
+    ringTexture() {
+        if (this.scene.textures.exists(RING_TEXTURE)) return;
+
+        const outer = RING_R + RING_THICK;
+        const ring = bakeShape(this.scene, { left: -outer, top: -outer, width: outer * 2, height: outer * 2 }, (g) => {
+            g.lineStyle(RING_THICK, 0xffffff, 1);
+            g.strokeCircle(0, 0, RING_R);
+        }, RING_TEXTURE);
+
+        ring.destroy();
+    }
+
+    // A ring washing out from a point, as wide as a cell and then some.
+    ringAt(x, y, color) {
+        this.ringTexture();
+
+        const ring = this.scene.add.image(x, y, RING_TEXTURE);
+        const fit = this.cellSize / (RING_R * 2);
+
+        ring.setTint(color);
+        ring.setScale(fit * REMOVE_RING_FROM);
+        this.effectGroup.add(ring);
+
+        this.scene.tweens.add({
+            targets: ring,
+            scale: fit * REMOVE_RING_TO,
+            alpha: 0,
+            duration: REMOVE_RING_TIME,
+            ease: 'Cubic.easeOut',
+            onComplete: () => ring.destroy()
+        });
+    }
+
+    // A few glints flung out from a point.
+    glintsAt(x, y, count, color = HINT_RING) {
+        if (!this.scene.textures.exists(GLINT)) return;
+
+        const size = this.cellSize * 0.8 / GLINT_ART;
+
+        for (let i = 0; i < count; i++) {
+            const turn = (i / count) * Math.PI * 2 + Math.random() * 0.8;
+            const reach = this.cellSize * (0.6 + Math.random() * 0.4);
+            const glint = this.scene.add.image(x, y, GLINT);
+
+            glint.setScale(size);
+            glint.setTint(color);
+            this.effectGroup.add(glint);
+
+            this.scene.tweens.add({
+                targets: glint,
+                x: x + Math.cos(turn) * reach,
+                y: y + Math.sin(turn) * reach,
+                scale: 0,
+                angle: 180,
+                duration: REMOVE_RING_TIME,
+                ease: 'Cubic.easeOut',
+                onComplete: () => glint.destroy()
+            });
+        }
+    }
+
+    // One glint that swells and spins away on the spot.
+    glintOn(x, y, size) {
+        if (!this.scene.textures.exists(GLINT)) return;
+
+        const glint = this.scene.add.image(x, y, GLINT);
+        const scale = this.cellSize * size / GLINT_ART;
+
+        glint.setScale(0);
+        glint.setTint(HINT_RING);
+        this.effectGroup.add(glint);
+
+        this.scene.tweens.add({
+            targets: glint,
+            scale: { from: scale, to: 0 },
+            angle: 120,
+            duration: HINT_GLINT_TIME,
+            ease: 'Quad.easeIn',
+            onComplete: () => glint.destroy()
+        });
+    }
+
+    // The board jolts side to side and settles, as something is knocked off it.
+    shudder() {
+        if (this.shudderRun) this.shudderRun.remove();
+
+        this.shudderRun = this.scene.tweens.addCounter({
+            from: 0,
+            to: 1,
+            duration: REMOVE_SHAKE_TIME,
+            onUpdate: (tween) => {
+                const t = tween.getValue();
+
+                this.x = dimensions.gameWidth / 2 + Math.sin(t * Math.PI * 6) * REMOVE_SHAKE * (1 - t);
+            },
+            onComplete: () => {
+                this.shudderRun = null;
+                this.x = dimensions.gameWidth / 2;
+            }
+        });
+    }
+
+    // The breathing ring round the end the hint says to drive from.
+    markHint(cell) {
+        this.clearHintMark();
+        this.ringTexture();
+
+        const at = this.cellToPixel(cell.col, cell.row);
+        const ring = this.scene.add.image(at.x, at.y, RING_TEXTURE);
+        const fit = this.cellSize / (RING_R * 2) * HINT_RING_SCALE;
+
+        ring.setTint(HINT_RING);
+        ring.setScale(0);
+        this.effectGroup.add(ring);
+
+        this.hintMark = ring;
+
+        this.scene.tweens.add({
+            targets: ring,
+            scale: fit,
+            duration: HINT_RING_TIME,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                this.scene.tweens.add({
+                    targets: ring,
+                    scale: fit * HINT_RING_PULSE,
+                    alpha: 0.55,
+                    duration: HINT_RING_TIME,
+                    ease: 'Sine.easeInOut',
+                    yoyo: true,
+                    repeat: -1
+                });
+            }
+        });
+    }
+
+    clearHintMark() {
+        if (!this.hintMark) return;
+
+        this.scene.tweens.killTweensOf(this.hintMark);
+        this.hintMark.destroy();
+        this.hintMark = null;
     }
 
     /**
@@ -1711,7 +1944,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 const route = this.freeRoute(convoy, ends[e]);
 
                 if (route && (!best || route.length < best.route.length)) {
-                    best = { convoy: convoy, route: route };
+                    best = { convoy: convoy, route: route, from: ends[e] };
                 }
             }
         }
@@ -1721,6 +1954,11 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.hint = { convoy: best.convoy, route: best.route, time: 0 };
 
         this.bumpConvoy(best.convoy);
+        this.markHint(best.from);
+
+        const start = this.cellToPixel(best.from.col, best.from.row);
+
+        this.glintsAt(start.x, start.y, REMOVE_GLINTS);
 
         if (best.convoy.garage) best.convoy.garage.cheer();
 
@@ -1801,7 +2039,14 @@ export class GamePlay extends Phaser.GameObjects.Container {
         for (let n = was + 1; n <= now; n++) {
             const k = n % (hint.route.length + HINT_REST);
 
-            if (k < hint.route.length) this.board.pulseCell(hint.route[k].col, hint.route[k].row);
+            if (k >= hint.route.length) continue;
+
+            const cell = hint.route[k];
+            const at = this.cellToPixel(cell.col, cell.row);
+            const home = k === hint.route.length - 1;
+
+            this.board.pulseCell(cell.col, cell.row);
+            this.glintOn(at.x, at.y, home ? HINT_GLINT_HOME : HINT_GLINT);
         }
     }
 
