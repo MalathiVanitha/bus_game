@@ -22,9 +22,12 @@
     },
     "homepage": "https://github.com/shimozurdo/mobile-game-base-phaser3#readme",
     "dependencies": {
+        "@capacitor/android": "^7.6.9",
+        "@capacitor/core": "^7.6.9",
         "live-server": "^1.2.1"
     },
     "devDependencies": {
+        "@capacitor/cli": "^7.6.9",
         "vite": "^6.3.5",
         "vite-plugin-obfuscator": "^1.0.5"
     }

@@ -486,8 +486,15 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         }, 'level-lock');
     }
 
+    // Open only once the level it comes with has unlocked it in front of the
+    // player (its lesson), so the card never shows it ready before that.
     isLocked(key) {
-        return !unlocks.isUnlocked(key, this.level || 1);
+        return !unlocks.isUnlocked(key, this.level || 1) || !unlocks.wasTaught(key);
+    }
+
+    // Due to open in the level this card is for, but not open yet.
+    opensThisLevel(key) {
+        return unlocks.isUnlocked(key, this.level || 1) && !unlocks.wasTaught(key);
     }
 
     // A round purple badge. A null label draws a tick instead of text.
@@ -597,7 +604,9 @@ export class LevelScreen extends Phaser.GameObjects.Container {
             }
 
             tile.label.setColor(locked ? LOCKED_INK : INK);
-            tile.more.setText(locked ? 'Unlocks at Level ' + UNLOCK_AT[key] : 'Get more');
+            tile.more.setText(!locked ? 'Get more' :
+                this.opensThisLevel(key) ? 'Unlocks this level!' :
+                'Unlocks at Level ' + UNLOCK_AT[key]);
             tile.more.setColor(locked ? LOCKED_INK : PURPLE);
             tile.more.visible = locked || left <= 0;
         }

@@ -27,3 +27,6 @@ src/data/sounds.js
 *.zip
 .~lock*
 package-lock.json
+
+# android builds
+*.apk
