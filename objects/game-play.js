@@ -70,7 +70,11 @@ const CONFETTI_TINT = {
     cyan: "#4cc9f5",
     pink: "#ff8fc8",
     blue: "#5f8df0",
-    orange: "#ff9a3d"
+    orange: "#ff9a3d",
+    green: "#4cc76a",
+    lime: "#c6ec4a",
+    purple: "#b25cf5",
+    white: "#f4f6ff"
 };
 // Pill texture, drawn upright; the long side is the piece's length.
 const CONFETTI_ART_W = 24;
@@ -88,7 +92,11 @@ const CONVOY_SPLASH = {
     cyan: "#3ae4ff",
     pink: "#ff5fb4",
     blue: "#3d7bff",
-    orange: "#ff8a1f"
+    orange: "#ff8a1f",
+    green: "#1fbf4a",
+    lime: "#c8f01e",
+    purple: "#a52cf5",
+    white: "#ffffff"
 };
 
 const LOOK_AHEAD_CELLS = 2;
@@ -369,6 +377,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 size: this.cellSize,
                 facing: this.garageFacing(convoy),
                 behind: this.garageBackGroup,
+                fx: this.effectGroup,
                 parent: this.stage,
                 mask: this.mouthMask
             });
@@ -1075,11 +1084,9 @@ export class GamePlay extends Phaser.GameObjects.Container {
             this.burstFrom(garage, splash);
             this.confettiFrom(garage.x, garage.y, CONFETTI_COUNT, tint);
 
-            garage.cheer(() => {
-                garage.vanish(() => {
-                    // this.confettiFrom(garage.x, garage.y, CONFETTI_POP_COUNT, tint);
-                    this.boardStamp++;
-                });
+            // Gone as soon as the last vehicle is in: nothing left to wait for.
+            garage.vanish(() => {
+                this.boardStamp++;
             });
         }
 
