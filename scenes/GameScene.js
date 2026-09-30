@@ -17,6 +17,30 @@ import { unlocks, UNLOCK_AT } from '../objects/boosterUnlocks.js';
 import data from '../data/data.js';
 import perf from '../utils/perf.js';
 
+// The level to play next, kept so a reload picks up where the player left
+// off rather than back on Level 1.
+const LEVEL_KEY = 'baggage-out.level';
+
+function readLevel() {
+    try {
+        const saved = Number(window.localStorage.getItem(LEVEL_KEY));
+
+        if (isFinite(saved) && saved >= 1) return Math.floor(saved);
+    } catch (e) {
+        // Starts from Level 1.
+    }
+
+    return 1;
+}
+
+function writeLevel(level) {
+    try {
+        window.localStorage.setItem(LEVEL_KEY, String(level));
+    } catch (e) {
+        // Nothing worth stopping the game for.
+    }
+}
+
 export default class GameScene extends Phaser.Scene {
 
     // Vars
@@ -58,7 +82,7 @@ export default class GameScene extends Phaser.Scene {
 
 
     create() {
-        this.level = 1;
+        this.level = readLevel();
         this.game.gameScene = this;
         this.animationManager = new AnimationManager(this);
         // SoundManager.playMusic("bgm");
@@ -210,6 +234,7 @@ export default class GameScene extends Phaser.Scene {
         if (coins > 0) this.coin.award(coins);
 
         this.level++;
+        writeLevel(this.level);
         this.levelBadge.set(this.level);
 
         // Laid out but kept hidden: the card stands over an empty screen, and

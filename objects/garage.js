@@ -24,35 +24,42 @@ const CHEER_IN = 90;
 const CHEER_OUT = 420;
 
 // Going away the moment its convoy is home: it squashes, then swells a touch
-// and fades out while lots of little circles of its colour pop up all around
-// where it stood and burst outward, popping like bubbles as they go.
+// and fades out while lots of little circles of its colour pop up in a wave
+// out from where it stood, swirl outward and drift up a little, popping like
+// bubbles as they go.
 const VANISH_SQUASH = 0.9;
-const VANISH_SQUASH_TIME = 80;
+const VANISH_SQUASH_TIME = 90;
 const VANISH_SWELL = 1.08;
-const VANISH_FADE_TIME = 160;
+const VANISH_FADE_TIME = 200;
 
 // Sizes are in cells (diameters), times as fractions of BURST_TIME.
-const BURST_TIME = 700;
+const BURST_TIME = 850;
 
 const POPS = 30;
 // Where they show up, in cells from the middle: all round the garage.
 const POP_SPREAD = 0.5;
-// They don't all show up at once.
-const POP_STAGGER = 0.25;
-const POP_LIFE = 0.5;
-const POP_LIFE_RANGE = 0.25;
+// They show up in a wave, the middle ones first, a little out of step. The
+// latest one plus the longest life stays within 1, so every pop finishes.
+const POP_STAGGER = 0.28;
+const POP_STAGGER_JITTER = 0.3;
+const POP_LIFE = 0.55;
+const POP_LIFE_RANGE = 0.17;
 const POP_SIZE = 0.08;
 const POP_SIZE_RANGE = 0.1;
 // How far each flies out, in cells.
 const POP_REACH = 0.4;
 const POP_REACH_RANGE = 0.7;
-// How much bigger than its size it pops in, and how much of its life that takes.
-const POP_OVERSHOOT = 1.4;
-const POP_IN = 0.15;
-// When it pops, as a fraction of its life: the circle snaps away and a thin
+// How far round they curl as they fly (radians, all one way), and how far up
+// they drift by the end (cells).
+const POP_SWIRL = 0.5;
+const POP_FLOAT = 0.15;
+// How much of its life it takes to pop in, and how far it overshoots.
+const POP_IN = 0.22;
+const POP_OVERSHOOT = 2.2;
+// When it pops, as a fraction of its life: the circle eases away and a thin
 // ring of it spreads out that far past its size and fades, like a bubble.
-const POP_OUT = 0.65;
-const POP_SNAP = 0.3;
+const POP_OUT = 0.62;
+const POP_SNAP = 0.45;
 const POP_RING = 2.2;
 const POP_LINE = 0.35;
 
@@ -191,7 +198,7 @@ export class Garage {
             targets: both,
             scale: this.baseScale * VANISH_SQUASH,
             duration: VANISH_SQUASH_TIME,
-            ease: "Quad.easeOut",
+            ease: "Sine.easeOut",
             onComplete: () => {
                 this.burst(color, then);
 
@@ -200,7 +207,7 @@ export class Garage {
                     scale: this.baseScale * VANISH_SWELL,
                     alpha: 0,
                     duration: VANISH_FADE_TIME,
-                    ease: "Quad.easeIn",
+                    ease: "Sine.easeInOut",
                     onComplete: () => {
                         this.gapeTween = null;
                         this.back.setVisible(false);
@@ -216,22 +223,27 @@ export class Garage {
         const circles = this.scene.add.graphics({ x: this.x, y: this.y });
         const cell = this.size;
         const clock = { t: 0 };
-        const fast = (t) => 1 - Math.pow(1 - t, 3);
+        const out3 = (t) => 1 - Math.pow(1 - t, 3);
+        const smooth = (t) => t * t * (3 - 2 * t);
+        // Past 1 and settles back, softly.
+        const back = (t) => 1 + (POP_OVERSHOOT + 1) * Math.pow(t - 1, 3) + POP_OVERSHOOT * Math.pow(t - 1, 2);
+        const curl = Math.random() < 0.5 ? -POP_SWIRL : POP_SWIRL;
         const pops = [];
 
         for (let i = 0; i < POPS; i++) {
             const a = Math.random() * Math.PI * 2;
             // Square root, so they show up spread evenly round the garage.
-            const from = cell * POP_SPREAD * Math.sqrt(Math.random());
+            const middle = Math.sqrt(Math.random());
+            const from = cell * POP_SPREAD * middle;
             const reach = cell * (POP_REACH + Math.random() * POP_REACH_RANGE);
 
             pops.push({
-                x: Math.cos(a) * from,
-                y: Math.sin(a) * from,
-                dx: Math.cos(a) * reach,
-                dy: Math.sin(a) * reach,
+                a: a,
+                from: from,
+                reach: reach,
+                curl: curl * (0.6 + Math.random() * 0.4),
                 size: cell * (POP_SIZE + Math.random() * POP_SIZE_RANGE) * 0.5,
-                at: Math.random() * POP_STAGGER,
+                at: POP_STAGGER * (middle * (1 - POP_STAGGER_JITTER) + Math.random() * POP_STAGGER_JITTER),
                 life: POP_LIFE + Math.random() * POP_LIFE_RANGE
             });
         }
@@ -253,15 +265,15 @@ export class Garage {
 
                     if (life <= 0 || life >= 1) continue;
 
-                    const went = fast(life);
-                    const x = pop.x + pop.dx * went;
-                    const y = pop.y + pop.dy * went;
+                    const went = out3(life);
+                    const a = pop.a + pop.curl * went;
+                    const r = pop.from + pop.reach * went;
+                    const x = Math.cos(a) * r;
+                    const y = Math.sin(a) * r - cell * POP_FLOAT * life * life;
                     const grow = Math.min(1, life / POP_IN);
-                    // Up past its size and back as it pops in.
-                    const popIn = 1 + (POP_OVERSHOOT - 1) * Math.sin(grow * Math.PI) * (grow < 1 ? 1 : 0);
                     const out = Math.max(0, (life - POP_OUT) / (1 - POP_OUT));
-                    const snap = Math.min(1, out / POP_SNAP);
-                    const size = pop.size * Math.sin(grow * Math.PI / 2) * popIn * (1 - snap * snap);
+                    const fade = smooth(Math.min(1, out / POP_SNAP));
+                    const size = pop.size * back(grow) * (1 - fade);
 
                     if (size > 0) {
                         circles.fillStyle(color, 1);
@@ -269,10 +281,10 @@ export class Garage {
                     }
 
                     if (out > 0) {
-                        const ring = fast(out);
+                        const left = 1 - out;
 
-                        circles.lineStyle(pop.size * POP_LINE * (1 - out), color, 1 - out * out);
-                        circles.strokeCircle(x, y, pop.size * (1 + (POP_RING - 1) * ring));
+                        circles.lineStyle(pop.size * POP_LINE * left, color, left * left);
+                        circles.strokeCircle(x, y, pop.size * (0.9 + (POP_RING - 0.9) * out3(out)));
                     }
                 }
             },

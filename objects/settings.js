@@ -62,6 +62,31 @@ const DONE_HIT_H = 100;
 const DONE_TEXT_Y = 207;
 const DONE_SIZE = 54;
 
+// The panel runs this much further down than the rows need, to fit the reset
+// link under Done.
+const RESET_EXTRA = 70;
+const RESET_Y = 300;
+const RESET_SIZE = 28;
+const RESET_INK = '#d0406a';
+const RESET_HIT_W = 240;
+const RESET_HIT_H = 60;
+
+// The card that asks before the progress is wiped.
+const CONFIRM_W = 400;
+const CONFIRM_H = 340;
+const CONFIRM_DIM_ALPHA = 0.45;
+const CONFIRM_TITLE_Y = -110;
+const CONFIRM_TITLE_SIZE = 40;
+const CONFIRM_LINE_Y = -32;
+const CONFIRM_LINE_SIZE = 24;
+const CONFIRM_LINE = 'Your level, coins and boosters\nwill all start over.';
+const CONFIRM_BUY_Y = 58;
+const CONFIRM_BUTTON_SCALE = 0.4;
+const CONFIRM_BUTTON_SIZE = 38;
+const CONFIRM_CANCEL_Y = 124;
+const CONFIRM_CANCEL_SIZE = 26;
+const CONFIRM_CANCEL_INK = '#8a3be0';
+
 const GEAR_X = 84;
 const GEAR_Y = 62;
 const GEAR_BASE_SCALE = 0.524;
@@ -98,6 +123,11 @@ const ROWS = [
 ];
 
 const STORE_KEY = 'baggage-out.settings';
+
+// Every save the game makes is under this prefix: the level, coins, boosters
+// and unlocks. The reset clears them all but the settings above, which are
+// the player's preferences rather than progress.
+const SAVE_PREFIX = 'baggage-out.';
 
 const DEFAULTS = { music: true, sound: true, vibration: false };
 
@@ -201,9 +231,9 @@ export class Settings extends Phaser.GameObjects.Container {
         fitter.add(card);
 
         card.add(this.scene.add.nineslice(
-            0, PANEL_DRIFT_Y, 'panel_modal', null,
+            0, PANEL_DRIFT_Y + RESET_EXTRA / 2, 'panel_modal', null,
             PANEL_W / PANEL_SCALE + PANEL_PAD_X,
-            PANEL_H / PANEL_SCALE + PANEL_PAD_Y,
+            (PANEL_H + RESET_EXTRA) / PANEL_SCALE + PANEL_PAD_Y,
             PANEL_CORNER_X, PANEL_CORNER_X, PANEL_CORNER_Y, PANEL_CORNER_Y
         ).setScale(PANEL_SCALE));
 
@@ -250,12 +280,125 @@ export class Settings extends Phaser.GameObjects.Container {
         this.pressable(done, DONE_HIT_W, DONE_HIT_H, () => this.hide());
         card.add(done);
 
+        const reset = this.scene.add.container(0, RESET_Y);
+        reset.add(this.label(0, 0, 'Reset Game', RESET_SIZE, RESET_INK));
+        this.pressable(reset, RESET_HIT_W, RESET_HIT_H, () => this.showConfirm());
+        card.add(reset);
+
+        this.buildConfirm(fitter);
+
         modal.visible = false;
 
         this.modal = modal;
         this.fitter = fitter;
         this.card = card;
         this.add(modal);
+    }
+
+    buildConfirm(fitter) {
+        const confirm = this.scene.add.container(0, 0);
+
+        confirm.dim = this.scene.add.rectangle(0, 0, PANEL_W * 4, PANEL_H * 4, DIM, CONFIRM_DIM_ALPHA);
+        confirm.dim.setInteractive();
+        confirm.add(confirm.dim);
+
+        const card = this.scene.add.container(0, 0);
+        confirm.add(card);
+
+        card.add(this.scene.add.nineslice(
+            0, 0, 'panel_modal', null,
+            CONFIRM_W / PANEL_SCALE + PANEL_PAD_X,
+            CONFIRM_H / PANEL_SCALE + PANEL_PAD_Y,
+            PANEL_CORNER_X, PANEL_CORNER_X, PANEL_CORNER_Y, PANEL_CORNER_Y
+        ).setScale(PANEL_SCALE));
+
+        const catcher = this.scene.add.zone(0, 0, CONFIRM_W, CONFIRM_H);
+        catcher.setInteractive();
+        card.add(catcher);
+
+        card.add(this.label(0, CONFIRM_TITLE_Y, 'Reset game?', CONFIRM_TITLE_SIZE, INK));
+
+        const line = this.label(0, CONFIRM_LINE_Y, CONFIRM_LINE, CONFIRM_LINE_SIZE, INK);
+        line.setAlign('center');
+        card.add(line);
+
+        const yes = this.scene.add.container(0, CONFIRM_BUY_Y);
+        const face = this.scene.add.sprite(0, 0, 'button_purple');
+        face.setScale(CONFIRM_BUTTON_SCALE);
+        yes.add(face);
+        yes.add(this.label(0, -3, 'Reset', CONFIRM_BUTTON_SIZE, '#ffffff'));
+        this.pressable(yes, face.displayWidth, face.displayHeight, () => this.resetGame());
+        card.add(yes);
+
+        const cancel = this.scene.add.container(0, CONFIRM_CANCEL_Y);
+        cancel.add(this.label(0, 0, 'Cancel', CONFIRM_CANCEL_SIZE, CONFIRM_CANCEL_INK));
+        this.pressable(cancel, RESET_HIT_W, RESET_HIT_H, () => this.hideConfirm());
+        card.add(cancel);
+
+        confirm.card = card;
+        confirm.visible = false;
+        // Back on the middle of the screen, where the fitter is not.
+        confirm.y = RESET_EXTRA / 2 - CARD_DROP;
+
+        this.confirm = confirm;
+        fitter.add(confirm);
+    }
+
+    label(x, y, content, size, color) {
+        const text = this.scene.add.text(x, y, content, {
+            fontFamily: 'FredokaOne_Regular',
+            fontSize: size,
+            color: color
+        });
+
+        text.setOrigin(.5);
+        text.setResolution(this.textRes);
+
+        return text;
+    }
+
+    showConfirm() {
+        if (this.confirm.visible) return;
+
+        this.confirm.visible = true;
+        openModal(this.scene, this.confirm.dim, this.confirm.card, CONFIRM_DIM_ALPHA);
+    }
+
+    hideConfirm() {
+        if (!this.confirm.visible || this.resetting) return;
+
+        shutModal(this.scene, this.confirm.dim, this.confirm.card, () => {
+            this.confirm.visible = false;
+        });
+    }
+
+    /**
+     * Wipes every saved bit of progress and starts the game over. The pieces
+     * that read their saves did so as they were built, so the page is loaded
+     * again rather than each one being put back by hand.
+     */
+    resetGame() {
+        if (this.resetting) return;
+
+        this.resetting = true;
+
+        try {
+            const storage = window.localStorage;
+            const keys = [];
+
+            for (let i = 0; i < storage.length; i++) {
+                const key = storage.key(i);
+
+                if (key && key.indexOf(SAVE_PREFIX) === 0 && key !== STORE_KEY) keys.push(key);
+            }
+
+            keys.forEach((key) => storage.removeItem(key));
+        } catch (e) {
+            // Nothing saved to clear, or no way to clear it; the reload still
+            // starts over from what is there.
+        }
+
+        window.location.reload();
     }
 
     buildRow(card, row, y) {
@@ -387,6 +530,7 @@ export class Settings extends Phaser.GameObjects.Container {
 
         this.isOpen = true;
 
+        this.confirm.visible = false;
         this.gear.disableInteractive();
 
         // The clock stands still while the panel is up and the board can't be played.
@@ -427,12 +571,13 @@ export class Settings extends Phaser.GameObjects.Container {
 
         this.fitter.setScale(Math.min(
             1,
-            (dimensions.gameHeight - MODAL_MARGIN * 2) / (PANEL_H + CARD_DROP * 2),
+            (dimensions.gameHeight - MODAL_MARGIN * 2) / (PANEL_H + RESET_EXTRA + CARD_DROP * 2),
             (dimensions.gameWidth - MODAL_MARGIN * 2) / PANEL_W
         ));
 
+        // Centred on the panel, which runs RESET_EXTRA further down than up.
         this.fitter.x = 0;
-        this.fitter.y = CARD_DROP * this.fitter.scaleY;
+        this.fitter.y = (CARD_DROP - RESET_EXTRA / 2) * this.fitter.scaleY;
 
         this.placeGear();
     }
