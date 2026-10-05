@@ -121,6 +121,7 @@ export class Board {
 
         this.props = config.props;
         this.pieces = [];
+        this.wallBlocks = [];
 
         const count = this.rows * this.columns;
 
@@ -148,6 +149,7 @@ export class Board {
         this.bakeFloor();
 
         this.shadowLayer.removeAll(true);
+        this.wallBlocks.length = 0;
         this.placeWalls();
         this.placeObstacles();
     }
@@ -241,6 +243,12 @@ export class Board {
 
         this.wallLayer.removeAll(true);
 
+        // Their shadows share a layer with the obstacles', so they are kept
+        // apart to be cleared on their own.
+        for (let i = 0; i < this.wallBlocks.length; i++) this.wallBlocks[i].shadow.destroy();
+
+        this.wallBlocks.length = 0;
+
         for (let i = 0; i < this.walls.length; i++) {
             const wall = this.walls[i];
             const style = wall.style || DEFAULT_WALL;
@@ -280,6 +288,8 @@ export class Board {
                 block.setScale(scale);
                 block.setRotation(turn);
                 this.wallLayer.add(block);
+
+                this.wallBlocks.push({ col: col, row: row, block: block, shadow: shadow });
             }
         }
     }
@@ -312,7 +322,58 @@ export class Board {
             shadow.setTintFill(SHADOW);
             shadow.setAlpha(SHADOW_ALPHA);
             this.shadowLayer.add(shadow);
+
+            piece.shadow = shadow;
         }
+    }
+
+    /**
+     * Takes whatever stands on a cell off the board: an obstacle, or one block
+     * of a wall (the wall either side of it is laid again, ends where it was
+     * joined). Hands back its art and shadow, still where they stood but no
+     * longer the board's, for the caller to carry off and destroy; null if
+     * there was nothing there.
+     */
+    takeOff(col, row) {
+        for (let i = 0; i < this.obstacles.length; i++) {
+            if (this.obstacles[i][0] !== col || this.obstacles[i][1] !== row) continue;
+
+            const piece = this.pieces[i];
+
+            this.obstacles.splice(i, 1);
+            this.pieces.splice(i, 1);
+            this.props.remove(piece);
+            this.shadowLayer.remove(piece.shadow);
+
+            return { art: piece, shadow: piece.shadow };
+        }
+
+        for (let i = 0; i < this.walls.length; i++) {
+            const cells = this.walls[i].cells;
+            const at = cells.findIndex((c) => c[0] === col && c[1] === row);
+
+            if (at < 0) continue;
+
+            const spot = this.wallBlocks.find((b) => b.col === col && b.row === row);
+
+            cells.splice(at, 1);
+
+            if (!spot) {
+                this.placeWalls();
+                return null;
+            }
+
+            // Out of their layers before the rest are laid again, which clears them.
+            this.wallLayer.remove(spot.block);
+            this.shadowLayer.remove(spot.shadow);
+            this.wallBlocks.splice(this.wallBlocks.indexOf(spot), 1);
+
+            this.placeWalls();
+
+            return { art: spot.block, shadow: spot.shadow };
+        }
+
+        return null;
     }
 
     obstacleOffset(name, own) {

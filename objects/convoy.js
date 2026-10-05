@@ -14,6 +14,9 @@ const CART_FACING = -Math.PI / 2;
 
 const TURN_RADIUS = 0.5;
 
+const GHOST_TINT = 0xcfdcff;
+const GHOST_LIFT = 0.5;
+
 const TURN_SEGMENTS = 16;
 
 const LOOK_AHEAD = 2;
@@ -55,6 +58,9 @@ export class Convoy {
         this.cellSize = config.cellSize;
         this.count = config.count;
         this.settled = false;
+        // Drawn this far deeper than its own y: a ghost over a convoy it is
+        // passing through shows on top of it.
+        this.depthLift = 0;
 
         const tractorScale = (this.cellSize * VEHICLE_FIT) / TRACTOR_ART_CELL;
         const cartScale = (this.cellSize * VEHICLE_FIT) / CART_ART_CELL;
@@ -210,7 +216,7 @@ export class Convoy {
             art.visible = true;
             art.x = vehicle.x;
             art.y = vehicle.y;
-            art.depth = vehicle.y;
+            art.depth = vehicle.y + this.depthLift;
             art.rotation = vehicle.heading - vehicle.facing;
             art.setScale(vehicle.scale * (door ? this.doorScale(vehicle, door) : 1));
         }
@@ -589,6 +595,26 @@ export class Convoy {
 
             g.lineBetween(a.x, a.y, b.x, b.y);
         }
+    }
+
+    /**
+     * A ghost: see-through and cooled to a pale blue, over anything it shares
+     * a cell with. alpha 1 puts it back as it was.
+     */
+    setGhost(alpha) {
+        const ghost = alpha < 1;
+
+        for (let i = 0; i < this.vehicles.length; i++) {
+            const art = this.vehicles[i].art;
+
+            art.alpha = alpha;
+
+            if (ghost) art.setTint(GHOST_TINT);
+            else art.clearTint();
+        }
+
+        this.links.alpha = alpha;
+        this.depthLift = ghost ? GHOST_LIFT : 0;
     }
 
     setVisible(visible) {

@@ -30,11 +30,11 @@ Icon: a stopwatch with a snowflake.
 |---|---|---|
 | 1 | Tap | The button pushes in. The timer pill at the top left flashes white. |
 | 2 | Ice over | Frost creeps in from the pill's corners and the pill turns icy blue. The time stops and a small ❄ appears next to it. The grey board tiles take on a faint cool tint. |
-| 3 | Play | The player drives as normal. A thin ring around the pill shrinks over **15 s** to show the freeze left. |
+| 3 | Play | The player drives as normal. A thin bar under the pill runs down over **10 s** to show the freeze left. |
 | 4 | Thaw | In the last 2 s the frost flickers. The ice cracks off in shards (`shatter.mp3`), the pill's colour returns with a small bounce, and the clock ticks again. |
 
 **Rules**
-- Using it again while frozen adds another 15 s.
+- One at a time: tapping it while frozen does nothing and uses none up ("The clock is already frozen"). It can be used again once the freeze has run out.
 - It's greyed out in the last second of a level, so it can't be wasted.
 
 **Code**

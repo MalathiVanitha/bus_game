@@ -514,7 +514,12 @@ export default class GameScene extends Phaser.Scene {
         // drag has something to pull against between pointer moves.
         if (this.gamePlay) this.gamePlay.update(time, delta);
 
-        if (this.timer && this.timer.visible) this.timer.set(this.gamePlay.timeLeft);
+        if (this.timer && this.timer.visible) {
+            const play = this.gamePlay;
+
+            this.timer.set(play.timeLeft);
+            this.timer.setFreeze(play.frozen / 1000, play.frozenTotal / 1000, play.running && !play.finished);
+        }
 
         // Clouds on the home screen, while it is up.
         if (this.home) this.home.update(time, delta);

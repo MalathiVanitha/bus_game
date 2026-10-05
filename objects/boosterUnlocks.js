@@ -5,11 +5,12 @@
 // Kept apart from the counts (levelScreen.js) so the bar, the level card and
 // the lesson all read the one answer.
 
+import { BOOSTERS } from './boosterList.js';
+
 // The level each booster opens on.
-export const UNLOCK_AT = {
-    hint: 3,
-    remove: 5
-};
+export const UNLOCK_AT = {};
+
+for (let i = 0; i < BOOSTERS.length; i++) UNLOCK_AT[BOOSTERS[i].key] = BOOSTERS[i].opens;
 
 const STORE_KEY = 'baggage-out.unlocks';
 

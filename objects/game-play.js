@@ -118,6 +118,11 @@ const INTRO_FADE = 320;
 const INTRO_FROM = 0.84;
 const INTRO_DROP = 70;
 
+// What fills a hole in the board: a wall for a run of them, in this style if
+// the level has no wall of its own, or one of these for a single hole.
+const HOLE_WALL = 'hedge-green';
+const HOLE_OBSTACLES = ['planter', 'cone', 'cargo_pallet'];
+
 // Seconds on the clock for a level that does not give its own.
 const DEFAULT_TIME = 60;
 
@@ -187,6 +192,52 @@ const HINT_TOUCH_REST = 420;
 // All of it fades together when the hint is over.
 const HINT_OUT_TIME = 240;
 
+// The Freeze booster: the clock stands still this long, and a frost lies over
+// the board meanwhile, flickering over the last THAW_WARN of it. One runs out
+// before another can be used.
+const FREEZE_TIME = 10000;
+const ICE_FILL = 0x9fdcff;
+const ICE_FILL_ALPHA = 0.16;
+const ICE_EDGE = 0xffffff;
+const ICE_IN = 320;
+const ICE_OUT = 260;
+const THAW_WARN = 2000;
+const THAW_FLICKER = 0.012;
+
+// The Crane booster: every obstacle rings gold while it waits for a pick.
+// Then a hook on a cable drops in from above, catches the piece, gives it a
+// squeeze, and hauls it off the top, growing a little as it rises.
+const CRANE_RING_PULSE = 1.15;
+const CRANE_RING_TIME = 420;
+const CRANE_ICON = 'icons/icon-crane';
+const CRANE_ICON_ART = 128;
+const CRANE_HOOK = 1.4;
+// Where on the art the hook catches (the foot of the hook's bowl).
+const CRANE_ORIGIN_X = 0.42;
+const CRANE_ORIGIN_Y = 0.86;
+// Where the cable meets the top of the art.
+const CRANE_TOP = 0.82;
+const CRANE_CABLE = 0.07;
+const CRANE_CABLE_COLOR = 0x4a5568;
+const CRANE_CABLE_LENGTH = 40;
+const CRANE_FROM = 8;
+const CRANE_OVER = 0.32;
+const CRANE_DROP_TIME = 420;
+const CRANE_SWING = 9;
+const CRANE_GRAB_TIME = 110;
+const CRANE_SQUASH_X = 1.12;
+const CRANE_SQUASH_Y = 0.86;
+const CRANE_LIFT = 10;
+const CRANE_LIFT_TIME = 620;
+const CRANE_GROW = 1.35;
+
+// The Ghost booster: the picked convoy goes see-through and drives through
+// other convoys (never walls, obstacles or another's garage) until it is let
+// go clear of them, or gets home. It shimmers between these.
+const GHOST_ALPHA = 0.55;
+const GHOST_SHIMMER = 0.12;
+const GHOST_SHIMMER_RATE = 0.006;
+
 const byDepth = (a, b) => a.depth - b.depth;
 
 export class GamePlay extends Phaser.GameObjects.Container {
@@ -204,9 +255,15 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         this.rows = levelData.rows;
         this.columns = levelData.columns;
-        this.pattern = levelData.pattern;
-        this.obstacles = levelData.obstacles || [];
-        this.walls = levelData.walls || [];
+        this.pattern = levelData.pattern.map((r) => r.slice());
+        // Copies: the Crane takes pieces off the board, and the level's own
+        // lists must stand for the next time it is played.
+        this.obstacles = (levelData.obstacles || []).map((o) => o.slice());
+        this.walls = (levelData.walls || []).map((w) => Object.assign({}, w, {
+            cells: w.cells.map((c) => c.slice())
+        }));
+
+        this.fillHoles();
 
         this.cellSize = Math.min(BOARD_WIDTH / this.columns, BOARD_HEIGHT / this.rows);
         this.tileWidth = this.cellSize;
@@ -280,6 +337,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
             startY: this.startY
         });
 
+        // Over the floor and walls, under everything that moves.
+        this.iceSheet = this.makeIceSheet();
+        this.add(this.iceSheet);
+
         this.garageBackGroup = this.scene.add.container();
         this.add(this.garageBackGroup);
 
@@ -307,8 +368,15 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.drag = null;
         this.dragPoint = null;
         this.picking = null;
+        this.pickingObstacle = null;
+        this.obstacleMarks = null;
         this.removing = 0;
         this.hint = null;
+        // Milliseconds of Freeze left, and how much there was when it was
+        // last topped up, for the clock to show what is left of it.
+        this.frozen = 0;
+        this.frozenTotal = 0;
+        this.ghost = null;
         this.convoys = [];
         this.garages = [];
 
@@ -321,6 +389,86 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.createGarages();
 
         this.attachInput();
+    }
+
+    /**
+     * No cell is left an empty hole in the board: a run of them becomes a
+     * wall - joined to one it touches, or in the level's own wall style - and
+     * one on its own an obstacle. Either way it stays as blocked as the hole
+     * was, so the level plays the same; but it is floor under it now, so the
+     * Crane can lift it like any other.
+     */
+    fillHoles() {
+        const holes = [];
+        const covered = new Set();
+
+        this.walls.forEach((wall) => wall.cells.forEach((c) => covered.add(c[1] * this.columns + c[0])));
+        this.obstacles.forEach((o) => covered.add(o[1] * this.columns + o[0]));
+
+        // A hole a wall or obstacle already stands on only wants its floor.
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.columns; col++) {
+                if (covered.has(row * this.columns + col)) this.pattern[row][col] = 1;
+            }
+        }
+
+        const isHole = (col, row) => this.onBoard(col, row) && this.pattern[row][col] !== 1;
+        const seen = new Set();
+        const sides = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.columns; col++) {
+                if (!isHole(col, row) || seen.has(row * this.columns + col)) continue;
+
+                // Every hole joined to this one, side by side.
+                const group = [];
+                const queue = [[col, row]];
+
+                seen.add(row * this.columns + col);
+
+                while (queue.length) {
+                    const cell = queue.pop();
+
+                    group.push(cell);
+
+                    for (let i = 0; i < sides.length; i++) {
+                        const c = cell[0] + sides[i][0];
+                        const r = cell[1] + sides[i][1];
+                        const k = r * this.columns + c;
+
+                        if (!isHole(c, r) || seen.has(k)) continue;
+
+                        seen.add(k);
+                        queue.push([c, r]);
+                    }
+                }
+
+                holes.push(group);
+            }
+        }
+
+        if (!holes.length) return;
+
+        const style = (this.walls[0] && this.walls[0].style) || HOLE_WALL;
+
+        for (let i = 0; i < holes.length; i++) {
+            const group = holes[i];
+
+            for (let j = 0; j < group.length; j++) this.pattern[group[j][1]][group[j][0]] = 1;
+
+            const touching = this.walls.find((wall) => wall.cells.some((w) =>
+                group.some((g) => Math.abs(w[0] - g[0]) + Math.abs(w[1] - g[1]) === 1)));
+
+            if (touching) {
+                touching.cells.push(...group);
+            } else if (group.length > 1) {
+                this.walls.push({ style: style, cells: group });
+            } else {
+                const [col, row] = group[0];
+
+                this.obstacles.push([col, row, HOLE_OBSTACLES[(col + row) % HOLE_OBSTACLES.length]]);
+            }
+        }
     }
 
     cellToPixel(col, row) {
@@ -361,7 +509,20 @@ export class GamePlay extends Phaser.GameObjects.Container {
             if (!routing && !this.atDoorstep(convoy, this.leadCell(convoy))) return false;
         }
 
-        return this.tiles[row][col].owner === -1;
+        const owner = this.tiles[row][col].owner;
+
+        if (owner === -1) return true;
+
+        // A ghost passes over other convoys, but never over itself.
+        return convoy === this.ghost && owner !== convoy.index && !this.inConvoy(convoy, col, row);
+    }
+
+    inConvoy(convoy, col, row) {
+        for (let i = 0; i < convoy.cells.length; i++) {
+            if (convoy.cells[i].col === col && convoy.cells[i].row === row) return true;
+        }
+
+        return false;
     }
 
     // Any cell beside the garage is a way in: it is open on all four sides.
@@ -477,10 +638,16 @@ export class GamePlay extends Phaser.GameObjects.Container {
         }
     }
 
+    // A ghost over another convoy leaves the cell that convoy's: it takes it
+    // when that one moves off (claimGhostCells).
     occupy(convoy, col, row) {
         if (!this.onBoard(col, row)) return;
 
-        this.tiles[row][col].owner = convoy.index;
+        const tile = this.tiles[row][col];
+
+        if (convoy === this.ghost && tile.owner !== -1) return;
+
+        tile.owner = convoy.index;
         this.boardStamp++;
     }
 
@@ -493,6 +660,25 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         tile.owner = -1;
         this.boardStamp++;
+
+        if (this.ghost && this.ghost !== convoy) this.claimGhostCells();
+    }
+
+    // Every free cell under the ghost is its own, so nothing else drives in
+    // under it.
+    claimGhostCells() {
+        const ghost = this.ghost;
+
+        if (!ghost) return;
+
+        for (let i = 0; i < ghost.cells.length; i++) {
+            const tile = this.tiles[ghost.cells[i].row][ghost.cells[i].col];
+
+            if (tile.owner === -1) {
+                tile.owner = ghost.index;
+                this.boardStamp++;
+            }
+        }
     }
 
     createConvoy(data, index) {
@@ -1201,6 +1387,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
             }
         }
 
+        if (this.ghost && this.ghost !== convoy) this.claimGhostCells();
+
         convoy.cells.length = 0;
         this.boardStamp++;
     }
@@ -1499,6 +1687,25 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
     onPointerDown() {
         const p = this.localPointer();
+
+        // The Crane waiting on an obstacle: a tap on one picks it, and a tap
+        // anywhere else on the board puts the crane away. Taps off the board
+        // (its own button among them) are left to whatever they land on.
+        if (this.pickingObstacle) {
+            const cell = this.pixelToCell(p.x, p.y);
+
+            if (!this.onBoard(cell.col, cell.row)) return;
+
+            const pick = this.pickingObstacle;
+
+            if (this.isObstacle(cell.col, cell.row)) {
+                this.stopPicking();
+                pick.onPick(cell.col, cell.row);
+            } else if (pick.onCancel) pick.onCancel();
+
+            return;
+        }
+
         const grabbed = this.pickEnd(p.x, p.y);
 
         // A booster waiting on a convoy takes the tap instead of a drag.
@@ -1532,6 +1739,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.updateConvoyView(grabbed.convoy, 0);
 
         this.drag = { convoy: grabbed.convoy };
+        if (grabbed.convoy === this.ghost) grabbed.convoy.ghostDriven = true;
         SoundManager.fx(this.scene, 'grab', 0.55);
         this.routeDrag(p);
     }
@@ -1551,14 +1759,25 @@ export class GamePlay extends Phaser.GameObjects.Container {
         if (convoy) this.settleConvoy(convoy);
     }
 
+    // Over another convoy, the ghost is the one taken hold of.
     pickEnd(x, y) {
+        if (this.ghost) {
+            const ghost = this.pickEndOf([this.ghost], x, y);
+
+            if (ghost) return ghost;
+        }
+
+        return this.pickEndOf(this.convoys, x, y);
+    }
+
+    pickEndOf(convoys, x, y) {
         const reach = this.cellSize * GRAB_REACH;
 
         let best = null;
         let bestDist = reach;
 
-        for (let i = 0; i < this.convoys.length; i++) {
-            const convoy = this.convoys[i];
+        for (let i = 0; i < convoys.length; i++) {
+            const convoy = convoys[i];
 
             if (!this.canGrab(convoy)) continue;
 
@@ -1580,8 +1799,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         if (best) return best;
 
-        for (let i = 0; i < this.convoys.length; i++) {
-            const convoy = this.convoys[i];
+        for (let i = 0; i < convoys.length; i++) {
+            const convoy = convoys[i];
 
             if (!this.canGrab(convoy)) continue;
 
@@ -1664,13 +1883,22 @@ export class GamePlay extends Phaser.GameObjects.Container {
         const step = Math.min(delta || 16, 50);
 
         if (this.running && this.clockStarted && !this.paused) {
-            this.timeLeft -= step / 1000;
+            if (this.frozen > 0) {
+                this.frozen = Math.max(0, this.frozen - step);
 
-            if (this.timeLeft <= 0) {
-                this.timeLeft = 0;
-                this.finish(false);
+                if (this.frozen <= 0) this.thaw();
+            } else {
+                this.timeLeft -= step / 1000;
+
+                if (this.timeLeft <= 0) {
+                    this.timeLeft = 0;
+                    this.finish(false);
+                }
             }
         }
+
+        if (this.frozen > 0) this.frostBoard(time);
+        if (this.ghost) this.watchGhost(time);
 
         if (this.drag && this.dragPoint && !this.drag.convoy.queue.length) {
             this.routeDrag(this.dragPoint);
@@ -1715,11 +1943,15 @@ export class GamePlay extends Phaser.GameObjects.Container {
     /** The next tap on a convoy is handed to onPick, rather than grabbing it. */
     pickConvoy(onPick) {
         this.dropDrag();
+        this.pickingObstacle = null;
+        this.markObstacles(false);
         this.picking = onPick;
     }
 
     stopPicking() {
         this.picking = null;
+        this.pickingObstacle = null;
+        this.markObstacles(false);
     }
 
     /**
@@ -1739,6 +1971,12 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.removing++;
 
         if (this.hint && this.hint.convoy === convoy) this.hint = null;
+
+        // Popped as it is, see-through and all.
+        if (convoy === this.ghost) {
+            this.ghost = null;
+            convoy.ghost = false;
+        }
 
         const spots = convoy.cells.map((cell) => this.cellToPixel(cell.col, cell.row));
         const tint = CONFETTI_TINT[convoy.key] || null;
@@ -1827,6 +2065,384 @@ export class GamePlay extends Phaser.GameObjects.Container {
         });
 
         return true;
+    }
+
+    // ---- Freeze ---------------------------------------------------------
+
+    /**
+     * Stands the clock still for FREEZE_TIME. False, and nothing done, while
+     * a freeze is still running or once the level is over.
+     */
+    freeze() {
+        if (!this.running || this.finished || this.frozen > 0) return false;
+
+        this.frostIn();
+
+        this.frozen = FREEZE_TIME;
+        this.frozenTotal = FREEZE_TIME;
+
+        SoundManager.fx(this.scene, 'star', 0.6);
+
+        return true;
+    }
+
+    thaw() {
+        this.frozen = 0;
+        this.frozenTotal = 0;
+
+        const sheet = this.iceSheet;
+
+        this.scene.tweens.killTweensOf(sheet);
+        this.scene.tweens.add({
+            targets: sheet,
+            alpha: 0,
+            duration: ICE_OUT,
+            ease: 'Quad.easeIn',
+            onComplete: () => { sheet.visible = false; }
+        });
+    }
+
+    frostIn() {
+        const sheet = this.iceSheet;
+
+        this.scene.tweens.killTweensOf(sheet);
+
+        sheet.visible = true;
+        sheet.alpha = 0;
+        sheet.fading = true;
+
+        this.scene.tweens.add({
+            targets: sheet,
+            alpha: 1,
+            duration: ICE_IN,
+            ease: 'Quad.easeOut',
+            onComplete: () => { sheet.fading = false; }
+        });
+    }
+
+    // The frost flickers as the freeze runs out.
+    frostBoard(time) {
+        const sheet = this.iceSheet;
+
+        if (sheet.fading) return;
+
+        sheet.alpha = this.frozen > THAW_WARN ? 1 :
+            0.55 + 0.45 * Math.abs(Math.cos(time * THAW_FLICKER));
+    }
+
+    // A pale blue wash over the floor, whitening towards the rim like frost
+    // creeping in from the edges. Drawn once a board size.
+    makeIceSheet() {
+        const w = this.boardWidth;
+        const h = this.boardHeight;
+        const edge = this.cellSize * 0.18;
+        const key = 'ice-sheet-' + Math.round(w) + 'x' + Math.round(h);
+
+        const sheet = bakeShape(this.scene, { left: -w / 2, top: -h / 2, width: w, height: h }, (g) => {
+            g.fillStyle(ICE_FILL, ICE_FILL_ALPHA);
+            g.fillRoundedRect(-w / 2, -h / 2, w, h, edge);
+
+            for (let i = 0; i < 4; i++) {
+                const inset = edge * (0.25 + i * 0.5);
+
+                g.lineStyle(edge * 0.6, ICE_EDGE, 0.34 - i * 0.08);
+                g.strokeRoundedRect(-w / 2 + inset, -h / 2 + inset, w - inset * 2, h - inset * 2, edge);
+            }
+        }, key);
+
+        sheet.visible = false;
+        sheet.alpha = 0;
+
+        return sheet;
+    }
+
+    // ---- Crane ----------------------------------------------------------
+
+    hasObstacles() {
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.columns; col++) {
+                if (this.tiles[row][col].obstacle) return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The next tap on an obstacle is handed to onPick as its cell; a tap
+     * anywhere else on the board calls onCancel. Every obstacle rings gold
+     * meanwhile.
+     */
+    pickObstacle(onPick, onCancel = null) {
+        this.dropDrag();
+        this.picking = null;
+        this.pickingObstacle = { onPick: onPick, onCancel: onCancel };
+        this.markObstacles(true);
+    }
+
+    markObstacles(on) {
+        if (this.obstacleMarks) {
+            this.scene.tweens.killTweensOf(this.obstacleMarks);
+
+            for (let i = 0; i < this.obstacleMarks.length; i++) this.obstacleMarks[i].destroy();
+
+            this.obstacleMarks = null;
+        }
+
+        if (!on) return;
+
+        this.ringTexture();
+        this.obstacleMarks = [];
+
+        const fit = this.cellSize * 0.9 / (RING_R * 2);
+
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.columns; col++) {
+                if (!this.tiles[row][col].obstacle) continue;
+
+                const at = this.cellToPixel(col, row);
+                const ring = this.scene.add.image(at.x, at.y, RING_TEXTURE);
+
+                ring.setTint(HINT_RING);
+                ring.setScale(fit);
+                this.effectGroup.add(ring);
+                this.obstacleMarks.push(ring);
+            }
+        }
+
+        this.scene.tweens.add({
+            targets: this.obstacleMarks,
+            scale: fit * CRANE_RING_PULSE,
+            alpha: 0.55,
+            duration: CRANE_RING_TIME,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    /**
+     * Lifts whatever stands on a cell off the board: the cell is floor again
+     * at once, and the crane carries the piece away. False if there was
+     * nothing there to lift.
+     */
+    liftObstacle(col, row) {
+        if (this.finished || !this.isObstacle(col, row)) return false;
+
+        const piece = this.board.takeOff(col, row);
+        const tile = this.tiles[row][col];
+
+        tile.obstacle = false;
+        tile.blocked = this.pattern[row][col] !== 1;
+        this.boardStamp++;
+
+        if (!piece) return true;
+
+        // Nothing is driven while the crane works.
+        this.dropDrag();
+        this.removing++;
+
+        const at = this.cellToPixel(col, row);
+        const size = this.cellSize;
+        const hookScale = size * CRANE_HOOK / CRANE_ICON_ART;
+
+        const crane = this.scene.add.container(at.x, at.y - size * CRANE_FROM);
+        this.effectGroup.add(crane);
+
+        const cable = this.scene.add.rectangle(0, 0, size * CRANE_CABLE, size * CRANE_CABLE_LENGTH, CRANE_CABLE_COLOR);
+        cable.setOrigin(0.5, 1);
+        cable.y = -CRANE_ICON_ART * hookScale * CRANE_TOP;
+        cable.x = CRANE_ICON_ART * hookScale * (0.5 - CRANE_ORIGIN_X);
+        crane.add(cable);
+
+        const hook = this.scene.add.sprite(0, 0, 'sheet', CRANE_ICON);
+        hook.setOrigin(CRANE_ORIGIN_X, CRANE_ORIGIN_Y);
+        hook.setScale(hookScale);
+        crane.add(hook);
+
+        const art = piece.art;
+        const shadow = piece.shadow;
+        const artScaleX = art.scaleX;
+        const artScaleY = art.scaleY;
+
+        // The piece stays where it stood, under the hook, until it is caught.
+        this.board.shadowLayer.add(shadow);
+        this.effectGroup.addAt(art, this.effectGroup.getIndex(crane));
+
+        crane.angle = CRANE_SWING;
+        SoundManager.fx(this.scene, 'whoosh', 0.6);
+
+        this.scene.tweens.add({
+            targets: crane,
+            y: at.y - size * CRANE_OVER,
+            duration: CRANE_DROP_TIME,
+            ease: 'Back.easeOut'
+        });
+
+        this.scene.tweens.add({
+            targets: crane,
+            angle: 0,
+            duration: CRANE_DROP_TIME * 1.4,
+            ease: 'Elastic.easeOut',
+            easeParams: [1.2, 0.5]
+        });
+
+        // Caught: a squeeze, then it hangs from the hook and goes up with it.
+        this.scene.tweens.add({
+            targets: art,
+            scaleX: artScaleX * CRANE_SQUASH_X,
+            scaleY: artScaleY * CRANE_SQUASH_Y,
+            delay: CRANE_DROP_TIME,
+            duration: CRANE_GRAB_TIME,
+            yoyo: true,
+            ease: 'Quad.easeOut',
+            onStart: () => {
+                SoundManager.fx(this.scene, 'grab', 0.7);
+                this.board.pulseCell(col, row);
+            },
+            onComplete: () => {
+                crane.addAt(art, 0);
+                art.setPosition(art.x - crane.x, art.y - crane.y);
+                art.angle -= crane.angle;
+
+                this.ringAt(at.x, at.y, HINT_RING);
+                this.glintsAt(at.x, at.y, REMOVE_GLINTS);
+                SoundManager.fx(this.scene, 'whoosh', 0.6);
+
+                this.scene.tweens.add({
+                    targets: crane,
+                    y: at.y - size * CRANE_LIFT,
+                    duration: CRANE_LIFT_TIME,
+                    ease: 'Cubic.easeIn'
+                });
+
+                this.scene.tweens.add({
+                    targets: art,
+                    scaleX: artScaleX * CRANE_GROW,
+                    scaleY: artScaleY * CRANE_GROW,
+                    duration: CRANE_LIFT_TIME,
+                    ease: 'Quad.easeOut'
+                });
+
+                this.scene.tweens.add({
+                    targets: shadow,
+                    scale: 0,
+                    alpha: 0,
+                    duration: CRANE_LIFT_TIME * 0.6,
+                    ease: 'Quad.easeIn'
+                });
+
+                // Its own counter, the length of the lift, to clear up on.
+                this.scene.tweens.addCounter({
+                    from: 0,
+                    to: 1,
+                    duration: CRANE_LIFT_TIME,
+                    onComplete: () => {
+                        this.removing = Math.max(0, this.removing - 1);
+                        shadow.destroy();
+                        crane.destroy();
+                    }
+                });
+            }
+        });
+
+        return true;
+    }
+
+    // ---- Ghost ----------------------------------------------------------
+
+    /** Makes a convoy the ghost. False if it can't be (one already is). */
+    makeGhost(convoy) {
+        if (this.ghost || this.finished || !this.canGrab(convoy)) return false;
+
+        this.ghost = convoy;
+        convoy.ghost = true;
+        convoy.ghostDriven = false;
+        convoy.ghostStuck = false;
+
+        convoy.rig.setGhost(GHOST_ALPHA);
+        this.bumpConvoy(convoy);
+        this.lightConvoy(convoy);
+        SoundManager.fx(this.scene, 'whoosh', 0.7);
+
+        for (let i = 0; i < convoy.cells.length; i += 2) {
+            const at = this.cellToPixel(convoy.cells[i].col, convoy.cells[i].row);
+
+            this.glintsAt(at.x, at.y, 2, 0xffffff);
+        }
+
+        return true;
+    }
+
+    endGhost() {
+        const convoy = this.ghost;
+
+        if (!convoy) return;
+
+        this.ghost = null;
+        convoy.ghost = false;
+
+        if (convoy.escaped) return;
+
+        convoy.rig.setGhost(1);
+        this.claimCells(convoy);
+        this.lightConvoy(convoy);
+        SoundManager.fx(this.scene, 'poof', 0.5);
+
+        const head = this.headCell(convoy);
+        const at = this.cellToPixel(head.col, head.row);
+
+        this.ringAt(at.x, at.y, 0xffffff);
+    }
+
+    // Landed: every free cell it stands on is its own.
+    claimCells(convoy) {
+        for (let i = 0; i < convoy.cells.length; i++) {
+            const cell = convoy.cells[i];
+
+            if (this.tiles[cell.row][cell.col].owner === -1) this.occupy(convoy, cell.col, cell.row);
+        }
+    }
+
+    ghostOverlaps(convoy) {
+        for (let i = 0; i < convoy.cells.length; i++) {
+            if (this.tiles[convoy.cells[i].row][convoy.cells[i].col].owner !== convoy.index) return true;
+        }
+
+        return false;
+    }
+
+    // Shimmers while it lasts. Once it has been driven and let go, it lands
+    // as soon as it stands clear of every other convoy; let go over one, it
+    // says so once and waits to be moved off.
+    watchGhost(time) {
+        const ghost = this.ghost;
+
+        if (ghost.escaped) {
+            this.endGhost();
+            return;
+        }
+
+        ghost.rig.setGhost(GHOST_ALPHA + GHOST_SHIMMER * Math.sin(time * GHOST_SHIMMER_RATE));
+
+        if (!ghost.ghostDriven || ghost.swallowing || this.enteringGarage(ghost)) return;
+
+        if (this.drag && this.drag.convoy === ghost) {
+            ghost.ghostStuck = false;
+            return;
+        }
+
+        if (ghost.queue.length || ghost.settle || ghost.settling || ghost.stepReserved) return;
+
+        if (!this.ghostOverlaps(ghost)) {
+            this.endGhost();
+            return;
+        }
+
+        if (!ghost.ghostStuck) {
+            ghost.ghostStuck = true;
+            this.scene.events.emit('ghost:stuck');
+        }
     }
 
     ringTexture() {
@@ -2372,6 +2988,9 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
     reset() {
         this.detachInput();
+        this.stopPicking();
+
+        if (this.iceSheet) this.scene.tweens.killTweensOf(this.iceSheet);
 
         for (let i = 0; i < this.convoys.length; i++) this.scene.tweens.killTweensOf(this.convoys[i].rig);
 

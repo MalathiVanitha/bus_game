@@ -3,6 +3,7 @@ import { pressable } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
 import { openModal, shutModal, dropModal, liftModal } from '../utils/modal.js';
 import { unlocks, UNLOCK_AT } from './boosterUnlocks.js';
+import { BOOSTERS } from './boosterList.js';
 import { fitText } from '../utils/text.js';
 
 const PANEL_W = 450;
@@ -137,9 +138,15 @@ const RULE_Y = -80;
 const PICK_Y = -50;
 const PICK_SIZE = 28;
 
+// One row of tiles, one per booster, drawn small enough for all of them to
+// fit across the card. Everything on a tile is laid out at full size and the
+// tile scaled down; its count and tick are scaled back up some, to stay
+// readable.
 const TILE_Y = 42;
-const TILE_X = [-96, 96];
-const TILE_HIT = 164;
+const TILE_GAP = 86;
+const TILE_SCALE = 0.58;
+const TILE_BADGE_SCALE = 1.25;
+const TILE_HIT = 144;
 
 const BASE = 'ui/button_booster_base';
 const BASE_SCALE = 0.8;
@@ -163,13 +170,13 @@ const COUNT_Y = 46;
 const CHECK_X = 54;
 const CHECK_Y = -50;
 
-const LABEL_Y = 96;
-const LABEL_SIZE = 28;
-const MORE_Y = 121;
-const MORE_SIZE = 20;
-// How wide a tile's name and the line under it can run, so the two tiles'
-// never meet.
-const TILE_ROOM = 178;
+const LABEL_Y = 62;
+const LABEL_SIZE = 21;
+const MORE_Y = 84;
+const MORE_SIZE = 16;
+// How wide a tile's name and the line under it can run, so neighbouring
+// tiles' never meet.
+const TILE_ROOM = 82;
 // How wide a count can be on its badge.
 const BADGE_ROOM = 34;
 
@@ -266,11 +273,6 @@ const LOCKED_INK = '#8a93b8';
 const CHECK_POP = 1.3;
 const CHECK_POP_TIME = 120;
 
-const BOOSTERS = [
-    { key: 'remove', icon: 'icons/icon-recycle', label: 'Remove', title: 'Get more removes?', noun: 'removes' },
-    { key: 'hint', icon: 'icons/icon-hint', label: 'Hint', title: 'Get more hints?', noun: 'hints' }
-];
-
 // What a top-up gives and costs.
 const PACK_COUNT = 3;
 const PACK_PRICE = 50;
@@ -308,7 +310,7 @@ function writeStore(counts) {
 /**
  * The card between the home screen and the board: which level is next, what
  * it asks for, and which boosters to take into it. onPlay is handed the
- * boosters picked, as { remove, hint } flags. Spending one is left to the
+ * boosters picked, as a flag for each one in BOOSTERS. Spending one is left to the
  * level, through spend().
  */
 export class LevelScreen extends Phaser.GameObjects.Container {
@@ -364,7 +366,9 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.card.add(this.scene.add.rectangle(0, RULE_Y, RULE_HALF * 2, RULE_THICK, RULE));
         this.card.add(this.text(0, PICK_Y, 'Select boosters:', PICK_SIZE, INK));
 
-        for (let i = 0; i < BOOSTERS.length; i++) this.buildTile(BOOSTERS[i], TILE_X[i]);
+        for (let i = 0; i < BOOSTERS.length; i++) {
+            this.buildTile(BOOSTERS[i], (i - (BOOSTERS.length - 1) / 2) * TILE_GAP);
+        }
 
         this.buildNote();
 
@@ -565,18 +569,23 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         tile.icon = icon;
 
         tile.count = this.badge(COUNT_X, COUNT_Y, BADGE_R, '');
+        tile.count.setScale(TILE_BADGE_SCALE);
         tile.add(tile.count);
 
         tile.check = this.badge(CHECK_X, CHECK_Y, BADGE_R, null);
+        tile.check.setScale(TILE_BADGE_SCALE);
         tile.add(tile.check);
 
         tile.lock = this.lockBadge();
         tile.lock.setPosition(COUNT_X, COUNT_Y);
+        tile.lock.setScale(tile.lock.restScale * TILE_BADGE_SCALE);
         tile.add(tile.lock);
 
+        tile.setScale(TILE_SCALE);
         this.pressable(tile, TILE_HIT, TILE_HIT, () => this.pick(booster));
 
         tile.label = this.text(x, TILE_Y + LABEL_Y, booster.label, LABEL_SIZE, INK);
+        fitText(tile.label, TILE_ROOM, LABEL_SIZE);
         tile.more = this.text(x, TILE_Y + MORE_Y, 'Get more', MORE_SIZE, PURPLE);
 
         this.card.add(tile);
@@ -837,8 +846,8 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
             tile.label.setColor(locked ? LOCKED_INK : INK);
             tile.more.setText(!locked ? 'Get more' :
-                this.opensThisLevel(key) ? 'Unlocks this level!' :
-                'Unlocks at Level ' + UNLOCK_AT[key]);
+                this.opensThisLevel(key) ? 'Opens now!' :
+                'Level ' + UNLOCK_AT[key]);
             fitText(tile.more, TILE_ROOM, MORE_SIZE);
             tile.more.setColor(locked ? LOCKED_INK : PURPLE);
             tile.more.visible = locked || left <= 0;
@@ -887,7 +896,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         check.setScale(0);
         this.scene.tweens.add({
             targets: check,
-            scale: { from: CHECK_POP, to: 1 },
+            scale: { from: CHECK_POP * TILE_BADGE_SCALE, to: TILE_BADGE_SCALE },
             duration: CHECK_POP_TIME * 2,
             ease: 'Back.easeOut'
         });

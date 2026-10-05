@@ -3,18 +3,14 @@ import { pressable } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
 import { fitText } from '../utils/text.js';
 import { unlocks, UNLOCK_AT } from './boosterUnlocks.js';
+import { BOOSTERS, boosterFor } from './boosterList.js';
 
-// The two boosters, under the board as in the storyboard: Remove (the bin)
-// and Hint (the bulb), each a round button with how many are left on a blue
-// badge. Their counts are the level card's, so a booster bought or spent in
-// one place shows in the other.
+// The boosters, in a row under the board as in the storyboard, each a round
+// button with how many are left on a blue badge. Their counts are the level
+// card's, so a booster bought or spent in one place shows in the other.
 
-const BUTTONS = [
-    { key: 'remove', icon: 'icons/icon-recycle' },
-    { key: 'hint', icon: 'icons/icon-hint' }
-];
-
-const BUTTON_X = 63;
+// Portrait: this far apart, centre to centre, in one row.
+const BUTTON_GAP = 108;
 const BASE = 'ui/button_booster_base';
 const BASE_SCALE = 0.5;
 const ICON_SCALE = 0.48;
@@ -37,9 +33,11 @@ const FROM_BOTTOM = 85;
 const BELOW_BOARD = 22;
 const HALF_BUTTON = 46;
 
-// Landscape: one either side of the board, level with its middle, and the
-// tip along the bottom edge of the screen.
+// Landscape: a column either side of the board, centred on its middle (the
+// first half of the list on the left), and the tip along the bottom edge of
+// the screen.
 const BESIDE_BOARD = 40;
+const WIDE_GAP = 108;
 const WIDE_TIP_BOTTOM = 20;
 
 // The ring round a booster waiting to be used, pulsing.
@@ -55,8 +53,11 @@ const TIP_SIZE = 24;
 const TIP_EDGE = 20;
 const TIP_INK = '#283085';
 const TIP_STROKE = '#ffffff';
-const TIP_PICK = 'Tap a convoy to remove it';
 const TIP_NONE = 'No free way home to hint yet';
+const TIP_NO_OBSTACLE = 'Nothing on the board to lift';
+const TIP_GHOST_BUSY = 'Land the ghost first';
+const TIP_FROZEN = 'The clock is already frozen';
+const TIP_GHOST_STUCK = 'Set the ghost down clear of other convoys';
 const TIP_SHOW = 1600;
 
 // A booster not yet earned: greyed, with a padlock where its count goes.
@@ -107,11 +108,10 @@ export class BoosterBar extends Phaser.GameObjects.Container {
         this.textRes = Math.min(3, Math.max(1, Math.ceil(this.scene.gameScale || 1)));
 
         this.buttons = {};
-        this.picking = false;
+        // The booster waiting on a tap on the board, if any.
+        this.picking = null;
 
-        for (let i = 0; i < BUTTONS.length; i++) {
-            this.buildButton(BUTTONS[i], (i === 0 ? -1 : 1) * BUTTON_X);
-        }
+        for (let i = 0; i < BOOSTERS.length; i++) this.buildButton(BOOSTERS[i], 0);
 
         this.tip = this.scene.add.text(0, TIP_Y, '', {
             fontFamily: 'FredokaOne_Regular',
@@ -124,6 +124,11 @@ export class BoosterBar extends Phaser.GameObjects.Container {
         this.tip.setResolution(this.textRes);
         this.tip.visible = false;
         this.add(this.tip);
+
+        // A ghost let go on top of another convoy is still a ghost: it says so.
+        this.scene.events.on('ghost:stuck', () => {
+            if (this.visible) this.say(TIP_GHOST_STUCK, TIP_SHOW * 1.5);
+        });
 
         this.visible = false;
     }
@@ -238,7 +243,8 @@ export class BoosterBar extends Phaser.GameObjects.Container {
             return;
         }
 
-        if (key === 'remove' && this.picking) {
+        // A second tap on the one waiting for a pick puts it away, unspent.
+        if (this.picking === key) {
             this.stopPicking();
             return;
         }
@@ -250,40 +256,95 @@ export class BoosterBar extends Phaser.GameObjects.Container {
             return;
         }
 
-        if (key === 'remove') this.startPicking();
-        else this.hint();
+        if (key === 'hint') this.hint();
+        else if (key === 'freeze') this.freeze();
+        else if (key === 'crane') this.crane();
+        else if (key === 'ghost') this.ghost();
+        else this.remove();
     }
 
-    startPicking() {
-        this.picking = true;
-        this.glow(this.buttons.remove, true);
-        this.say(TIP_PICK, 0);
+    // Spends one, if there is one, and shows it spent.
+    spend(key) {
+        if (!this.levelScreen.spend(key)) return false;
 
-        this.gamePlay.pickConvoy((convoy) => {
-            this.stopPicking();
+        this.used(this.buttons[key]);
 
-            if (this.levelScreen.counts.remove > 0 && this.gamePlay.removeConvoy(convoy)) {
-                this.levelScreen.spend('remove');
-                this.used(this.buttons.remove);
-            }
-        });
+        return true;
+    }
+
+    // Waits on a tap on the board, glowing, with what to tap under the row.
+    startPicking(key) {
+        this.picking = key;
+        this.glow(this.buttons[key], true);
+        this.say(boosterFor(key).pick, 0);
     }
 
     stopPicking() {
         if (!this.picking) return;
 
-        this.picking = false;
-        this.glow(this.buttons.remove, false);
+        const key = this.picking;
+
+        this.picking = null;
+        this.glow(this.buttons[key], false);
         this.say(null);
 
         if (this.gamePlay) this.gamePlay.stopPicking();
     }
 
+    remove() {
+        this.startPicking('remove');
+
+        this.gamePlay.pickConvoy((convoy) => {
+            this.stopPicking();
+
+            if (this.levelScreen.counts.remove > 0 && this.gamePlay.removeConvoy(convoy)) this.spend('remove');
+        });
+    }
+
     hint() {
-        if (this.gamePlay.showHint()) {
-            this.levelScreen.spend('hint');
-            this.used(this.buttons.hint);
-        } else this.say(TIP_NONE, TIP_SHOW);
+        if (this.gamePlay.showHint()) this.spend('hint');
+        else this.say(TIP_NONE, TIP_SHOW);
+    }
+
+    // One at a time: not again until the frost is off the clock.
+    freeze() {
+        if (this.gamePlay.frozen > 0) {
+            this.say(TIP_FROZEN, TIP_SHOW);
+            return;
+        }
+
+        if (this.gamePlay.freeze()) this.spend('freeze');
+    }
+
+    // A tap anywhere but an obstacle puts the crane away again, unspent.
+    crane() {
+        if (!this.gamePlay.hasObstacles()) {
+            this.say(TIP_NO_OBSTACLE, TIP_SHOW);
+            return;
+        }
+
+        this.startPicking('crane');
+
+        this.gamePlay.pickObstacle((col, row) => {
+            this.stopPicking();
+
+            if (this.levelScreen.counts.crane > 0 && this.gamePlay.liftObstacle(col, row)) this.spend('crane');
+        }, () => this.stopPicking());
+    }
+
+    ghost() {
+        if (this.gamePlay.ghost) {
+            this.say(TIP_GHOST_BUSY, TIP_SHOW);
+            return;
+        }
+
+        this.startPicking('ghost');
+
+        this.gamePlay.pickConvoy((convoy) => {
+            this.stopPicking();
+
+            if (this.levelScreen.counts.ghost > 0 && this.gamePlay.makeGhost(convoy)) this.spend('ghost');
+        });
     }
 
     // Run out: the level card's offer, over the board, with the clock held
@@ -580,13 +641,13 @@ export class BoosterBar extends Phaser.GameObjects.Container {
 
             this.scene.tweens.killTweensOf(button);
 
-            button.y = INTRO_DROP;
+            button.y = button.restY + INTRO_DROP;
             button.alpha = 0;
             button.setScale(1);
 
             this.scene.tweens.add({
                 targets: button,
-                y: 0,
+                y: button.restY,
                 alpha: 1,
                 duration: INTRO_TIME,
                 delay: INTRO_DELAY + i * INTRO_GAP,
@@ -611,17 +672,34 @@ export class BoosterBar extends Phaser.GameObjects.Container {
         if (dimensions.isLandscape && play) {
             const fit = play.fitScale || 1;
             const side = play.boardWidth / 2 * fit + BESIDE_BOARD + HALF_BUTTON;
+            const left = Math.ceil(BOOSTERS.length / 2);
 
             this.y = play.restY;
-            this.buttons.remove.x = -side;
-            this.buttons.hint.x = side;
+
+            BOOSTERS.forEach((booster, i) => {
+                const button = this.buttons[booster.key];
+                const onLeft = i < left;
+                const index = onLeft ? i : i - left;
+                const count = onLeft ? left : BOOSTERS.length - left;
+
+                button.x = onLeft ? -side : side;
+                button.restY = (index - (count - 1) / 2) * WIDE_GAP;
+                button.y = button.restY;
+            });
+
             this.tip.y = dimensions.gameHeight - WIDE_TIP_BOTTOM - this.y;
 
             return;
         }
 
-        this.buttons.remove.x = -BUTTON_X;
-        this.buttons.hint.x = BUTTON_X;
+        BOOSTERS.forEach((booster, i) => {
+            const button = this.buttons[booster.key];
+
+            button.x = (i - (BOOSTERS.length - 1) / 2) * BUTTON_GAP;
+            button.restY = 0;
+            button.y = 0;
+        });
+
         this.tip.y = TIP_Y;
 
         const bottom = dimensions.gameHeight - FROM_BOTTOM;

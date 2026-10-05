@@ -1,13 +1,15 @@
 import { bakeShape } from '../utils/bake.js';
 import { unlocks } from './boosterUnlocks.js';
+import { BOOSTERS } from './boosterList.js';
 import { fitText } from '../utils/text.js';
 
 // The first time a booster is there to use, the level stops and shows how:
 // the button is unlocked in front of the player, everything else dims, and an
 // arrow asks for a tap on it. The tap plays the booster for real, and free -
-// the hint lights a convoy's way home; the remove asks for a convoy and takes
-// it off - and a card then says in a line what it does. "Got it!" hands the
-// level back, clock and all.
+// the hint lights a convoy's way home; the freeze frosts the clock; the
+// remove, crane and ghost each ask for something on the board to use it on -
+// and a card then says in a line what it does. "Got it!" hands the level
+// back, clock and all.
 
 const DIM = 0x101a33;
 const DIM_ALPHA = 0.62;
@@ -81,19 +83,13 @@ const RING_BURST = 1.7;
 const EXPLAIN_WAIT = 900;
 
 
-const LESSONS = {
-    hint: {
-        name: 'Hint',
-        icon: 'icons/icon-hint',
-        body: 'Lights up a convoy that can drive home right now, and the way to its garage.'
-    },
-    remove: {
-        name: 'Remove',
-        icon: 'icons/icon-recycle',
-        body: 'Takes any convoy off the board. Save it for one that is stuck in the way!',
-        pick: 'Tap a convoy to remove it'
-    }
-};
+const LESSONS = {};
+
+for (let i = 0; i < BOOSTERS.length; i++) {
+    const booster = BOOSTERS[i];
+
+    LESSONS[booster.key] = { name: booster.label, icon: booster.icon, body: booster.body, pick: booster.pick };
+}
 
 export class BoosterTutorial extends Phaser.GameObjects.Container {
     constructor(scene, x = 0, y = 0) {
@@ -353,8 +349,18 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
             return;
         }
 
-        this.bar.glow(this.bar.buttons.remove, true);
-        this.releaseGuide(() => this.askForConvoy());
+        // The clock is held for the lesson, so the freeze is all still there
+        // once it is over.
+        if (key === 'freeze') {
+            this.gamePlay.freeze();
+
+            this.releaseGuide();
+            this.later(EXPLAIN_WAIT, () => this.explain());
+            return;
+        }
+
+        this.bar.glow(this.bar.buttons[key], true);
+        this.releaseGuide(() => key === 'crane' ? this.askForObstacle() : this.askForConvoy());
     }
 
     // The guide lets go of the button it pointed at.
@@ -420,13 +426,14 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
         });
     }
 
-    // Remove: point at a convoy and wait for it to be tapped.
+    // Remove and Ghost: point at a convoy and wait for it to be tapped.
     askForConvoy() {
         const play = this.gamePlay;
+        const key = this.key;
         const convoy = play.convoys.find((c) => !c.escaped && c.cells.length);
 
         if (!convoy) {
-            this.bar.glow(this.bar.buttons.remove, false);
+            this.bar.glow(this.bar.buttons[key], false);
             this.explain();
             return;
         }
@@ -444,7 +451,7 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
             board: true
         };
 
-        this.say(null, LESSONS.remove.pick);
+        this.say(null, LESSONS[key].pick);
         this.showGuide(true, false);
         this.layout();
         this.popIn(this.bubble);
@@ -453,9 +460,15 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
         play.attachInput();
         play.pickConvoy((picked) => {
             play.detachInput();
-            this.bar.glow(this.bar.buttons.remove, false);
+            this.bar.glow(this.bar.buttons[key], false);
             this.showGuide(false);
             this.spot = null;
+
+            if (key === 'ghost') {
+                play.makeGhost(picked);
+                this.explain();
+                return;
+            }
 
             play.removeConvoy(picked);
 
@@ -467,6 +480,54 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
             }
 
             this.explain();
+        });
+    }
+
+    // Crane: point at an obstacle and wait for it to be tapped. Taps
+    // anywhere else are let go of, and it goes on waiting.
+    askForObstacle() {
+        const play = this.gamePlay;
+        let target = null;
+
+        for (let row = 0; row < play.rows && !target; row++) {
+            for (let col = 0; col < play.columns && !target; col++) {
+                if (play.isObstacle(col, row)) target = { col: col, row: row };
+            }
+        }
+
+        if (!target) {
+            this.bar.glow(this.bar.buttons.crane, false);
+            this.explain();
+            return;
+        }
+
+        this.stage = 'pick';
+
+        const at = play.cellToPixel(target.col, target.row);
+
+        this.spot = {
+            x: play.x + at.x * play.scaleX,
+            y: play.y + at.y * play.scaleY,
+            board: true
+        };
+
+        this.say(null, LESSONS.crane.pick);
+        this.showGuide(true, false);
+        this.layout();
+        this.popIn(this.bubble);
+        this.fadeIn(this.arrow);
+
+        play.attachInput();
+        play.pickObstacle((col, row) => {
+            play.detachInput();
+            this.bar.glow(this.bar.buttons.crane, false);
+            this.showGuide(false);
+            this.spot = null;
+
+            play.liftObstacle(col, row);
+
+            // Seen lifted before the card comes up.
+            this.later(EXPLAIN_WAIT, () => this.explain());
         });
     }
 
