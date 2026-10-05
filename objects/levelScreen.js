@@ -42,6 +42,39 @@ const PLATE_SIZE = 46;
 const PLATE_STROKE = '#3844b0';
 // Kept clear between the level and the plate's ends.
 const PLATE_EDGE = 34;
+// The plate is a ribbon: a folded tail tucked behind each end.
+const TAIL_IN = 128;
+const TAIL_OUT = 192;
+const TAIL_TOP = -16;
+const TAIL_BOTTOM = 34;
+const TAIL_NOTCH = 18;
+const TAIL_FILL = 0x5a69d8;
+const TAIL_FOLD = 0x3844b0;
+
+// Sun rays turning slowly behind the card. Turned a whole ray's width every
+// round of the idle loop, so the loop never jumps.
+const RAYS = 14;
+const RAY_R = 560;
+const RAY_Y = -60;
+const RAY_ALPHA = 0.16;
+const RAY_GLOW = 0xfff4c8;
+const RAYS_IN = 420;
+const RAYS_OUT = 200;
+
+// Sparkles twinkling around the plate, each at its own point in the loop.
+const GLINT = 'fx-glint';
+const SPARKLES = [
+    { x: -178, y: -38, size: 0.2, at: 0 },
+    { x: 172, y: -44, size: 0.16, at: 0.37 },
+    { x: 118, y: 40, size: 0.12, at: 0.68 }
+];
+const SPARKLE_TINT = 0xffe27a;
+const SPARKLE_LIFE = 0.22;
+
+// What loops while the card is up: rays, sparkles, the icons' float.
+const IDLE_ROUND = 6000;
+const FLOAT = 5;
+const RING_PULSE = 0.035;
 
 const CLOSE_X = PANEL_W / 2 - 8;
 const CLOSE_Y = -PANEL_H / 2 + 4;
@@ -62,6 +95,26 @@ const ARROW_X = 62;
 const ARROW_COLOR = 0x3d8cf0;
 const GARAGE_X = 138;
 const GARAGE_SCALE = 0.36;
+// The lane the convoy drives along, with a dashed line down it.
+const ROAD_Y = ART_Y + 34;
+const ROAD_LEFT = -196;
+const ROAD_RIGHT = GARAGE_X + 20;
+const ROAD_H = 16;
+const ROAD_FILL = 0xd7dbf3;
+const ROAD_DASH = 0xffffff;
+// Puffs of exhaust left behind as it drives, and the glints the garage gives
+// off as it takes it.
+const PUFFS = 4;
+const PUFF_R = 9;
+const PUFF_FILL = 0xaab1d8;
+const PUFF_EVERY = 190;
+const PUFF_LIFE = 520;
+const PUFF_RISE = 20;
+const BURST = 6;
+const BURST_REACH = 58;
+const BURST_TIME = 520;
+const BURST_SCALE = 0.13;
+const BURST_TINT = 0xffd34d;
 // Once the card has landed, the convoy drives over to the garage and in out
 // of sight (the arrow giving way as it passes), the garage bumps as it takes
 // it, and a fresh convoy rolls in back at the start. Times are from the start
@@ -136,6 +189,22 @@ const PLAY_STROKE = '#1d8a12';
 const PLAY_BEAT = 0.05;
 const PLAY_BEAT_TIME = 360;
 const PLAY_BEAT_REST = 700;
+// A glint that flares on Play's corner with each swell.
+const PLAY_GLINT_X = -PLAY_W / 2 + 46;
+const PLAY_GLINT_Y = -PLAY_H / 2 + 20;
+const PLAY_GLINT = 0.22;
+// A slanted shine that sweeps across Play's face now and then, kept inside
+// the face (clear of its rounded ends and the lip at its foot).
+const SHINE_W = 34;
+const SHINE_THIN = 10;
+const SHINE_GAP = 10;
+const SHINE_SLANT = 26;
+const SHINE_TOP = -PLAY_H / 2 + 8;
+const SHINE_BOTTOM = PLAY_H / 2 - 16;
+const SHINE_INSET = 30;
+const SHINE_ALPHA = 0.45;
+const SHINE_TIME = 650;
+const SHINE_REST = 2200;
 
 // How hard the landing knocks the level plate, above the other pieces.
 const PLATE_JOLT = 0.24;
@@ -276,6 +345,8 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.fitter = this.scene.add.container(0, 0);
         this.add(this.fitter);
 
+        this.buildRays();
+
         this.card = this.scene.add.container(0, 0);
         this.fitter.add(this.card);
 
@@ -300,11 +371,58 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.playButton = this.green(0, PLAY_Y, PLAY_W, PLAY_H, 'Play', PLAY_SIZE, () => this.play(), PLAY_STROKE);
         this.card.add(this.playButton);
 
+        this.playGlint = this.scene.add.image(PLAY_GLINT_X, PLAY_GLINT_Y, GLINT);
+        this.playGlint.setScale(0);
+        this.playButton.add(this.playGlint);
+
+        // Between the face and the label, so the label stays on top of it.
+        const shineBox = { left: -SHINE_W, top: SHINE_TOP, width: SHINE_W + SHINE_GAP + SHINE_THIN + SHINE_SLANT * 2, height: SHINE_BOTTOM - SHINE_TOP };
+        this.playShine = bakeShape(this.scene, shineBox, (g) => {
+            g.fillStyle(0xffffff, 1);
+
+            for (const [x, w] of [[-SHINE_W, SHINE_W], [SHINE_GAP, SHINE_THIN]]) {
+                g.fillPoints([
+                    { x: x + SHINE_SLANT * 2, y: SHINE_TOP },
+                    { x: x + SHINE_SLANT * 2 + w, y: SHINE_TOP },
+                    { x: x + w, y: SHINE_BOTTOM },
+                    { x: x, y: SHINE_BOTTOM }
+                ], true);
+            }
+        }, 'level-play-shine');
+        this.playShine.setBlendMode(Phaser.BlendModes.ADD);
+        this.playShine.alpha = 0;
+        this.playShine.box = shineBox;
+        this.playButton.addAt(this.playShine, 1);
+
         this.buildOffer();
     }
 
     buildPlate() {
         const plate = this.scene.add.container(0, PLATE_Y);
+
+        plate.add(bakeShape(this.scene, { left: -TAIL_OUT, top: TAIL_TOP, width: TAIL_OUT * 2, height: TAIL_BOTTOM - TAIL_TOP }, (g) => {
+            const mid = (TAIL_TOP + TAIL_BOTTOM) / 2;
+
+            for (const side of [-1, 1]) {
+                g.fillStyle(TAIL_FILL, 1);
+                g.beginPath();
+                g.moveTo(side * TAIL_IN, TAIL_TOP);
+                g.lineTo(side * TAIL_OUT, TAIL_TOP);
+                g.lineTo(side * (TAIL_OUT - TAIL_NOTCH), mid);
+                g.lineTo(side * TAIL_OUT, TAIL_BOTTOM);
+                g.lineTo(side * TAIL_IN, TAIL_BOTTOM);
+                g.closePath();
+                g.fillPath();
+
+                // The fold, where the tail turns under the plate.
+                g.fillStyle(TAIL_FOLD, 1);
+                g.fillTriangle(
+                    side * TAIL_IN, TAIL_BOTTOM,
+                    side * (TAIL_IN + 24), TAIL_BOTTOM,
+                    side * TAIL_IN, TAIL_BOTTOM - 14
+                );
+            }
+        }, 'level-plate-tails'));
 
         const face = this.scene.add.nineslice(
             0, 0, 'sheet', PLATE,
@@ -318,9 +436,48 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.levelText = this.text(0, -2, 'Level 1', PLATE_SIZE, '#ffffff', .5, PLATE_STROKE);
         plate.add(this.levelText);
 
+        this.sparkles = SPARKLES.map((spot) => {
+            const sparkle = this.scene.add.image(spot.x, spot.y, GLINT);
+
+            sparkle.setTint(SPARKLE_TINT);
+            sparkle.setScale(0);
+            sparkle.spot = spot;
+            plate.add(sparkle);
+
+            return sparkle;
+        });
+
         plate.modalJolt = PLATE_JOLT;
 
         this.card.add(plate);
+    }
+
+    buildRays() {
+        const step = Math.PI * 2 / RAYS;
+        const half = step / 4;
+
+        this.rays = bakeShape(this.scene, { left: -RAY_R, top: -RAY_R, width: RAY_R * 2, height: RAY_R * 2 }, (g) => {
+            g.fillStyle(0xffffff, 1);
+
+            for (let i = 0; i < RAYS; i++) {
+                const a = i * step;
+
+                g.fillTriangle(
+                    0, 0,
+                    Math.cos(a - half) * RAY_R, Math.sin(a - half) * RAY_R,
+                    Math.cos(a + half) * RAY_R, Math.sin(a + half) * RAY_R
+                );
+            }
+
+            // A warm glow at the heart, built up from rings.
+            for (let r = 260; r > 0; r -= 40) {
+                g.fillStyle(RAY_GLOW, 0.14);
+                g.fillCircle(0, 0, r);
+            }
+        }, 'level-rays', 1);
+        this.rays.setPosition(0, RAY_Y);
+        this.rays.alpha = 0;
+        this.fitter.add(this.rays);
     }
 
     buildClose() {
@@ -330,7 +487,31 @@ export class LevelScreen extends Phaser.GameObjects.Container {
     buildGoal() {
         this.card.add(this.text(0, GOAL_Y, 'Guide all carts to their garages', GOAL_SIZE, INK));
 
+        const roadBox = { left: ROAD_LEFT, top: ROAD_Y - ROAD_H / 2, width: ROAD_RIGHT - ROAD_LEFT, height: ROAD_H };
+        this.card.add(bakeShape(this.scene, roadBox, (g) => {
+            g.fillStyle(ROAD_FILL, 1);
+            g.fillRoundedRect(roadBox.left, roadBox.top, roadBox.width, ROAD_H, ROAD_H / 2);
+            g.fillStyle(ROAD_DASH, 1);
+
+            for (let x = ROAD_LEFT + 18; x < ROAD_RIGHT - 30; x += 30) g.fillRoundedRect(x, ROAD_Y - 2, 16, 4, 2);
+        }));
+
+        this.puffs = [];
+
+        for (let i = 0; i < PUFFS; i++) {
+            const puff = bakeShape(this.scene, { left: -PUFF_R, top: -PUFF_R, width: PUFF_R * 2, height: PUFF_R * 2 }, (g) => {
+                g.fillStyle(PUFF_FILL, 1);
+                g.fillCircle(0, 0, PUFF_R);
+            }, 'level-puff');
+            puff.setPosition(CONVOY_X, ART_Y);
+            puff.alpha = 0;
+            this.card.add(puff);
+            this.puffs.push(puff);
+        }
+
         const convoy = this.scene.add.sprite(CONVOY_X, ART_Y, 'sheet', 'home/convoy');
+        // The art faces left; turned to face the garage it drives into.
+        convoy.setFlipX(true);
         convoy.setScale(CONVOY_SCALE);
         this.card.add(convoy);
         this.convoy = convoy;
@@ -348,6 +529,17 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         garage.setScale(GARAGE_SCALE);
         this.card.add(garage);
         this.garage = garage;
+
+        this.burst = [];
+
+        for (let i = 0; i < BURST; i++) {
+            const glint = this.scene.add.image(GARAGE_X, ART_Y, GLINT);
+
+            glint.setTint(BURST_TINT);
+            glint.alpha = 0;
+            this.card.add(glint);
+            this.burst.push(glint);
+        }
     }
 
     buildTile(booster, x) {
@@ -748,6 +940,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
                 this.visible = false;
                 this.dim.visible = true;
                 this.card.visible = true;
+                this.rays.visible = true;
 
                 done();
             }
@@ -772,6 +965,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.visible = true;
         this.dim.visible = false;
         this.card.visible = false;
+        this.rays.visible = false;
 
         this.showOffer(booster);
     }
@@ -834,6 +1028,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.visible = true;
         this.dim.visible = true;
         this.card.visible = true;
+        this.rays.visible = true;
 
         this.level = level;
         this.levelText.setText('Level ' + level);
@@ -842,10 +1037,14 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.offer.visible = false;
         this.refresh();
 
+        this.raysIn();
+
         dropModal(this.scene, this.dim, this.card, DIM_ALPHA, () => {
             if (this.isOpen) {
                 this.beat();
+                this.shine();
                 this.drive();
+                this.idle();
             }
         });
     }
@@ -870,8 +1069,51 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
                 button.face.setScale(GREEN_SCALE * swell);
                 button.label.setScale(swell);
+
+                this.playGlint.setScale(PLAY_GLINT * tween.getValue());
+                this.playGlint.angle = 90 * tween.getValue();
             }
         });
+    }
+
+    // Sweeps the shine across Play's face, cropped to the face's inside.
+    shine() {
+        this.stopShine();
+
+        const shine = this.playShine;
+        const box = shine.box;
+        const res = 1 / shine.restScale;
+        const from = -PLAY_W / 2 + SHINE_INSET - (box.left + box.width);
+        const to = PLAY_W / 2 - SHINE_INSET - box.left;
+
+        this.shineRun = this.scene.tweens.addCounter({
+            from: 0,
+            to: 1,
+            duration: SHINE_TIME,
+            repeat: -1,
+            repeatDelay: SHINE_REST,
+            ease: 'Sine.easeInOut',
+            onUpdate: (tween) => {
+                const p = tween.getValue();
+                const x = from + (to - from) * p;
+                const left = x + box.left;
+
+                shine.x = x;
+                shine.alpha = SHINE_ALPHA * Math.sin(Math.PI * p);
+                shine.setCrop(
+                    Math.max(0, (-PLAY_W / 2 + SHINE_INSET - left) * res), 0,
+                    Math.max(0, (PLAY_W / 2 - SHINE_INSET - Math.max(left, -PLAY_W / 2 + SHINE_INSET)) * res), shine.height
+                );
+            }
+        });
+    }
+
+    stopShine() {
+        if (!this.shineRun) return;
+
+        this.shineRun.remove();
+        this.shineRun = null;
+        this.playShine.alpha = 0;
     }
 
     stopBeat() {
@@ -881,6 +1123,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.beatRun = null;
         this.playButton.face.setScale(GREEN_SCALE);
         this.playButton.label.setScale(1);
+        this.playGlint.setScale(0);
     }
 
     drive() {
@@ -897,6 +1140,9 @@ export class LevelScreen extends Phaser.GameObjects.Container {
             onUpdate: (tween) => {
                 const at = tween.getValue();
                 const convoy = this.convoy;
+
+                this.exhaust(at);
+                this.flash(at);
 
                 if (at < RETURN_AT) {
                     const t = clamp01(at / DRIVE_END);
@@ -950,6 +1196,136 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.convoy.alpha = 1;
         this.arrow.alpha = 1;
         this.garage.setScale(GARAGE_SCALE);
+        this.puffs.forEach((puff) => { puff.alpha = 0; });
+        this.burst.forEach((glint) => { glint.alpha = 0; });
+    }
+
+    // Puffs left at the convoy's tail while it drives, each living PUFF_LIFE
+    // from when it was let go: puff i goes at i * PUFF_EVERY into the drive.
+    exhaust(at) {
+        for (let i = 0; i < this.puffs.length; i++) {
+            const puff = this.puffs[i];
+            const born = 60 + i * PUFF_EVERY;
+            const p = (at - born) / PUFF_LIFE;
+
+            if (p < 0 || p > 1) {
+                puff.alpha = 0;
+                if (p < 0) puff.startX = null;
+                continue;
+            }
+
+            // Pinned where the tail was when it was let go.
+            if (puff.startX == null) puff.startX = this.convoy.x - this.convoy.displayWidth / 2 + 6;
+
+            puff.x = puff.startX - 14 * p;
+            puff.y = ROAD_Y - 10 - PUFF_RISE * p;
+            puff.setScale(puff.restScale * (0.5 + 0.9 * p));
+            puff.alpha = 0.85 * (1 - p);
+        }
+    }
+
+    // Glints flung out of the garage as it takes the convoy.
+    flash(at) {
+        const p = (at - BUMP_AT) / BURST_TIME;
+
+        for (let i = 0; i < this.burst.length; i++) {
+            const glint = this.burst[i];
+
+            if (p < 0 || p > 1) {
+                glint.alpha = 0;
+                continue;
+            }
+
+            // Fanned over the top half, so none falls through the road.
+            const turn = Math.PI + (i + 0.5) / this.burst.length * Math.PI;
+            const out = Phaser.Math.Easing.Cubic.Out(p);
+
+            glint.x = GARAGE_X + Math.cos(turn) * BURST_REACH * out;
+            glint.y = ART_Y + Math.sin(turn) * BURST_REACH * out;
+            glint.setScale(BURST_SCALE * (1 - p * p));
+            glint.angle = 180 * p;
+            glint.alpha = 1;
+        }
+    }
+
+    raysIn() {
+        const rays = this.rays;
+
+        this.scene.tweens.killTweensOf(rays);
+        rays.alpha = 0;
+        rays.setScale(rays.restScale * 0.6);
+
+        this.scene.tweens.add({
+            targets: rays,
+            alpha: RAY_ALPHA,
+            scale: rays.restScale,
+            duration: RAYS_IN,
+            ease: 'Back.easeOut'
+        });
+    }
+
+    raysOut() {
+        this.scene.tweens.killTweensOf(this.rays);
+
+        this.scene.tweens.add({
+            targets: this.rays,
+            alpha: 0,
+            duration: RAYS_OUT,
+            ease: 'Sine.easeIn'
+        });
+    }
+
+    // What keeps moving while the card waits: the rays turn, the sparkles on
+    // the plate twinkle in turn, and the open boosters float, the picked
+    // one's ring breathing.
+    idle() {
+        this.stopIdle();
+
+        const turn = 360 / RAYS;
+        const startAngle = this.rays.angle;
+
+        this.idleRun = this.scene.tweens.addCounter({
+            from: 0,
+            to: 1,
+            duration: IDLE_ROUND,
+            repeat: -1,
+            onUpdate: (tween) => {
+                const t = tween.getValue();
+
+                this.rays.angle = startAngle + turn * t;
+
+                this.sparkles.forEach((sparkle) => {
+                    const p = ((t - sparkle.spot.at + 1) % 1) / SPARKLE_LIFE;
+                    const on = p < 1 ? Math.sin(p * Math.PI) : 0;
+
+                    sparkle.setScale(sparkle.spot.size * on);
+                    sparkle.angle = 120 * p;
+                });
+
+                BOOSTERS.forEach((booster, i) => {
+                    const tile = this.tiles[booster.key];
+                    const wave = Math.sin((t * 3 + i * 0.5) * Math.PI * 2);
+
+                    tile.icon.y = this.isLocked(booster.key) ? 0 : FLOAT * wave;
+                    tile.ring.setScale(tile.ring.restScale * (1 + RING_PULSE * wave));
+                });
+            }
+        });
+    }
+
+    stopIdle() {
+        if (!this.idleRun) return;
+
+        this.idleRun.remove();
+        this.idleRun = null;
+        this.sparkles.forEach((sparkle) => sparkle.setScale(0));
+
+        BOOSTERS.forEach((booster) => {
+            const tile = this.tiles[booster.key];
+
+            tile.icon.y = 0;
+            tile.ring.setScale(tile.ring.restScale);
+        });
     }
 
     hide() {
@@ -957,7 +1333,10 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
         this.isOpen = false;
         this.stopBeat();
+        this.stopShine();
         this.stopDrive();
+        this.stopIdle();
+        this.raysOut();
 
         liftModal(this.scene, this.dim, this.card, () => {
             if (!this.isOpen) this.visible = false;

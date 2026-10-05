@@ -2,6 +2,7 @@ import { pressable, pointerUp } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
 import { openModal, shutModal } from '../utils/modal.js';
 import { fitText } from '../utils/text.js';
+import { shineImage, sweep } from '../utils/shine.js';
 
 const ART_SCALE = 0.645;
 
@@ -186,6 +187,11 @@ const FILM_MARK = 0xdfeaff;
 const FILM_PLAY = 0xffffff;
 
 
+// Light sweeps across each icon in turn, top to bottom, then rests a while.
+const SHINE_ROUND = 3400;
+const SHINE_TIME = 620;
+const SHINE_GAP = 200;
+
 const OFFERS = {
     ads: { id: 'remove-ads', price: '$3.99' },
     small: { id: 'coins-500', price: '$0.99', coins: 500 },
@@ -259,6 +265,7 @@ export class StorePanel extends Phaser.GameObjects.Container {
         this.scene.add.existing(this);
 
         this.isOpen = false;
+        this.shines = [];
 
         this.build();
 
@@ -333,6 +340,12 @@ export class StorePanel extends Phaser.GameObjects.Container {
         coin.setScale(PILL_COIN_SCALE);
         pill.add(coin);
 
+        const coinR = coin.displayWidth / 2;
+        pill.add(this.shine('store-shine-coin', PILL_COIN_X, 0, { left: -coinR, top: -coinR, width: coinR * 2, height: coinR * 2 }, (g) => {
+            g.fillStyle(0xffffff, 1);
+            g.fillCircle(0, 0, coinR * 0.94);
+        }));
+
         pill.count = this.text(PILL_COUNT_X, 0, '', PILL_COUNT_SIZE, INK, .5);
         pill.add(pill.count);
 
@@ -372,7 +385,7 @@ export class StorePanel extends Phaser.GameObjects.Container {
             const pack = packs[i];
             const y = PACK_Y[i];
 
-            this.card.add(this.coinPiles(PACK_ICON_X, y, PILES[i]));
+            this.card.add(this.coinPiles(PACK_ICON_X, y, PILES[i], 'store-shine-pile-' + i));
 
             this.card.add(this.text(
                 PACK_LABEL_X, y, pack.coins.toLocaleString() + ' coins',
@@ -388,7 +401,15 @@ export class StorePanel extends Phaser.GameObjects.Container {
     buildWatch() {
         const block = this.block(WATCH_Y, WATCH_H, WATCH_FILL, WATCH_EDGE);
 
-        block.add(this.filmBadge(WATCH_ICON_X, 0));
+        const film = this.scene.add.container(WATCH_ICON_X, 0);
+        film.add(this.filmBadge(0, 0));
+        film.add(this.shine('store-shine-film', 0, 0, {
+            left: -FILM_W / 2 - 2, top: -FILM_H / 2 - 2, width: FILM_W + 4, height: FILM_H + 4
+        }, (g) => {
+            g.fillStyle(0xffffff, 1);
+            g.fillRoundedRect(-FILM_W / 2 - 2, -FILM_H / 2 - 2, FILM_W + 4, FILM_H + 4, FILM_CORNER + 2);
+        }));
+        block.add(film);
 
         block.add(this.text(WATCH_TEXT_X, WATCH_TITLE_Y, '+' + VIDEO_COINS + ' coins', WATCH_TITLE_SIZE, INK, 0));
         block.add(this.text(WATCH_TEXT_X, WATCH_LINE_Y, 'Watch a video', WATCH_LINE_SIZE, SUB, 0));
@@ -454,17 +475,36 @@ export class StorePanel extends Phaser.GameObjects.Container {
 
         badge.add(sign);
 
+        badge.add(this.shine('store-shine-ads', 0, 0, { left: -r, top: -r, width: r * 2, height: r * 2 }, (g) => {
+            g.fillStyle(0xffffff, 1);
+            g.fillCircle(0, 0, r);
+        }));
+
         return badge;
     }
 
-    coinPiles(x, y, piles) {
-        const art = this.scene.add.graphics();
+    coinPiles(x, y, piles, key) {
+        const art = this.scene.add.container(x, y);
+        const draw = (g) => {
+            for (const [px, py, high] of piles) {
+                for (let i = 0; i < high; i++) this.coin(g, px, py - i * COIN_T);
+            }
+        };
 
-        art.setPosition(x, y);
+        const coins = this.scene.add.graphics();
+        draw(coins);
+        art.add(coins);
+
+        let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
 
         for (const [px, py, high] of piles) {
-            for (let i = 0; i < high; i++) this.coin(art, px, py - i * COIN_T);
+            left = Math.min(left, px - COIN_W / 2 - 2);
+            right = Math.max(right, px + COIN_W / 2 + 2);
+            top = Math.min(top, py - (high - 1) * COIN_T - COIN_H / 2 - 2);
+            bottom = Math.max(bottom, py + COIN_T + COIN_H / 2 + 2);
         }
+
+        art.add(this.shine(key, 0, 0, { left, top, width: right - left, height: bottom - top }, draw));
 
         return art;
     }
@@ -537,6 +577,44 @@ export class StorePanel extends Phaser.GameObjects.Container {
         art.fillTriangle(-8, mid - 12, -8, mid + 12, 13, mid);
 
         return art;
+    }
+
+    // A sweep of light over an icon, played by glimmer() in build order.
+    shine(key, x, y, bounds, paint) {
+        const image = shineImage(this.scene, key, bounds, paint);
+
+        image.setPosition(x, y);
+        this.shines.push(image);
+
+        return image;
+    }
+
+    glimmer() {
+        this.stopGlimmer();
+
+        // Top to bottom down the card, the coin in the pill first.
+        const order = this.shines.slice();
+
+        this.glimmerRun = this.scene.tweens.addCounter({
+            from: 0,
+            to: SHINE_ROUND,
+            duration: SHINE_ROUND,
+            repeat: -1,
+            onUpdate: (tween) => {
+                const at = tween.getValue();
+
+                order.forEach((image, i) => sweep(image, (at - i * SHINE_GAP) / SHINE_TIME));
+            }
+        });
+    }
+
+    stopGlimmer() {
+        if (this.glimmerRun) {
+            this.glimmerRun.remove();
+            this.glimmerRun = null;
+        }
+
+        this.shines.forEach((image) => sweep(image, 0));
     }
 
     // A line with round ends.
@@ -622,13 +700,16 @@ export class StorePanel extends Phaser.GameObjects.Container {
 
         this.setBalance(this.balance());
 
-        openModal(this.scene, this.dim, this.card, DIM_ALPHA);
+        openModal(this.scene, this.dim, this.card, DIM_ALPHA, () => {
+            if (this.isOpen) this.glimmer();
+        });
     }
 
     hide() {
         if (!this.isOpen) return;
 
         this.isOpen = false;
+        this.stopGlimmer();
 
         shutModal(this.scene, this.dim, this.card, () => {
             this.visible = false;

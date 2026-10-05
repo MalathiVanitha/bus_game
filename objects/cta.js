@@ -77,14 +77,16 @@ const BUTTON_W = 400;
 const BUTTON_H = 86;
 const BUTTON_SIZE = 42;
 
-const BUTTON_PAD = 44;
+// Kept clear inside the button's rim, both sides together, so a label (and
+// its icon) never runs into the rounded border.
+const BUTTON_PAD = 100;
 const BUTTON_SCALE = 0.35;
 const BUTTON_CORNER_X = 120;
 const BUTTON_CORNER_Y = 70;
 
 const BADGE = 'icons/icon-video';
-const BADGE_SCALE = 0.62;
-const BADGE_GAP = 18;
+const BADGE_SCALE = 0.56;
+const BADGE_GAP = 14;
 
 const CONFETTI = [0xf4564c, 0x4a90e2, 0xffc93c, 0x58c26b, 0x8e6bd8, 0x9ad4f5];
 
