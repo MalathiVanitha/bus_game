@@ -1,4 +1,4 @@
-// The open and close every modal card shares. Opening, the dim fades in while
+// The open and close the modal cards share (the level card has its own, below).
 // the card rises into place, swelling a touch past full size before it
 // settles, and what is on it follows top to bottom a beat behind, so the
 // card lands first and its contents drift in after: each fades up as it rises,
@@ -190,6 +190,119 @@ export function shutModal(scene, dim, card, onDone = null) {
         card.y = fromY + (rest + SHUT_DROP - fromY) * Ease.Cubic.In(t);
     }, () => {
         card.alpha = 1;
+        card.setScale(1);
+        card.y = rest;
+
+        if (onDone) onDone();
+    });
+}
+
+// The level card's own entrance, so it reads apart from the other modals: it
+// drops in from above, tilted, and lands with a squash and a wobble that die
+// away, and the landing knocks a bump up through its contents from the bottom
+// to the top. A piece can set modalJolt for a bigger or smaller bump. Leaving,
+// it ducks a touch and is flung back up out of sight.
+const DROP_FROM = 520;
+const DROP_TILT = -7;
+const DROP_FALL = 300;
+const DROP_FADE = 120;
+// How far the fall's start already moves: 0 hangs at the top, 1 falls evenly.
+const DROP_PUSH = 0.4;
+
+const LAND_TIME = 460;
+const LAND_SQUASH = 0.07;
+const LAND_HOP = 10;
+const LAND_WOBBLE = 2.5;
+// Half swings of the squash and wobble before they die away.
+const LAND_SWINGS = 3;
+
+const JOLT = 0.1;
+const JOLT_SPREAD = 160;
+const JOLT_TIME = 280;
+
+const LIFT_TIME = 240;
+const LIFT_TO = 460;
+const LIFT_TILT = 6;
+const LIFT_OVERSHOOT = 1.2;
+
+/** Drops the card in from above, for the level card. */
+export function dropModal(scene, dim, card, dimAlpha, onDone = null) {
+    stop(scene, dim, card);
+
+    const pieces = contents(card);
+    const rest = card.modalY;
+    const ys = pieces.map((piece) => piece.y);
+    const top = Math.min(...ys);
+    const span = Math.max(1, Math.max(...ys) - top);
+
+    // Bottom first: the knock of the landing travels up the card.
+    pieces.forEach((piece) => {
+        piece.modalDelay = DROP_FALL + (1 - (piece.y - top) / span) * JOLT_SPREAD;
+    });
+
+    const total = DROP_FALL + Math.max(LAND_TIME, JOLT_SPREAD + JOLT_TIME);
+
+    run(scene, card, total, (at) => {
+        dim.alpha = dimAlpha * Ease.Sine.Out(clamp01(at / DIM_IN));
+        card.alpha = Ease.Quadratic.Out(clamp01(at / DROP_FADE));
+
+        if (at < DROP_FALL) {
+            const t = at / DROP_FALL;
+            const fallen = t * (DROP_PUSH + (1 - DROP_PUSH) * t);
+
+            card.y = rest - DROP_FROM * (1 - fallen);
+            card.angle = DROP_TILT * (1 - fallen);
+            card.setScale(1);
+        } else {
+            const p = clamp01((at - DROP_FALL) / LAND_TIME);
+            const fade = (1 - p) * (1 - p);
+            const squash = Math.cos(p * Math.PI * LAND_SWINGS) * fade;
+
+            card.y = rest + LAND_HOP * squash;
+            card.angle = LAND_WOBBLE * Math.sin(p * Math.PI * LAND_SWINGS) * fade;
+            card.setScale(1 + LAND_SQUASH * squash, 1 - LAND_SQUASH * squash);
+        }
+
+        pieces.forEach((piece) => {
+            if (!piece.modalPop) return;
+
+            const p = clamp01((at - piece.modalDelay) / JOLT_TIME);
+            const jolt = piece.modalJolt === undefined ? JOLT : piece.modalJolt;
+
+            grow(piece, p >= 1 ? 1 : 1 + jolt * Math.sin(p * Math.PI), 1);
+        });
+    }, () => {
+        card.angle = 0;
+        card.setScale(1);
+
+        if (onDone) onDone();
+    });
+}
+
+/** Flings the card back up and away, then calls onDone with it back at rest. */
+export function liftModal(scene, dim, card, onDone = null) {
+    stop(scene, dim, card);
+
+    const rest = card.modalY;
+    const fromDim = dim.alpha;
+    const fromAlpha = card.alpha;
+    const fromAngle = card.angle;
+    const fromY = card.y;
+    const fromX = card.scaleX;
+    const fromScaleY = card.scaleY;
+
+    run(scene, card, LIFT_TIME, (at) => {
+        const t = at / LIFT_TIME;
+        const ease = Ease.Quadratic.Out(t);
+
+        dim.alpha = fromDim * (1 - Ease.Sine.In(t));
+        card.alpha = fromAlpha * (1 - Ease.Quadratic.In(clamp01((t - 0.3) / 0.7)));
+        card.y = fromY + (rest - LIFT_TO - fromY) * Ease.Back.In(t, LIFT_OVERSHOOT);
+        card.angle = fromAngle + (LIFT_TILT - fromAngle) * Ease.Quadratic.In(t);
+        card.setScale(fromX + (1 - fromX) * ease, fromScaleY + (1 - fromScaleY) * ease);
+    }, () => {
+        card.alpha = 1;
+        card.angle = 0;
         card.setScale(1);
         card.y = rest;
 

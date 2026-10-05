@@ -1,4 +1,5 @@
 import SoundManager from './SoundManager.js';
+import { fitText } from '../utils/text.js';
 
 const PILL = 'home/coin-base';
 const PILL_X = 132;
@@ -42,6 +43,10 @@ const INTRO_TIME = 540;
 const INTRO_DELAY = 260;
 
 const OUTRO_TIME = 300;
+
+// Clear space kept between the count and the coin, and the pill's edge.
+const COUNT_GAP = 6;
+const COUNT_EDGE = 16;
 
 const START_COINS = 0;
 
@@ -89,6 +94,21 @@ export function makeCoinPill(scene, value, textRes, tile = false) {
     pill.count.setResolution(textRes);
     pill.add(pill.count);
 
+    // As wide as the count can grow either side of where it is centred,
+    // between the coin and the pill's end.
+    const countX = pill.count.x;
+    const room = 2 * Math.min(
+        countX - (icon.x + icon.displayWidth / 2 + COUNT_GAP),
+        base.displayWidth / 2 - COUNT_EDGE - countX
+    );
+    const size = tile ? TILE_COUNT_SIZE : COUNT_SIZE;
+
+    pill.setCount = (count) => {
+        pill.count.setText(String(count));
+        fitText(pill.count, room, size);
+    };
+    pill.setCount(value);
+
     return pill;
 }
 
@@ -117,7 +137,7 @@ export class Coin extends Phaser.GameObjects.Container {
 
     set(value) {
         this.value = Math.max(0, Math.floor(value));
-        this.count.setText(String(this.value));
+        this.pill.setCount(this.value);
 
         writeStore(this.value);
 

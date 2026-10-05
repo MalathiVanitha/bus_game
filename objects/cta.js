@@ -1,6 +1,7 @@
 import SoundManager from './SoundManager.js';
 import { pressable } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
+import { fitText } from '../utils/text.js';
 
 const PANEL_W = 470;
 
@@ -39,6 +40,8 @@ const COIN_Y = 22;
 const COIN_ICON_SCALE = 0.36;
 const COIN_GAP = 12;
 const COIN_TEXT_SIZE = 62;
+// Kept clear between the earned coins and either side of the card.
+const COIN_EDGE = 40;
 
 const DOUBLE_Y = 120;
 const NEXT_Y = 216;
@@ -75,7 +78,6 @@ const BUTTON_H = 86;
 const BUTTON_SIZE = 42;
 
 const BUTTON_PAD = 44;
-const BUTTON_MIN_SIZE = 26;
 const BUTTON_SCALE = 0.35;
 const BUTTON_CORNER_X = 120;
 const BUTTON_CORNER_Y = 70;
@@ -358,14 +360,7 @@ export class CTA extends Phaser.GameObjects.Container {
         const taken = badge ? badge.displayWidth + BADGE_GAP : 0;
         const room = BUTTON_W - BUTTON_PAD - taken;
 
-        text.setFontSize(BUTTON_SIZE);
-
-        if (text.width > room) {
-            text.setFontSize(Math.max(
-                BUTTON_MIN_SIZE,
-                Math.floor(BUTTON_SIZE * room / text.width)
-            ));
-        }
+        fitText(text, room, BUTTON_SIZE);
 
         if (!badge) {
             text.x = 0;
@@ -409,6 +404,8 @@ export class CTA extends Phaser.GameObjects.Container {
     }
 
     centreCoins() {
+        fitText(this.coinText, PANEL_W - COIN_EDGE * 2 - this.coinIcon.displayWidth - COIN_GAP, COIN_TEXT_SIZE);
+
         const span = this.coinIcon.displayWidth + COIN_GAP + this.coinText.width;
 
         this.coinIcon.x = -span / 2 + this.coinIcon.displayWidth / 2;

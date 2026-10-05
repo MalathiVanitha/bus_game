@@ -1,6 +1,7 @@
 import { pressable, pointerUp } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
 import { openModal, shutModal } from '../utils/modal.js';
+import { fitText } from '../utils/text.js';
 
 const ART_SCALE = 0.645;
 
@@ -58,6 +59,9 @@ const PILL_COIN_X = -38;
 const PILL_COIN_SCALE = 0.33;
 const PILL_COUNT_X = 28;
 const PILL_COUNT_SIZE = 33;
+// Clear space kept between the count and the coin, and the pill's edge.
+const PILL_COUNT_GAP = 6;
+const PILL_COUNT_EDGE = 14;
 
 const CLOSE_X = 197;
 const CLOSE_Y = -299;
@@ -329,8 +333,19 @@ export class StorePanel extends Phaser.GameObjects.Container {
         coin.setScale(PILL_COIN_SCALE);
         pill.add(coin);
 
-        pill.count = this.text(PILL_COUNT_X, 0, String(this.balance()), PILL_COUNT_SIZE, INK, .5);
+        pill.count = this.text(PILL_COUNT_X, 0, '', PILL_COUNT_SIZE, INK, .5);
         pill.add(pill.count);
+
+        const room = 2 * Math.min(
+            PILL_COUNT_X - (PILL_COIN_X + coin.displayWidth / 2 + PILL_COUNT_GAP),
+            PILL_W / 2 - PILL_COUNT_EDGE - PILL_COUNT_X
+        );
+
+        pill.setCount = (count) => {
+            pill.count.setText(String(count));
+            fitText(pill.count, room, PILL_COUNT_SIZE);
+        };
+        pill.setCount(this.balance());
 
         return pill;
     }
@@ -584,7 +599,7 @@ export class StorePanel extends Phaser.GameObjects.Container {
     }
 
     setBalance(value) {
-        if (this.pill) this.pill.count.setText(String(value));
+        if (this.pill) this.pill.setCount(value);
     }
 
     buy(offer) {

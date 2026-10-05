@@ -1,5 +1,6 @@
 import { bakeShape } from '../utils/bake.js';
 import { unlocks } from './boosterUnlocks.js';
+import { fitText } from '../utils/text.js';
 
 // The first time a booster is there to use, the level stops and shows how:
 // the button is unlocked in front of the player, everything else dims, and an
@@ -197,6 +198,12 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
 
         bubble.line.setText(line);
         bubble.line.y = kicker ? 12 : 0;
+
+        // Never wider than the screen it is kept on.
+        const room = dimensions.actualWidth - (BUBBLE_MARGIN + BUBBLE_PAD) * 2;
+
+        fitText(bubble.kicker, room, KICKER_SIZE);
+        fitText(bubble.line, room, BUBBLE_SIZE);
 
         const width = Math.max(bubble.line.width, bubble.kicker.width) + BUBBLE_PAD * 2;
 

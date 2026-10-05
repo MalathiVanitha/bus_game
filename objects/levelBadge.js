@@ -1,3 +1,5 @@
+import { fitText } from '../utils/text.js';
+
 // The level number, top middle, as in the storyboard: a blue pill centred on
 // the screen, between the clock on its left and the pause button on its right.
 
@@ -14,6 +16,8 @@ const FACE_CORNER = 110;
 
 const LABEL_Y = -2;
 const LABEL_SIZE = 24;
+// Kept clear between the label and the pill's round ends.
+const LABEL_EDGE = 14;
 const INK = '#ffffff';
 
 const INTRO_Y = -90;
@@ -59,6 +63,7 @@ export class LevelBadge extends Phaser.GameObjects.Container {
 
     set(level) {
         this.label.setText('Level ' + level);
+        fitText(this.label, BADGE_W - LABEL_EDGE * 2, LABEL_SIZE);
     }
 
     /** Drops in from above the screen with the level on it. */

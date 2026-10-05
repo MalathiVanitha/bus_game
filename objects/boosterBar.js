@@ -1,6 +1,7 @@
 import SoundManager from './SoundManager.js';
 import { pressable } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
+import { fitText } from '../utils/text.js';
 import { unlocks, UNLOCK_AT } from './boosterUnlocks.js';
 
 // The two boosters, under the board as in the storyboard: Remove (the bin)
@@ -24,6 +25,8 @@ const BADGE_SCALE = 0.5;
 const BADGE_X = 32;
 const BADGE_Y = 31;
 const BADGE_SIZE = 20;
+// How wide a count can be on its badge.
+const BADGE_ROOM = 30;
 const PLUS_SIZE = 25;
 const BADGE_STROKE = '#1b4fb8';
 
@@ -48,6 +51,8 @@ const GLOW_TIME = 420;
 
 const TIP_Y = -76;
 const TIP_SIZE = 24;
+// Kept clear between the tip and either side of the screen.
+const TIP_EDGE = 20;
 const TIP_INK = '#283085';
 const TIP_STROKE = '#ffffff';
 const TIP_PICK = 'Tap a convoy to remove it';
@@ -330,6 +335,7 @@ export class BoosterBar extends Phaser.GameObjects.Container {
         if (!text) return;
 
         this.tip.setText(text);
+        fitText(this.tip, dimensions.actualWidth - TIP_EDGE * 2, TIP_SIZE);
 
         if (hold > 0) {
             this.tipRun = this.scene.tweens.addCounter({
@@ -351,7 +357,7 @@ export class BoosterBar extends Phaser.GameObjects.Container {
             const count = button.count;
 
             count.setText(left > 0 ? String(left) : '+');
-            count.setFontSize(left > 0 ? BADGE_SIZE : PLUS_SIZE);
+            fitText(count, BADGE_ROOM, left > 0 ? BADGE_SIZE : PLUS_SIZE);
 
             this.showLocked(button, this.isLocked(key));
         }

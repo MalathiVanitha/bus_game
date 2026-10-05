@@ -1,8 +1,9 @@
 import SoundManager from './SoundManager.js';
 import { pressable } from '../utils/buttons.js';
 import { bakeShape } from '../utils/bake.js';
-import { openModal, shutModal } from '../utils/modal.js';
+import { openModal, shutModal, dropModal, liftModal } from '../utils/modal.js';
 import { unlocks, UNLOCK_AT } from './boosterUnlocks.js';
+import { fitText } from '../utils/text.js';
 
 const PANEL_W = 450;
 const PANEL_H = 560;
@@ -39,6 +40,8 @@ const PLATE_CORNER = 60;
 const PLATE_TINT = 0x7f90f4;
 const PLATE_SIZE = 46;
 const PLATE_STROKE = '#3844b0';
+// Kept clear between the level and the plate's ends.
+const PLATE_EDGE = 34;
 
 const CLOSE_X = PANEL_W / 2 - 8;
 const CLOSE_Y = -PANEL_H / 2 + 4;
@@ -59,6 +62,22 @@ const ARROW_X = 62;
 const ARROW_COLOR = 0x3d8cf0;
 const GARAGE_X = 138;
 const GARAGE_SCALE = 0.36;
+// Once the card has landed, the convoy drives over to the garage and in out
+// of sight (the arrow giving way as it passes), the garage bumps as it takes
+// it, and a fresh convoy rolls in back at the start. Times are from the start
+// of each round.
+const DRIVE_END = 950;
+// How far along the drive the convoy starts shrinking into the garage.
+const DRIVE_SINK = 0.65;
+const SINK_SCALE = 0.3;
+const ARROW_CLEAR = 70;
+const BUMP_AT = 880;
+const BUMP_TIME = 260;
+const BUMP = 0.16;
+const RETURN_AT = 1500;
+const RETURN_TIME = 380;
+const RETURN_FROM = 36;
+const DRIVE_ROUND = 2500;
 
 const RULE_Y = -80;
 
@@ -95,6 +114,11 @@ const LABEL_Y = 96;
 const LABEL_SIZE = 28;
 const MORE_Y = 121;
 const MORE_SIZE = 20;
+// How wide a tile's name and the line under it can run, so the two tiles'
+// never meet.
+const TILE_ROOM = 178;
+// How wide a count can be on its badge.
+const BADGE_ROOM = 34;
 
 const NOTE_Y = 208;
 const NOTE_W = 380;
@@ -108,6 +132,13 @@ const PLAY_W = 320;
 const PLAY_H = 92;
 const PLAY_SIZE = 64;
 const PLAY_STROKE = '#1d8a12';
+// Once the card has landed, Play swells a little now and then to draw the eye.
+const PLAY_BEAT = 0.05;
+const PLAY_BEAT_TIME = 360;
+const PLAY_BEAT_REST = 700;
+
+// How hard the landing knocks the level plate, above the other pieces.
+const PLATE_JOLT = 0.24;
 
 const GREEN = 'button_green';
 const GREEN_SCALE = 0.5;
@@ -130,6 +161,8 @@ const OFFER_BADGE_R = 28;
 
 const OFFER_LINE_Y = 8;
 const OFFER_LINE_SIZE = 28;
+// Kept clear between the offer's lines and either side of its card.
+const OFFER_EDGE = 30;
 
 const OFFER_PRICE_Y = 66;
 const OFFER_PRICE_W = 240;
@@ -285,6 +318,8 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.levelText = this.text(0, -2, 'Level 1', PLATE_SIZE, '#ffffff', .5, PLATE_STROKE);
         plate.add(this.levelText);
 
+        plate.modalJolt = PLATE_JOLT;
+
         this.card.add(plate);
     }
 
@@ -298,6 +333,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         const convoy = this.scene.add.sprite(CONVOY_X, ART_Y, 'sheet', 'home/convoy');
         convoy.setScale(CONVOY_SCALE);
         this.card.add(convoy);
+        this.convoy = convoy;
 
         const arrow = bakeShape(this.scene, { left: -14, top: -14, width: 30, height: 28 }, (g) => {
             g.fillStyle(ARROW_COLOR, 1);
@@ -306,10 +342,12 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         });
         arrow.setPosition(ARROW_X, ART_Y);
         this.card.add(arrow);
+        this.arrow = arrow;
 
         const garage = this.scene.add.sprite(GARAGE_X, ART_Y, 'luggages', 'white/garage');
         garage.setScale(GARAGE_SCALE);
         this.card.add(garage);
+        this.garage = garage;
     }
 
     buildTile(booster, x) {
@@ -539,8 +577,10 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         );
         face.setScale(GREEN_SCALE);
         button.add(face);
+        button.face = face;
 
-        button.add(this.text(0, -3, label, size, '#ffffff', .5, stroke));
+        button.label = this.text(0, -3, label, size, '#ffffff', .5, stroke);
+        button.add(button.label);
 
         this.pressable(button, width, height, onPress);
 
@@ -588,7 +628,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
             tile.check.visible = on;
 
             tile.count.label.setText(left > 0 ? String(left) : '+');
-            tile.count.label.setFontSize(left > 0 ? BADGE_SIZE : PLUS_SIZE);
+            fitText(tile.count.label, BADGE_ROOM, left > 0 ? BADGE_SIZE : PLUS_SIZE);
 
             tile.count.visible = !locked;
             tile.lock.visible = locked;
@@ -607,6 +647,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
             tile.more.setText(!locked ? 'Get more' :
                 this.opensThisLevel(key) ? 'Unlocks this level!' :
                 'Unlocks at Level ' + UNLOCK_AT[key]);
+            fitText(tile.more, TILE_ROOM, MORE_SIZE);
             tile.more.setColor(locked ? LOCKED_INK : PURPLE);
             tile.more.visible = locked || left <= 0;
         }
@@ -683,6 +724,8 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         offer.title.setText(booster.title);
         offer.icon.setFrame(booster.icon);
         offer.line.setText(PACK_COUNT + ' ' + booster.noun + ' for ' + PACK_PRICE + ' coins');
+        fitText(offer.title, OFFER_W - OFFER_EDGE * 2, OFFER_TITLE_SIZE);
+        fitText(offer.line, OFFER_W - OFFER_EDGE * 2, OFFER_LINE_SIZE);
 
         offer.visible = true;
 
@@ -794,19 +837,129 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
         this.level = level;
         this.levelText.setText('Level ' + level);
+        fitText(this.levelText, PLATE_W - PLATE_EDGE * 2, PLATE_SIZE);
 
         this.offer.visible = false;
         this.refresh();
 
-        openModal(this.scene, this.dim, this.card, DIM_ALPHA);
+        dropModal(this.scene, this.dim, this.card, DIM_ALPHA, () => {
+            if (this.isOpen) {
+                this.beat();
+                this.drive();
+            }
+        });
+    }
+
+    // Swells the Play button's face and label, not the button, so a press on
+    // it (which scales the button) never fights the beat.
+    beat() {
+        this.stopBeat();
+
+        const button = this.playButton;
+
+        this.beatRun = this.scene.tweens.addCounter({
+            from: 0,
+            to: 1,
+            duration: PLAY_BEAT_TIME,
+            yoyo: true,
+            repeat: -1,
+            repeatDelay: PLAY_BEAT_REST,
+            ease: 'Sine.easeInOut',
+            onUpdate: (tween) => {
+                const swell = 1 + PLAY_BEAT * tween.getValue();
+
+                button.face.setScale(GREEN_SCALE * swell);
+                button.label.setScale(swell);
+            }
+        });
+    }
+
+    stopBeat() {
+        if (!this.beatRun) return;
+
+        this.beatRun.remove();
+        this.beatRun = null;
+        this.playButton.face.setScale(GREEN_SCALE);
+        this.playButton.label.setScale(1);
+    }
+
+    drive() {
+        this.stopDrive();
+
+        const Ease = Phaser.Math.Easing;
+        const clamp01 = (v) => Math.min(1, Math.max(0, v));
+
+        this.driveRun = this.scene.tweens.addCounter({
+            from: 0,
+            to: DRIVE_ROUND,
+            duration: DRIVE_ROUND,
+            repeat: -1,
+            onUpdate: (tween) => {
+                const at = tween.getValue();
+                const convoy = this.convoy;
+
+                if (at < RETURN_AT) {
+                    const t = clamp01(at / DRIVE_END);
+                    const sink = clamp01((t - DRIVE_SINK) / (1 - DRIVE_SINK));
+                    const scale = 1 - (1 - SINK_SCALE) * Ease.Quadratic.In(sink);
+
+                    // Steered by its leading (right) end, which runs from where
+                    // it starts to the garage's middle, so the convoy shrinks
+                    // into the garage rather than poking out past it.
+                    const half = convoy.width * CONVOY_SCALE / 2;
+                    const lead = CONVOY_X + half + (GARAGE_X - CONVOY_X - half) * Ease.Sine.InOut(t);
+
+                    convoy.setScale(CONVOY_SCALE * scale);
+                    convoy.x = lead - half * scale;
+                    convoy.alpha = 1 - Ease.Quadratic.In(sink);
+
+                    // Whatever has gone past the garage's middle is inside it.
+                    const left = convoy.x - convoy.displayWidth / 2;
+
+                    convoy.setCrop(0, 0, Math.max(0, (GARAGE_X - left) / convoy.scaleX), convoy.height);
+                } else {
+                    const p = Ease.Back.Out(clamp01((at - RETURN_AT) / RETURN_TIME));
+
+                    convoy.x = CONVOY_X - RETURN_FROM * (1 - p);
+                    convoy.setScale(CONVOY_SCALE);
+                    convoy.setCrop();
+                    convoy.alpha = clamp01((at - RETURN_AT) / RETURN_TIME * 2);
+                }
+
+                // The arrow fades as the convoy's nose comes up to it, and
+                // back once the new one is in.
+                const near = at < RETURN_AT ? clamp01((convoy.x - (ARROW_X - ARROW_CLEAR * 2)) / ARROW_CLEAR) : 1 - convoy.alpha;
+
+                this.arrow.alpha = 1 - near;
+
+                const bump = clamp01((at - BUMP_AT) / BUMP_TIME);
+
+                this.garage.setScale(GARAGE_SCALE * (1 + BUMP * Math.sin(bump * Math.PI)));
+            }
+        });
+    }
+
+    stopDrive() {
+        if (!this.driveRun) return;
+
+        this.driveRun.remove();
+        this.driveRun = null;
+        this.convoy.setPosition(CONVOY_X, ART_Y);
+        this.convoy.setScale(CONVOY_SCALE);
+        this.convoy.setCrop();
+        this.convoy.alpha = 1;
+        this.arrow.alpha = 1;
+        this.garage.setScale(GARAGE_SCALE);
     }
 
     hide() {
         if (!this.isOpen) return;
 
         this.isOpen = false;
+        this.stopBeat();
+        this.stopDrive();
 
-        shutModal(this.scene, this.dim, this.card, () => {
+        liftModal(this.scene, this.dim, this.card, () => {
             if (!this.isOpen) this.visible = false;
         });
     }
