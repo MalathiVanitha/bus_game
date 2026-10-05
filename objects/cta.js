@@ -108,17 +108,6 @@ const WIN_SPRINKLES = [
     [196, 40, -50, 5]
 ];
 
-const RAY_RX = 140;
-const RAY_RY = 104;
-const RAY_ANGLES = [-180, -147, -114, -81, -48, -15, 18, 150, 165];
-
-const FAIL_SPRINKLES = [
-    [-208, -100, 25, 0],
-    [208, -96, -25, 2],
-    [-214, -20, -15, 1],
-    [214, -16, 15, 3]
-];
-
 const POP_PER_CANNON = 30;
 const POP_INSET = 12;
 
@@ -173,6 +162,26 @@ const STARS_FROM = 0.4;
 const CLOCK_SHAKE = 7;
 const CLOCK_SHAKE_TIME = 90;
 const CLOCK_SHAKES = 5;
+// The shake comes round again after this long, for as long as the card is up.
+const CLOCK_REST = 1400;
+
+// Each swing of the shake knocks a few short strokes out of the side the clock
+// tips towards, a little weaker every time; the start sends a ring out from it.
+const KNOCK_COLOR = 0xf4564c;
+const KNOCK_X = 82;
+const KNOCK_Y = 8;
+const KNOCK_FAN = [-34, 0, 34];
+const KNOCK_LEN = 22;
+const KNOCK_THICK = 7;
+const KNOCK_OUT = 26;
+const KNOCK_TIME = 260;
+const KNOCK_FADE = 0.88;
+
+const RING_R = 66;
+const RING_THICK = 6;
+const RING_TO = 1.45;
+const RING_TIME = 420;
+const RING_ALPHA = 0.7;
 
 export class CTA extends Phaser.GameObjects.Container {
     constructor(scene, x = 0, y = 0) {
@@ -250,23 +259,9 @@ export class CTA extends Phaser.GameObjects.Container {
     buildFail() {
         const card = this.card(FAIL_H);
 
-        for (let i = 0; i < RAY_ANGLES.length; i++) {
-            const angle = RAY_ANGLES[i];
-            const rad = Phaser.Math.DegToRad(angle);
-
-            card.add(this.sprinkle(
-                Math.cos(rad) * RAY_RX,
-                CLOCK_Y + Math.sin(rad) * RAY_RY,
-                angle,
-                CONFETTI[i % CONFETTI.length]
-            ));
-        }
-
-        for (let i = 0; i < FAIL_SPRINKLES.length; i++) {
-            const bit = FAIL_SPRINKLES[i];
-
-            card.add(this.sprinkle(bit[0], bit[1], bit[2], CONFETTI[bit[3]]));
-        }
+        // Behind the clock, and left out of the rows that pop in on landing.
+        this.knockGrp = this.scene.add.container(0, CLOCK_Y);
+        card.add(this.knockGrp);
 
         this.clock = this.scene.add.sprite(0, CLOCK_Y, 'sheet', CLOCK);
         this.clock.setScale(CLOCK_SCALE);
@@ -527,7 +522,7 @@ export class CTA extends Phaser.GameObjects.Container {
     // Shrinks and hides everything on the card but the panel itself, and hands it
     // back as rows, top to bottom, for land() to bring out in turn.
     holdContents(card) {
-        const pieces = card.list.slice(2).filter((piece) => piece !== this.stars);
+        const pieces = card.list.slice(2).filter((piece) => piece !== this.stars && piece !== this.knockGrp);
 
         pieces.sort((a, b) => a.y - b.y);
 
@@ -633,6 +628,7 @@ export class CTA extends Phaser.GameObjects.Container {
     }
 
     shakeClock() {
+        this.stopClock();
         this.scene.tweens.killTweensOf(this.clock);
 
         this.clock.angle = 0;
@@ -643,7 +639,97 @@ export class CTA extends Phaser.GameObjects.Container {
             ease: 'Sine.easeInOut',
             yoyo: true,
             repeat: CLOCK_SHAKES,
-            onComplete: () => { this.clock.angle = 0; }
+            onStart: () => {
+                this.knocks = 0;
+                this.ring();
+            },
+            onYoyo: () => this.knock(1),
+            onRepeat: () => this.knock(-1),
+            onComplete: () => {
+                this.clock.angle = 0;
+
+                if (this.isOpen && !this.userWon) {
+                    this.clockRest = this.scene.time.delayedCall(CLOCK_REST, () => {
+                        this.clockRest = null;
+                        this.shakeClock();
+                    });
+                }
+            }
+        });
+    }
+
+    stopClock() {
+        if (this.clockRest) {
+            this.clockRest.remove();
+            this.clockRest = null;
+        }
+    }
+
+    // A few strokes flicked out of one side of the clock, fainter each beat.
+    knock(side) {
+        const strength = Math.pow(KNOCK_FADE, this.knocks++);
+
+        for (let i = 0; i < KNOCK_FAN.length; i++) {
+            const fan = Phaser.Math.DegToRad(KNOCK_FAN[i]);
+            const dx = Math.cos(fan) * side;
+            const dy = Math.sin(fan);
+
+            const bit = this.sprinkle(
+                dx * KNOCK_X, KNOCK_Y + dy * KNOCK_X,
+                Phaser.Math.RadToDeg(Math.atan2(dy, dx)),
+                KNOCK_COLOR, KNOCK_LEN, KNOCK_THICK
+            );
+
+            const rest = bit.restScale;
+
+            bit.setScale(rest * 0.4, rest);
+            bit.alpha = strength;
+            this.knockGrp.add(bit);
+
+            this.scene.tweens.add({
+                targets: bit,
+                x: bit.x + dx * KNOCK_OUT * strength,
+                y: bit.y + dy * KNOCK_OUT * strength,
+                scaleX: rest,
+                duration: KNOCK_TIME,
+                ease: 'Quad.easeOut'
+            });
+
+            this.scene.tweens.add({
+                targets: bit,
+                alpha: 0,
+                scaleY: rest * 0.5,
+                duration: KNOCK_TIME * 0.6,
+                delay: KNOCK_TIME * 0.4,
+                ease: 'Quad.easeIn',
+                onComplete: () => bit.destroy()
+            });
+        }
+    }
+
+    ring() {
+        const out = RING_R + RING_THICK;
+        const bounds = { left: -out, top: -out, width: out * 2, height: out * 2 };
+
+        const ring = bakeShape(this.scene, bounds, (g) => {
+            g.lineStyle(RING_THICK, 0xffffff, 1);
+            g.strokeCircle(0, 0, RING_R);
+        }, 'clock-ring-' + RING_R);
+
+        const rest = ring.restScale;
+
+        ring.setTint(KNOCK_COLOR);
+        ring.setPosition(0, KNOCK_Y);
+        ring.alpha = RING_ALPHA;
+        this.knockGrp.add(ring);
+
+        this.scene.tweens.add({
+            targets: ring,
+            scale: rest * RING_TO,
+            alpha: 0,
+            duration: RING_TIME,
+            ease: 'Cubic.easeOut',
+            onComplete: () => ring.destroy()
         });
     }
 
@@ -786,6 +872,7 @@ export class CTA extends Phaser.GameObjects.Container {
 
         this.stopRain();
         this.stopPop();
+        this.stopClock();
 
         if (this.landRun) {
             this.landRun.remove();
