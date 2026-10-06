@@ -9,6 +9,15 @@
 
 export const BOOSTERS = [
     {
+        key: 'hint',
+        icon: 'icons/icon-hint',
+        opens: 3,
+        label: 'Hint',
+        title: 'Get more hints?',
+        noun: 'hints',
+        body: 'Lights up a convoy that can drive home right now, and the way to its garage.'
+    },
+    {
         key: 'remove',
         icon: 'icons/icon-recycle',
         opens: 5,
@@ -17,15 +26,6 @@ export const BOOSTERS = [
         noun: 'removes',
         pick: 'Tap a convoy to remove it',
         body: 'Takes any convoy off the board. Save it for one that is stuck in the way!'
-    },
-    {
-        key: 'hint',
-        icon: 'icons/icon-hint',
-        opens: 3,
-        label: 'Hint',
-        title: 'Get more hints?',
-        noun: 'hints',
-        body: 'Lights up a convoy that can drive home right now, and the way to its garage.'
     },
     {
         key: 'crane',

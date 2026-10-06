@@ -4,10 +4,14 @@
 // From 51 the boards grow (10x9 at 71, 11x9 at 81) and convoys run up to ten;
 // every tenth level is a harder one with an extra convoy and round, and the
 // level after it a breather.
+// Each level's difficulty ("normal", "hard" or "superHard") is set here and
+// nowhere else: it colours the level card, and time is the clock the level
+// gets as it is (Hard and Super Hard times are already the shorter ones).
 // Every generated level is solvable by driving the convoys home one at a time.
 export default [
     // Level 1
     {
+        difficulty: "normal",
         rows: 7,
         columns: 6,
         time: 50,
@@ -47,6 +51,7 @@ export default [
 
     // Level 2
     {
+        difficulty: "normal",
         rows: 7,
         columns: 6,
         time: 60,
@@ -96,6 +101,7 @@ export default [
 
     // Level 3
     {
+        difficulty: "normal",
         rows: 7,
         columns: 6,
         time: 60,
@@ -145,6 +151,7 @@ export default [
 
     // Level 4
     {
+        difficulty: "normal",
         rows: 7,
         columns: 6,
         time: 65,
@@ -196,6 +203,7 @@ export default [
 
     // Level 5
     {
+        difficulty: "normal",
         rows: 7,
         columns: 6,
         time: 65,
@@ -248,6 +256,7 @@ export default [
 
     // Level 6
     {
+        difficulty: "normal",
         rows: 7,
         columns: 6,
         time: 65,
@@ -299,6 +308,7 @@ export default [
 
     // Level 7
     {
+        difficulty: "normal",
         rows: 8,
         columns: 7,
         time: 70,
@@ -369,6 +379,7 @@ export default [
 
     // Level 8
     {
+        difficulty: "normal",
         rows: 8,
         columns: 7,
         time: 70,
@@ -437,6 +448,7 @@ export default [
 
     // Level 9
     {
+        difficulty: "normal",
         rows: 8,
         columns: 7,
         time: 70,
@@ -504,23 +516,26 @@ export default [
         ]
     },
 
-    // Level 10
+    // Level 10 (hardened)
     {
+        difficulty: "superHard",
         rows: 8,
         columns: 7,
-        time: 70,
+        time: 80,
         pattern: [
             [1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 0, 0, 0, 1],
             [1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 0, 1, 1, 1, 1],
+            [1, 1, 0, 1, 0, 1, 1],
             [1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1]
         ],
         obstacles: [
-            [2, 1, "cargo_container"]
+            [2, 1, "cargo_container"],
+            [5, 4, "planter"],
+            [6, 3, "cone"]
         ],
         walls: [{
             style: "hedge-lime",
@@ -532,42 +547,42 @@ export default [
         }],
         convoys: [{
                 key: "purple",
-                exit: [0, 1],
+                exit: [4, 7],
                 facing: 90,
                 cells: [
-                    [4, 6],
-                    [4, 5],
-                    [4, 4]
+                    [1, 7],
+                    [1, 6],
+                    [1, 5]
                 ]
             },
             {
                 key: "pink",
-                exit: [3, 4],
+                exit: [0, 5],
                 facing: 90,
                 cells: [
-                    [4, 7],
-                    [5, 7],
-                    [6, 7]
+                    [6, 7],
+                    [6, 6],
+                    [6, 5]
                 ]
             },
             {
                 key: "yellow",
-                exit: [1, 5],
+                exit: [0, 7],
                 facing: 90,
                 cells: [
-                    [3, 0],
-                    [4, 0],
-                    [5, 0]
+                    [5, 7],
+                    [5, 6],
+                    [5, 5]
                 ]
             },
             {
                 key: "blue",
-                exit: [5, 3],
+                exit: [6, 4],
                 facing: 90,
                 cells: [
-                    [1, 4],
                     [1, 3],
-                    [1, 2]
+                    [1, 2],
+                    [1, 1]
                 ]
             }
         ]
@@ -575,6 +590,7 @@ export default [
 
     // Level 11
     {
+        difficulty: "normal",
         rows: 8,
         columns: 7,
         time: 70,
@@ -653,6 +669,7 @@ export default [
 
     // Level 12
     {
+        difficulty: "normal",
         rows: 8,
         columns: 7,
         time: 70,
@@ -733,6 +750,7 @@ export default [
 
     // Level 13 (hand-made)
     {
+        difficulty: "normal",
         rows: 8,
         columns: 8,
         time: 60,
@@ -821,6 +839,7 @@ export default [
 
     // Level 14 (hand-made)
     {
+        difficulty: "normal",
         rows: 8,
         columns: 8,
         time: 60,
@@ -917,24 +936,27 @@ export default [
         ]
     },
 
-    // Level 15
+    // Level 15 (hardened)
     {
+        difficulty: "hard",
         rows: 8,
         columns: 7,
-        time: 70,
+        time: 55,
         pattern: [
             [1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 0, 1, 1, 1],
+            [1, 1, 0, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1]
+            [1, 1, 0, 1, 1, 1, 1]
         ],
         obstacles: [
             [4, 6, "planter"],
-            [3, 5, "service_cabinet"]
+            [3, 5, "service_cabinet"],
+            [0, 1, "barrier"],
+            [1, 1, "barrier"]
         ],
         walls: [{
                 style: "concrete-wall",
@@ -1000,6 +1022,7 @@ export default [
 
     // Level 16
     {
+        difficulty: "normal",
         rows: 8,
         columns: 7,
         time: 80,
@@ -1092,6 +1115,7 @@ export default [
 
     // Level 17
     {
+        difficulty: "normal",
         rows: 8,
         columns: 7,
 
@@ -1189,6 +1213,7 @@ export default [
 
     // Level 18
     {
+        difficulty: "normal",
         rows: 8,
         columns: 7,
 
@@ -1286,6 +1311,7 @@ export default [
 
     // Level 19
     {
+        difficulty: "normal",
         rows: 8,
         columns: 7,
 
@@ -1380,27 +1406,30 @@ export default [
         ]
     },
 
-    // Level 20
+    // Level 20 (hardened)
     {
+        difficulty: "superHard",
         rows: 8,
         columns: 7,
 
-        time: 80,
+        time: 85,
 
         pattern: [
             [0, 0, 1, 1, 1, 0, 0],
             [0, 1, 1, 1, 1, 1, 0],
             [1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 0, 0, 1],
+            [1, 0, 1, 1, 1, 0, 1],
+            [1, 1, 1, 1, 1, 0, 1],
+            [1, 0, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1]
         ],
 
         obstacles: [
             [3, 3, "barrier"],
-            [0, 5, "cargo_pallet"]
+            [0, 5, "cargo_pallet"],
+            [5, 6, "cone"],
+            [1, 5, "barrier"]
         ],
 
         walls: [{
@@ -1423,54 +1452,54 @@ export default [
 
         convoys: [{
                 key: "green",
-                exit: [2, 7],
+                exit: [6, 6],
                 facing: 90,
                 cells: [
-                    [5, 4],
-                    [4, 4],
-                    [3, 4],
+                    [2, 7],
+                    [2, 6],
+                    [2, 5],
                     [2, 4]
                 ]
             },
             {
                 key: "lime",
-                exit: [1, 7],
+                exit: [0, 7],
                 facing: 90,
                 cells: [
-                    [6, 6],
-                    [6, 5],
-                    [6, 4],
-                    [6, 3]
+                    [6, 2],
+                    [5, 2],
+                    [4, 2],
+                    [3, 2]
                 ]
             },
             {
                 key: "purple",
-                exit: [3, 1],
+                exit: [0, 6],
                 facing: 90,
                 cells: [
-                    [0, 4],
-                    [0, 3],
-                    [0, 2]
+                    [3, 1],
+                    [4, 1],
+                    [5, 1]
                 ]
             },
             {
                 key: "cyan",
-                exit: [2, 0],
+                exit: [0, 4],
                 facing: 90,
                 cells: [
-                    [4, 1],
-                    [4, 2],
-                    [4, 3]
+                    [4, 0],
+                    [3, 0],
+                    [2, 0]
                 ]
             },
             {
                 key: "orange",
-                exit: [5, 1],
+                exit: [1, 7],
                 facing: 90,
                 cells: [
-                    [1, 5],
-                    [1, 4],
-                    [1, 3]
+                    [6, 3],
+                    [6, 4],
+                    [6, 5]
                 ]
             }
         ]
@@ -1478,6 +1507,7 @@ export default [
 
     // Level 21
     {
+        difficulty: "normal",
         rows: 9,
         columns: 8,
 
@@ -1588,6 +1618,7 @@ export default [
 
     // Level 22 (hand-made)
     {
+        difficulty: "normal",
         rows: 9,
         columns: 8,
 
@@ -1693,6 +1724,7 @@ export default [
 
     // Level 23
     {
+        difficulty: "normal",
         rows: 9,
         columns: 8,
 
@@ -1792,6 +1824,7 @@ export default [
 
     // Level 24
     {
+        difficulty: "normal",
         rows: 9,
         columns: 8,
 
@@ -1898,29 +1931,32 @@ export default [
         ]
     },
 
-    // Level 25
+    // Level 25 (hardened)
     {
+        difficulty: "hard",
         rows: 9,
         columns: 8,
 
-        time: 80,
+        time: 60,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 0],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 0, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [0, 1, 1, 1, 1, 1, 1, 0],
-            [0, 1, 1, 1, 1, 1, 1, 0]
+            [0, 0, 1, 1, 1, 1, 1, 0]
         ],
 
         obstacles: [
             [6, 3, "service_cabinet"],
             [1, 7, "barrier"],
-            [3, 8, "barrier"]
+            [3, 8, "barrier"],
+            [4, 1, "barrier"],
+            [6, 5, "cone"]
         ],
 
         walls: [{
@@ -2000,6 +2036,7 @@ export default [
 
     // Level 26
     {
+        difficulty: "normal",
         rows: 9,
         columns: 8,
 
@@ -2109,6 +2146,7 @@ export default [
 
     // Level 27
     {
+        difficulty: "normal",
         rows: 9,
         columns: 8,
 
@@ -2220,6 +2258,7 @@ export default [
 
     // Level 28
     {
+        difficulty: "normal",
         rows: 9,
         columns: 8,
 
@@ -2337,6 +2376,7 @@ export default [
 
     // Level 29
     {
+        difficulty: "normal",
         rows: 9,
         columns: 8,
 
@@ -2446,29 +2486,33 @@ export default [
         ]
     },
 
-    // Level 30
+    // Level 30 (hardened)
     {
+        difficulty: "superHard",
         rows: 9,
         columns: 8,
 
-        time: 85,
+        time: 130,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 1, 1, 1, 1, 1],
+            [1, 1, 1, 0, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 1, 1, 1, 1, 1, 1, 0],
+            [1, 1, 1, 0, 0, 0, 1, 1],
+            [0, 1, 0, 0, 0, 1, 1, 0],
             [0, 1, 1, 1, 1, 1, 1, 0]
         ],
 
         obstacles: [
             [6, 0, "cone"],
             [3, 3, "barrier"],
-            [3, 0, "cargo_container"]
+            [3, 0, "cargo_container"],
+            [6, 8, "planter"],
+            [1, 1, "planter"],
+            [1, 2, "planter"]
         ],
 
         walls: [{
@@ -2492,65 +2536,65 @@ export default [
 
         convoys: [{
                 key: "green",
-                exit: [0, 0],
+                exit: [3, 1],
                 facing: 90,
                 cells: [
-                    [4, 4],
-                    [3, 4],
-                    [2, 4],
-                    [1, 4]
+                    [4, 0],
+                    [4, 1],
+                    [4, 2],
+                    [4, 3]
                 ]
             },
             {
                 key: "cyan",
-                exit: [7, 2],
+                exit: [1, 0],
                 facing: 90,
                 cells: [
-                    [3, 2],
-                    [2, 2],
-                    [2, 3]
+                    [6, 4],
+                    [5, 4],
+                    [4, 4]
                 ]
             },
             {
                 key: "purple",
-                exit: [7, 0],
+                exit: [6, 3],
                 facing: 90,
                 cells: [
-                    [3, 7],
-                    [2, 7],
-                    [2, 8]
+                    [0, 1],
+                    [0, 2],
+                    [0, 3]
                 ]
             },
             {
                 key: "red",
-                exit: [6, 4],
+                exit: [0, 0],
                 facing: 90,
                 cells: [
-                    [4, 6],
-                    [3, 6],
-                    [2, 6],
-                    [2, 5]
+                    [5, 3],
+                    [5, 2],
+                    [5, 1],
+                    [6, 1]
                 ]
             },
             {
                 key: "white",
-                exit: [1, 6],
+                exit: [5, 0],
                 facing: 90,
                 cells: [
-                    [7, 6],
-                    [6, 6],
-                    [5, 6]
+                    [2, 1],
+                    [2, 2],
+                    [3, 2]
                 ]
             },
             {
                 key: "pink",
-                exit: [4, 3],
+                exit: [2, 0],
                 facing: 90,
                 cells: [
-                    [2, 0],
-                    [2, 1],
-                    [1, 1],
-                    [1, 0]
+                    [7, 0],
+                    [7, 1],
+                    [7, 2],
+                    [6, 2]
                 ]
             }
         ]
@@ -2558,6 +2602,7 @@ export default [
 
     // Level 31
     {
+        difficulty: "normal",
         rows: 9,
         columns: 8,
 
@@ -2675,6 +2720,7 @@ export default [
 
     // Level 32
     {
+        difficulty: "normal",
         rows: 9,
         columns: 8,
 
@@ -2803,6 +2849,7 @@ export default [
 
     // Level 33
     {
+        difficulty: "normal",
         rows: 9,
         columns: 8,
 
@@ -2922,6 +2969,7 @@ export default [
 
     // Level 34
     {
+        difficulty: "normal",
         rows: 9,
         columns: 8,
 
@@ -3051,20 +3099,21 @@ export default [
         ]
     },
 
-    // Level 35
+    // Level 35 (hardened)
     {
+        difficulty: "hard",
         rows: 9,
         columns: 8,
 
-        time: 90,
+        time: 70,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 0, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 0, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [0, 1, 1, 1, 1, 1, 1, 0],
             [0, 0, 1, 1, 1, 1, 0, 0]
@@ -3073,7 +3122,9 @@ export default [
         obstacles: [
             [3, 7, "barrier"],
             [6, 4, "cargo_container"],
-            [4, 4, "cone"]
+            [4, 4, "cone"],
+            [6, 5, "planter"],
+            [0, 2, "cone"]
         ],
 
         walls: [{
@@ -3174,6 +3225,7 @@ export default [
 
     // Level 36
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -3305,6 +3357,7 @@ export default [
 
     // Level 37
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -3433,6 +3486,7 @@ export default [
 
     // Level 38
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -3564,6 +3618,7 @@ export default [
 
     // Level 39
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -3693,31 +3748,34 @@ export default [
         ]
     },
 
-    // Level 40
+    // Level 40 (hardened)
     {
+        difficulty: "superHard",
         rows: 10,
         columns: 8,
 
-        time: 95,
+        time: 135,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 0],
             [1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 1, 0, 1, 0, 1, 1, 1],
+            [1, 1, 0, 1, 1, 0, 1, 0],
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 1, 1, 1, 1, 0, 0]
+            [1, 0, 1, 1, 1, 0, 1, 1],
+            [1, 0, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 0],
+            [1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 0, 0, 0]
         ],
 
         obstacles: [
             [0, 3, "cargo_pallet"],
             [6, 5, "barrier"],
             [5, 0, "planter"],
-            [5, 2, "cone"]
+            [5, 2, "cone"],
+            [6, 3, "cone"],
+            [4, 0, "cone"]
         ],
 
         walls: [{
@@ -3751,72 +3809,72 @@ export default [
 
         convoys: [{
                 key: "blue",
-                exit: [7, 6],
+                exit: [6, 2],
                 facing: 90,
                 cells: [
-                    [1, 2],
-                    [1, 3],
-                    [1, 4]
+                    [4, 9],
+                    [3, 9],
+                    [2, 9]
                 ]
             },
             {
                 key: "red",
-                exit: [6, 4],
+                exit: [6, 0],
                 facing: 90,
                 cells: [
-                    [4, 7],
-                    [3, 7],
-                    [2, 7]
+                    [0, 1],
+                    [1, 1],
+                    [1, 2]
                 ]
             },
             {
                 key: "purple",
-                exit: [1, 7],
+                exit: [1, 3],
                 facing: 90,
                 cells: [
-                    [4, 3],
-                    [5, 3],
-                    [6, 3]
+                    [2, 1],
+                    [2, 0],
+                    [1, 0]
                 ]
             },
             {
                 key: "green",
-                exit: [3, 1],
+                exit: [7, 2],
                 facing: 90,
                 cells: [
-                    [7, 3],
-                    [7, 2],
-                    [6, 2]
+                    [0, 6],
+                    [0, 7],
+                    [1, 7]
                 ]
             },
             {
                 key: "pink",
-                exit: [3, 9],
+                exit: [6, 1],
                 facing: 90,
                 cells: [
-                    [5, 5],
-                    [5, 4],
-                    [4, 4]
+                    [3, 7],
+                    [3, 6],
+                    [3, 5]
                 ]
             },
             {
                 key: "cyan",
-                exit: [0, 2],
+                exit: [7, 1],
                 facing: 90,
                 cells: [
-                    [2, 1],
-                    [2, 2],
-                    [2, 3]
+                    [1, 4],
+                    [0, 4],
+                    [0, 5]
                 ]
             },
             {
                 key: "lime",
-                exit: [6, 8],
+                exit: [4, 7],
                 facing: 90,
                 cells: [
-                    [0, 4],
-                    [0, 5],
-                    [0, 6]
+                    [3, 1],
+                    [4, 1],
+                    [5, 1]
                 ]
             }
         ]
@@ -3824,6 +3882,7 @@ export default [
 
     // Level 41
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -3966,6 +4025,7 @@ export default [
 
     // Level 42
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -4101,6 +4161,7 @@ export default [
 
     // Level 43
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -4231,6 +4292,7 @@ export default [
 
     // Level 44
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -4372,21 +4434,22 @@ export default [
         ]
     },
 
-    // Level 45
+    // Level 45 (hardened)
     {
+        difficulty: "hard",
         rows: 10,
         columns: 8,
 
-        time: 95,
+        time: 70,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 0, 0],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [0, 1, 1, 1, 1, 1, 1, 0],
             [0, 0, 1, 1, 1, 1, 0, 0]
@@ -4396,7 +4459,9 @@ export default [
             [2, 7, "planter"],
             [6, 3, "planter"],
             [0, 7, "barrier"],
-            [0, 0, "barrier"]
+            [0, 0, "barrier"],
+            [1, 7, "cone"],
+            [3, 8, "planter"]
         ],
 
         walls: [{
@@ -4507,6 +4572,7 @@ export default [
 
     // Level 46
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -4658,6 +4724,7 @@ export default [
 
     // Level 47
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -4811,6 +4878,7 @@ export default [
 
     // Level 48
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -4962,6 +5030,7 @@ export default [
 
     // Level 49
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -5112,23 +5181,24 @@ export default [
         ]
     },
 
-    // Level 50
+    // Level 50 (hardened)
     {
+        difficulty: "superHard",
         rows: 10,
         columns: 8,
 
-        time: 110,
+        time: 125,
 
         pattern: [
+            [0, 1, 1, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1, 0, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 0, 1, 0, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 0, 1],
+            [1, 1, 1, 1, 1, 0, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 1, 1, 1, 1, 1, 1, 0],
+            [1, 1, 1, 0, 1, 0, 1, 1],
+            [0, 0, 0, 1, 1, 1, 1, 0],
             [0, 1, 1, 1, 1, 1, 1, 0]
         ],
 
@@ -5137,7 +5207,11 @@ export default [
             [1, 3, "service_cabinet"],
             [7, 7, "barrier"],
             [3, 3, "barrier"],
-            [2, 2, "cargo_container"]
+            [2, 2, "cargo_container"],
+            [1, 4, "service_cabinet"],
+            [1, 6, "barrier"],
+            [4, 2, "service_cabinet"],
+            [3, 8, "service_cabinet"]
         ],
 
         walls: [{
@@ -5180,87 +5254,87 @@ export default [
 
         convoys: [{
                 key: "blue",
-                exit: [1, 1],
+                exit: [1, 2],
                 facing: 90,
                 cells: [
-                    [4, 5],
-                    [4, 4],
-                    [3, 4],
                     [2, 4],
-                    [1, 4]
+                    [3, 4],
+                    [4, 4],
+                    [4, 5],
+                    [4, 6]
                 ]
             },
             {
                 key: "white",
-                exit: [0, 0],
+                exit: [1, 1],
                 facing: 90,
                 cells: [
-                    [4, 3],
-                    [4, 2],
+                    [5, 4],
+                    [5, 3],
                     [5, 2],
-                    [6, 2]
+                    [5, 1]
                 ]
             },
             {
                 key: "purple",
-                exit: [6, 9],
+                exit: [3, 6],
                 facing: 90,
                 cells: [
-                    [3, 6],
-                    [2, 6],
-                    [1, 6],
-                    [0, 6]
+                    [0, 2],
+                    [0, 3],
+                    [0, 4],
+                    [0, 5]
                 ]
             },
             {
                 key: "lime",
-                exit: [7, 2],
+                exit: [2, 6],
                 facing: 90,
                 cells: [
                     [1, 7],
-                    [2, 7],
-                    [3, 7]
+                    [0, 7],
+                    [0, 6]
                 ]
             },
             {
                 key: "orange",
-                exit: [7, 6],
+                exit: [6, 2],
                 facing: 90,
                 cells: [
-                    [0, 4],
-                    [0, 3],
-                    [0, 2]
+                    [3, 0],
+                    [2, 0],
+                    [1, 0]
                 ]
             },
             {
                 key: "cyan",
-                exit: [5, 1],
+                exit: [3, 2],
                 facing: 90,
                 cells: [
                     [4, 8],
-                    [3, 8],
-                    [2, 8],
-                    [1, 8]
+                    [5, 8],
+                    [6, 8],
+                    [6, 9]
                 ]
             },
             {
                 key: "red",
-                exit: [3, 2],
+                exit: [3, 1],
                 facing: 90,
                 cells: [
-                    [5, 5],
-                    [5, 4],
-                    [5, 3]
+                    [7, 0],
+                    [7, 1],
+                    [7, 2]
                 ]
             },
             {
                 key: "yellow",
-                exit: [7, 0],
+                exit: [2, 1],
                 facing: 90,
                 cells: [
-                    [1, 0],
-                    [2, 0],
-                    [3, 0]
+                    [7, 6],
+                    [6, 6],
+                    [6, 7]
                 ]
             }
         ]
@@ -5268,6 +5342,7 @@ export default [
 
     // Level 51
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -5419,6 +5494,7 @@ export default [
 
     // Level 52
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -5569,6 +5645,7 @@ export default [
 
     // Level 53
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -5719,6 +5796,7 @@ export default [
 
     // Level 54
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -5865,23 +5943,24 @@ export default [
         ]
     },
 
-    // Level 55
+    // Level 55 (hardened)
     {
+        difficulty: "hard",
         rows: 10,
         columns: 8,
 
-        time: 115,
+        time: 85,
 
         pattern: [
-            [0, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 0],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 0, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 0],
             [0, 1, 1, 1, 1, 1, 1, 0]
         ],
 
@@ -5890,7 +5969,9 @@ export default [
             [7, 7, "cargo_container"],
             [3, 3, "barrier"],
             [5, 9, "planter"],
-            [1, 9, "cargo_pallet"]
+            [1, 9, "cargo_pallet"],
+            [1, 7, "cargo_pallet"],
+            [7, 6, "cone"]
         ],
 
         walls: [{
@@ -6015,6 +6096,7 @@ export default [
 
     // Level 56
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -6162,6 +6244,7 @@ export default [
 
     // Level 57
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -6312,6 +6395,7 @@ export default [
 
     // Level 58
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -6458,6 +6542,7 @@ export default [
 
     // Level 59
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -6606,22 +6691,23 @@ export default [
         ]
     },
 
-    // Level 60
+    // Level 60 (hardened)
     {
+        difficulty: "superHard",
         rows: 10,
         columns: 8,
 
-        time: 120,
+        time: 155,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 0, 1, 1],
+            [0, 0, 1, 1, 0, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 0, 0, 1, 1, 1],
+            [0, 0, 1, 0, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1]
         ],
@@ -6631,7 +6717,9 @@ export default [
             [3, 1, "cone"],
             [5, 0, "planter"],
             [5, 5, "planter"],
-            [7, 8, "cargo_pallet"]
+            [7, 8, "cargo_pallet"],
+            [2, 3, "barrier"],
+            [5, 3, "cone"]
         ],
 
         walls: [{
@@ -6671,43 +6759,43 @@ export default [
 
         convoys: [{
                 key: "purple",
-                exit: [0, 7],
+                exit: [6, 2],
                 facing: 90,
                 cells: [
-                    [2, 0],
-                    [2, 1],
-                    [2, 2]
+                    [7, 5],
+                    [7, 6],
+                    [7, 7]
                 ]
             },
             {
                 key: "red",
-                exit: [1, 0],
+                exit: [2, 7],
                 facing: 90,
                 cells: [
+                    [4, 1],
                     [4, 2],
                     [3, 2],
                     [3, 3],
-                    [3, 4],
-                    [2, 4]
+                    [3, 4]
                 ]
             },
             {
                 key: "white",
-                exit: [7, 0],
+                exit: [7, 9],
                 facing: 90,
                 cells: [
-                    [0, 3],
-                    [0, 4],
-                    [0, 5]
+                    [1, 0],
+                    [1, 1],
+                    [1, 2]
                 ]
             },
             {
                 key: "pink",
-                exit: [7, 9],
+                exit: [6, 5],
                 facing: 90,
                 cells: [
-                    [5, 2],
-                    [6, 2],
+                    [7, 0],
+                    [7, 1],
                     [7, 2],
                     [7, 3],
                     [6, 3]
@@ -6715,53 +6803,53 @@ export default [
             },
             {
                 key: "orange",
-                exit: [5, 6],
+                exit: [6, 6],
                 facing: 90,
                 cells: [
-                    [2, 8],
-                    [1, 8],
-                    [0, 8]
+                    [0, 2],
+                    [0, 1],
+                    [0, 0]
                 ]
             },
             {
                 key: "green",
-                exit: [2, 3],
+                exit: [6, 9],
                 facing: 90,
                 cells: [
-                    [4, 1],
-                    [5, 1],
-                    [6, 1]
+                    [3, 0],
+                    [2, 0],
+                    [2, 1]
                 ]
             },
             {
                 key: "cyan",
-                exit: [0, 0],
+                exit: [5, 1],
                 facing: 90,
                 cells: [
-                    [3, 6],
-                    [2, 6],
-                    [1, 6],
-                    [0, 6]
+                    [4, 7],
+                    [4, 8],
+                    [3, 8],
+                    [2, 8]
                 ]
             },
             {
                 key: "lime",
-                exit: [4, 3],
+                exit: [6, 1],
                 facing: 90,
                 cells: [
-                    [5, 9],
-                    [5, 8],
-                    [5, 7]
+                    [0, 8],
+                    [0, 9],
+                    [1, 9]
                 ]
             },
             {
                 key: "yellow",
-                exit: [1, 9],
+                exit: [6, 0],
                 facing: 90,
                 cells: [
-                    [2, 7],
-                    [3, 7],
-                    [4, 7]
+                    [5, 7],
+                    [5, 8],
+                    [5, 9]
                 ]
             }
         ]
@@ -6769,6 +6857,7 @@ export default [
 
     // Level 61
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -6909,6 +6998,7 @@ export default [
 
     // Level 62
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -7062,6 +7152,7 @@ export default [
 
     // Level 63
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -7209,6 +7300,7 @@ export default [
 
     // Level 64
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -7358,22 +7450,23 @@ export default [
         ]
     },
 
-    // Level 65
+    // Level 65 (hardened)
     {
+        difficulty: "hard",
         rows: 10,
         columns: 8,
 
-        time: 110,
+        time: 85,
 
         pattern: [
-            [0, 1, 1, 1, 1, 1, 1, 0],
+            [0, 1, 0, 1, 1, 1, 1, 0],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 0, 1],
+            [1, 1, 1, 1, 1, 0, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [0, 1, 1, 1, 1, 1, 1, 0]
         ],
@@ -7383,7 +7476,9 @@ export default [
             [7, 6, "cone"],
             [2, 4, "planter"],
             [2, 1, "service_cabinet"],
-            [2, 2, "service_cabinet"]
+            [2, 2, "service_cabinet"],
+            [1, 4, "cone"],
+            [4, 4, "barrier"]
         ],
 
         walls: [{
@@ -7507,6 +7602,7 @@ export default [
 
     // Level 66
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -7660,6 +7756,7 @@ export default [
 
     // Level 67
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -7810,6 +7907,7 @@ export default [
 
     // Level 68
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -7957,6 +8055,7 @@ export default [
 
     // Level 69
     {
+        difficulty: "normal",
         rows: 10,
         columns: 8,
 
@@ -8107,22 +8206,23 @@ export default [
         ]
     },
 
-    // Level 70
+    // Level 70 (hardened)
     {
+        difficulty: "superHard",
         rows: 10,
         columns: 8,
 
-        time: 120,
+        time: 165,
 
         pattern: [
+            [1, 1, 1, 0, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 0, 0, 1],
+            [1, 1, 0, 1, 1, 0, 1, 1],
+            [1, 1, 0, 1, 0, 1, 1, 1],
+            [1, 0, 1, 1, 0, 1, 1, 1],
+            [1, 0, 1, 0, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1]
         ],
@@ -8132,7 +8232,12 @@ export default [
             [7, 8, "cone"],
             [3, 1, "cargo_container"],
             [2, 0, "planter"],
-            [1, 6, "planter"]
+            [1, 6, "planter"],
+            [1, 8, "cargo_container"],
+            [7, 3, "cargo_container"],
+            [3, 8, "cone"],
+            [4, 5, "cone"],
+            [7, 9, "barrier"]
         ],
 
         walls: [{
@@ -8171,97 +8276,97 @@ export default [
 
         convoys: [{
                 key: "pink",
-                exit: [4, 5],
+                exit: [1, 1],
                 facing: 90,
                 cells: [
                     [5, 3],
                     [5, 4],
-                    [6, 4]
+                    [5, 5]
                 ]
             },
             {
                 key: "red",
-                exit: [3, 3],
+                exit: [6, 2],
                 facing: 90,
                 cells: [
-                    [7, 6],
-                    [7, 5],
-                    [7, 4]
+                    [5, 9],
+                    [5, 8],
+                    [4, 8]
                 ]
             },
             {
                 key: "cyan",
-                exit: [3, 2],
+                exit: [4, 0],
                 facing: 90,
                 cells: [
-                    [1, 4],
-                    [0, 4],
-                    [0, 3],
-                    [0, 2]
+                    [0, 5],
+                    [0, 6],
+                    [0, 7],
+                    [0, 8]
                 ]
             },
             {
                 key: "green",
-                exit: [4, 3],
+                exit: [7, 2],
                 facing: 90,
                 cells: [
-                    [1, 0],
                     [0, 0],
                     [0, 1],
-                    [1, 1]
+                    [0, 2],
+                    [0, 3]
                 ]
             },
             {
                 key: "orange",
-                exit: [3, 4],
+                exit: [0, 4],
                 facing: 90,
                 cells: [
-                    [4, 9],
-                    [4, 8],
-                    [5, 8],
-                    [5, 9]
+                    [7, 1],
+                    [7, 0],
+                    [6, 0],
+                    [5, 0]
                 ]
             },
             {
                 key: "white",
-                exit: [7, 7],
+                exit: [4, 1],
                 facing: 90,
                 cells: [
-                    [1, 9],
-                    [2, 9],
                     [2, 8],
-                    [2, 7]
+                    [2, 9],
+                    [1, 9],
+                    [0, 9]
                 ]
             },
             {
                 key: "lime",
-                exit: [3, 0],
+                exit: [4, 2],
                 facing: 90,
                 cells: [
+                    [2, 7],
+                    [2, 6],
                     [2, 5],
-                    [2, 4],
-                    [2, 3],
-                    [2, 2]
+                    [2, 4]
                 ]
             },
             {
                 key: "purple",
-                exit: [3, 9],
+                exit: [1, 0],
                 facing: 90,
                 cells: [
-                    [6, 2],
                     [6, 3],
-                    [7, 3]
+                    [6, 4],
+                    [7, 4]
                 ]
             },
             {
                 key: "yellow",
-                exit: [5, 5],
+                exit: [2, 1],
                 facing: 90,
                 cells: [
-                    [4, 0],
-                    [5, 0],
-                    [6, 0]
+                    [7, 7],
+                    [7, 6],
+                    [7, 5]
                 ]
             }
         ]
@@ -8269,6 +8374,7 @@ export default [
 
     // Level 71
     {
+        difficulty: "normal",
         rows: 10,
         columns: 9,
 
@@ -8423,6 +8529,7 @@ export default [
 
     // Level 72
     {
+        difficulty: "normal",
         rows: 10,
         columns: 9,
 
@@ -8583,6 +8690,7 @@ export default [
 
     // Level 73
     {
+        difficulty: "normal",
         rows: 10,
         columns: 9,
 
@@ -8750,6 +8858,7 @@ export default [
 
     // Level 74
     {
+        difficulty: "normal",
         rows: 10,
         columns: 9,
 
@@ -8916,10 +9025,11 @@ export default [
 
     // Level 75
     {
+        difficulty: "hard",
         rows: 10,
         columns: 9,
 
-        time: 125,
+        time: 95,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 1, 0],
@@ -9074,6 +9184,7 @@ export default [
 
     // Level 76
     {
+        difficulty: "normal",
         rows: 10,
         columns: 9,
 
@@ -9238,6 +9349,7 @@ export default [
 
     // Level 77
     {
+        difficulty: "normal",
         rows: 10,
         columns: 9,
 
@@ -9399,6 +9511,7 @@ export default [
 
     // Level 78
     {
+        difficulty: "normal",
         rows: 10,
         columns: 9,
 
@@ -9563,6 +9676,7 @@ export default [
 
     // Level 79
     {
+        difficulty: "normal",
         rows: 10,
         columns: 9,
 
@@ -9724,24 +9838,25 @@ export default [
         ]
     },
 
-    // Level 80
+    // Level 80 (hardened)
     {
+        difficulty: "superHard",
         rows: 10,
         columns: 9,
 
-        time: 145,
+        time: 170,
 
         pattern: [
+            [1, 1, 1, 0, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1]
+            [1, 1, 1, 1, 0, 1, 0, 1, 1],
+            [1, 1, 0, 1, 1, 1, 0, 1, 1],
+            [1, 1, 1, 0, 0, 0, 1, 1, 1],
+            [1, 0, 1, 0, 1, 1, 0, 0, 1],
+            [1, 0, 0, 1, 1, 1, 1, 1, 1],
+            [1, 0, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 0, 1]
         ],
 
         obstacles: [
@@ -9749,7 +9864,12 @@ export default [
             [7, 7, "barrier"],
             [6, 4, "service_cabinet"],
             [8, 5, "service_cabinet"],
-            [0, 3, "service_cabinet"]
+            [0, 3, "service_cabinet"],
+            [2, 2, "barrier"],
+            [4, 1, "service_cabinet"],
+            [5, 5, "planter"],
+            [3, 8, "service_cabinet"],
+            [8, 1, "planter"]
         ],
 
         walls: [{
@@ -9789,112 +9909,112 @@ export default [
 
         convoys: [{
                 key: "orange",
-                exit: [6, 6],
+                exit: [8, 4],
                 facing: 90,
                 cells: [
-                    [1, 5],
-                    [1, 6],
-                    [1, 7],
-                    [2, 7],
-                    [3, 7]
+                    [4, 5],
+                    [4, 6],
+                    [4, 7],
+                    [3, 7],
+                    [2, 7]
                 ]
             },
             {
                 key: "pink",
-                exit: [0, 7],
+                exit: [6, 1],
                 facing: 90,
                 cells: [
-                    [2, 2],
-                    [2, 1],
-                    [1, 1]
+                    [1, 4],
+                    [1, 3],
+                    [1, 2]
                 ]
             },
             {
                 key: "red",
-                exit: [7, 1],
-                facing: 90,
-                cells: [
-                    [3, 8],
-                    [3, 9],
-                    [4, 9],
-                    [5, 9]
-                ]
-            },
-            {
-                key: "purple",
-                exit: [5, 0],
-                facing: 90,
-                cells: [
-                    [4, 3],
-                    [4, 2],
-                    [3, 2],
-                    [3, 3],
-                    [3, 4]
-                ]
-            },
-            {
-                key: "cyan",
-                exit: [4, 7],
-                facing: 90,
-                cells: [
-                    [8, 9],
-                    [8, 8],
-                    [8, 7],
-                    [8, 6],
-                    [7, 6]
-                ]
-            },
-            {
-                key: "yellow",
-                exit: [3, 1],
-                facing: 90,
-                cells: [
-                    [8, 1],
-                    [8, 2],
-                    [8, 3]
-                ]
-            },
-            {
-                key: "white",
                 exit: [8, 0],
                 facing: 90,
                 cells: [
-                    [0, 9],
-                    [1, 9],
-                    [2, 9],
-                    [2, 8],
-                    [1, 8]
-                ]
-            },
-            {
-                key: "blue",
-                exit: [3, 0],
-                facing: 90,
-                cells: [
-                    [5, 1],
-                    [5, 2],
-                    [5, 3]
-                ]
-            },
-            {
-                key: "green",
-                exit: [6, 5],
-                facing: 90,
-                cells: [
-                    [7, 9],
-                    [7, 8],
-                    [6, 8],
+                    [3, 9],
+                    [4, 9],
+                    [5, 9],
                     [6, 9]
                 ]
             },
             {
-                key: "lime",
-                exit: [0, 5],
+                key: "purple",
+                exit: [2, 1],
                 facing: 90,
                 cells: [
-                    [3, 5],
-                    [4, 5],
-                    [4, 4]
+                    [3, 1],
+                    [3, 2],
+                    [3, 3],
+                    [4, 3],
+                    [5, 3]
+                ]
+            },
+            {
+                key: "cyan",
+                exit: [8, 3],
+                facing: 90,
+                cells: [
+                    [8, 7],
+                    [8, 6],
+                    [7, 6],
+                    [6, 6],
+                    [6, 7]
+                ]
+            },
+            {
+                key: "yellow",
+                exit: [4, 0],
+                facing: 90,
+                cells: [
+                    [0, 4],
+                    [0, 5],
+                    [0, 6]
+                ]
+            },
+            {
+                key: "white",
+                exit: [6, 0],
+                facing: 90,
+                cells: [
+                    [2, 9],
+                    [1, 9],
+                    [0, 9],
+                    [0, 8],
+                    [0, 7]
+                ]
+            },
+            {
+                key: "blue",
+                exit: [1, 1],
+                facing: 90,
+                cells: [
+                    [5, 0],
+                    [5, 1],
+                    [5, 2]
+                ]
+            },
+            {
+                key: "green",
+                exit: [8, 2],
+                facing: 90,
+                cells: [
+                    [6, 8],
+                    [7, 8],
+                    [8, 8],
+                    [8, 9]
+                ]
+            },
+            {
+                key: "lime",
+                exit: [2, 8],
+                facing: 90,
+                cells: [
+                    [7, 0],
+                    [7, 1],
+                    [7, 2]
                 ]
             }
         ]
@@ -9902,6 +10022,7 @@ export default [
 
     // Level 81
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -10073,6 +10194,7 @@ export default [
 
     // Level 82
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -10248,6 +10370,7 @@ export default [
 
     // Level 83
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -10429,6 +10552,7 @@ export default [
 
     // Level 84
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -10602,18 +10726,19 @@ export default [
         ]
     },
 
-    // Level 85
+    // Level 85 (hardened)
     {
+        difficulty: "hard",
         rows: 11,
         columns: 9,
 
-        time: 135,
+        time: 100,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 0, 1],
+            [1, 1, 1, 1, 1, 1, 0, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -10629,7 +10754,9 @@ export default [
             [1, 3, "cargo_container"],
             [7, 3, "cone"],
             [2, 5, "cargo_container"],
-            [0, 4, "cargo_pallet"]
+            [0, 4, "cargo_pallet"],
+            [3, 8, "planter"],
+            [7, 4, "cargo_container"]
         ],
 
         walls: [{
@@ -10782,6 +10909,7 @@ export default [
 
     // Level 86
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -10959,6 +11087,7 @@ export default [
 
     // Level 87
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -11136,6 +11265,7 @@ export default [
 
     // Level 88
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -11311,6 +11441,7 @@ export default [
 
     // Level 89
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -11486,25 +11617,26 @@ export default [
         ]
     },
 
-    // Level 90
+    // Level 90 (hardened)
     {
+        difficulty: "superHard",
         rows: 11,
         columns: 9,
 
-        time: 140,
+        time: 165,
 
         pattern: [
+            [1, 0, 0, 0, 1, 0, 1, 1, 1],
+            [1, 0, 1, 0, 1, 0, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 1, 1, 0, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 1, 1, 0, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 1, 1],
             [0, 1, 1, 1, 1, 1, 1, 1, 0],
-            [0, 0, 1, 1, 1, 1, 1, 0, 0]
+            [0, 0, 1, 1, 1, 0, 0, 0, 0]
         ],
 
         obstacles: [
@@ -11513,7 +11645,11 @@ export default [
             [2, 1, "planter"],
             [3, 4, "cargo_pallet"],
             [7, 7, "cone"],
-            [6, 0, "service_cabinet"]
+            [6, 0, "service_cabinet"],
+            [1, 5, "barrier"],
+            [4, 6, "planter"],
+            [0, 2, "cone"],
+            [5, 6, "service_cabinet"]
         ],
 
         walls: [{
@@ -11558,18 +11694,18 @@ export default [
 
         convoys: [{
                 key: "cyan",
-                exit: [5, 0],
+                exit: [2, 2],
                 facing: 90,
                 cells: [
-                    [2, 6],
                     [2, 5],
-                    [2, 4],
-                    [1, 4]
+                    [2, 6],
+                    [1, 6],
+                    [0, 6]
                 ]
             },
             {
                 key: "blue",
-                exit: [1, 3],
+                exit: [0, 7],
                 facing: 90,
                 cells: [
                     [8, 3],
@@ -11579,71 +11715,71 @@ export default [
             },
             {
                 key: "red",
-                exit: [0, 4],
+                exit: [6, 4],
                 facing: 90,
                 cells: [
+                    [8, 8],
                     [8, 7],
                     [8, 6],
-                    [7, 6],
-                    [6, 6]
+                    [7, 6]
                 ]
             },
             {
                 key: "pink",
-                exit: [4, 6],
+                exit: [8, 4],
                 facing: 90,
                 cells: [
-                    [3, 9],
+                    [6, 9],
+                    [7, 9],
+                    [7, 8]
+                ]
+            },
+            {
+                key: "orange",
+                exit: [2, 4],
+                facing: 90,
+                cells: [
+                    [1, 4],
+                    [1, 3],
+                    [1, 2]
+                ]
+            },
+            {
+                key: "green",
+                exit: [8, 0],
+                facing: 90,
+                cells: [
+                    [4, 10],
                     [3, 10],
                     [2, 10]
                 ]
             },
             {
-                key: "orange",
-                exit: [3, 3],
-                facing: 90,
-                cells: [
-                    [8, 1],
-                    [8, 0],
-                    [7, 0]
-                ]
-            },
-            {
-                key: "green",
-                exit: [6, 10],
-                facing: 90,
-                cells: [
-                    [4, 7],
-                    [4, 8],
-                    [4, 9]
-                ]
-            },
-            {
                 key: "purple",
-                exit: [0, 5],
+                exit: [7, 0],
                 facing: 90,
                 cells: [
-                    [7, 9],
-                    [6, 9],
-                    [5, 9],
-                    [5, 10]
+                    [4, 9],
+                    [3, 9],
+                    [2, 9],
+                    [1, 9]
                 ]
             },
             {
                 key: "yellow",
-                exit: [1, 1],
+                exit: [7, 4],
                 facing: 90,
                 cells: [
-                    [3, 7],
-                    [2, 7],
-                    [1, 7],
-                    [0, 7],
-                    [0, 6]
+                    [6, 6],
+                    [6, 7],
+                    [5, 7],
+                    [4, 7],
+                    [3, 7]
                 ]
             },
             {
                 key: "white",
-                exit: [1, 0],
+                exit: [3, 6],
                 facing: 90,
                 cells: [
                     [3, 2],
@@ -11655,13 +11791,13 @@ export default [
             },
             {
                 key: "lime",
-                exit: [3, 5],
+                exit: [5, 9],
                 facing: 90,
                 cells: [
-                    [3, 8],
-                    [2, 8],
-                    [1, 8],
-                    [1, 9]
+                    [8, 2],
+                    [8, 1],
+                    [7, 1],
+                    [6, 1]
                 ]
             }
         ]
@@ -11669,6 +11805,7 @@ export default [
 
     // Level 91
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -11846,6 +11983,7 @@ export default [
 
     // Level 92
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -12033,6 +12171,7 @@ export default [
 
     // Level 93
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -12220,6 +12359,7 @@ export default [
 
     // Level 94
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -12407,10 +12547,11 @@ export default [
 
     // Level 95
     {
+        difficulty: "hard",
         rows: 11,
         columns: 9,
 
-        time: 145,
+        time: 110,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 1, 0],
@@ -12590,6 +12731,7 @@ export default [
 
     // Level 96
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -12777,6 +12919,7 @@ export default [
 
     // Level 97
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -12965,6 +13108,7 @@ export default [
 
     // Level 98
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -13152,6 +13296,7 @@ export default [
 
     // Level 99
     {
+        difficulty: "normal",
         rows: 11,
         columns: 9,
 
@@ -13334,25 +13479,26 @@ export default [
         ]
     },
 
-    // Level 100
+    // Level 100 (hardened)
     {
+        difficulty: "superHard",
         rows: 11,
         columns: 9,
 
-        time: 150,
+        time: 165,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 0, 1, 1],
+            [0, 1, 1, 1, 1, 1, 1, 1, 0],
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1]
+            [1, 1, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 0, 1, 1, 0, 1, 1, 1],
+            [1, 0, 0, 1, 1, 0, 1, 1, 0],
+            [1, 1, 0, 1, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 0, 1, 1, 1, 1, 1, 0]
         ],
 
         obstacles: [
@@ -13361,7 +13507,10 @@ export default [
             [6, 9, "cargo_container"],
             [1, 6, "cone"],
             [8, 8, "barrier"],
-            [4, 6, "cargo_pallet"]
+            [4, 6, "cargo_pallet"],
+            [6, 4, "cargo_pallet"],
+            [2, 1, "cone"],
+            [5, 0, "barrier"]
         ],
 
         walls: [{
@@ -13409,113 +13558,113 @@ export default [
 
         convoys: [{
                 key: "red",
-                exit: [4, 5],
+                exit: [7, 9],
                 facing: 90,
                 cells: [
-                    [1, 2],
                     [0, 2],
                     [0, 1],
-                    [1, 1],
-                    [1, 0]
+                    [0, 0],
+                    [1, 0],
+                    [1, 1]
                 ]
             },
             {
                 key: "orange",
-                exit: [3, 9],
+                exit: [1, 2],
                 facing: 90,
                 cells: [
-                    [6, 2],
+                    [7, 10],
+                    [6, 10],
+                    [5, 10]
+                ]
+            },
+            {
+                key: "yellow",
+                exit: [3, 1],
+                facing: 90,
+                cells: [
+                    [5, 1],
+                    [6, 1],
+                    [7, 1],
                     [7, 2],
                     [7, 3]
                 ]
             },
             {
-                key: "yellow",
-                exit: [2, 1],
-                facing: 90,
-                cells: [
-                    [8, 4],
-                    [7, 4],
-                    [6, 4],
-                    [6, 5],
-                    [7, 5]
-                ]
-            },
-            {
                 key: "cyan",
-                exit: [0, 0],
+                exit: [2, 2],
                 facing: 90,
                 cells: [
-                    [4, 10],
-                    [5, 10],
-                    [6, 10]
+                    [7, 8],
+                    [7, 7],
+                    [7, 6]
                 ]
             },
             {
                 key: "pink",
-                exit: [0, 9],
+                exit: [0, 8],
                 facing: 90,
                 cells: [
-                    [3, 6],
-                    [3, 7],
-                    [2, 7],
-                    [1, 7]
+                    [3, 10],
+                    [3, 9],
+                    [2, 9],
+                    [1, 9]
                 ]
             },
             {
                 key: "purple",
-                exit: [7, 10],
+                exit: [3, 0],
                 facing: 90,
                 cells: [
-                    [5, 8],
-                    [5, 9],
-                    [4, 9],
+                    [4, 7],
                     [4, 8],
-                    [4, 7]
+                    [4, 9],
+                    [5, 9],
+                    [5, 8]
                 ]
             },
             {
                 key: "white",
-                exit: [2, 8],
+                exit: [4, 10],
                 facing: 90,
                 cells: [
                     [0, 7],
                     [0, 6],
                     [0, 5],
                     [0, 4],
-                    [0, 3]
+                    [1, 4]
                 ]
             },
             {
                 key: "green",
-                exit: [2, 4],
+                exit: [2, 0],
                 facing: 90,
                 cells: [
-                    [7, 8],
-                    [7, 7],
-                    [7, 6],
-                    [8, 6]
+                    [8, 6],
+                    [8, 5],
+                    [8, 4],
+                    [7, 4]
                 ]
             },
             {
                 key: "lime",
-                exit: [0, 8],
+                exit: [5, 2],
                 facing: 90,
                 cells: [
-                    [5, 4],
-                    [5, 5],
-                    [5, 6],
-                    [5, 7]
+                    [2, 4],
+                    [3, 4],
+                    [4, 4],
+                    [5, 4]
                 ]
             },
             {
                 key: "blue",
-                exit: [4, 4],
+                exit: [1, 3],
                 facing: 90,
                 cells: [
-                    [5, 1],
-                    [6, 1],
-                    [7, 1]
+                    [3, 8],
+                    [3, 7],
+                    [3, 6]
                 ]
             }
         ]

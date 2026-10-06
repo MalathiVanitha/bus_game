@@ -7,7 +7,8 @@ const TILE_FACE = 0x9ca4b5;
 const TILE_LIGHT = 0xafb7c6;
 const TILE_SHADE = 0x8b93a5;
 
-const SHADOW = 0x000000;
+// Every shadow on the board, still or moving, is cast the same way.
+export const SHADOW = 0x000000;
 
 const ART_CELL = 55;
 
@@ -48,9 +49,9 @@ const OBSTACLE_OFFSET = {
 
 const OBSTACLE_OFFSET_DEFAULT = { x: 0, y: 0 };
 
-const SHADOW_ALPHA = 0.42;
-const SHADOW_X = 0.07;
-const SHADOW_Y = 0.1;
+export const SHADOW_ALPHA = 0.42;
+export const SHADOW_X = 0.07;
+export const SHADOW_Y = 0.1;
 
 const WALL_SHEET = 'walls';
 const WALL_ART = 384;

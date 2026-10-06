@@ -1,4 +1,5 @@
 import SoundManager from './SoundManager.js';
+import { SHADOW, SHADOW_ALPHA, SHADOW_X, SHADOW_Y } from './board.js';
 
 const VEHICLE_SHEET = "luggages";
 
@@ -84,8 +85,17 @@ export class Garage {
         this.fx = config.fx || config.parent;
         this.leftovers = [];
 
+        this.shadow = this.drawing(scene, config, config.shadows);
+        this.shadow.x += SHADOW_X * config.size;
+        this.shadow.y += SHADOW_Y * config.size;
+        this.shadow.setTintFill(SHADOW);
+        this.shadow.setAlpha(SHADOW_ALPHA);
+
         this.back = this.drawing(scene, config, config.behind);
         this.front = this.drawing(scene, config, config.parent);
+
+        // Everything that swells and squashes together.
+        this.parts = [this.shadow, this.back, this.front];
 
         this.mouthMask = config.mask;
         this.clipped = true;
@@ -140,13 +150,13 @@ export class Garage {
         this.stopTween();
 
         this.gapeTween = this.scene.tweens.add({
-            targets: [this.back, this.front],
+            targets: this.parts,
             scale: this.baseScale * GAPE_SCALE,
             duration: GAPE_TIME,
             ease: "Back.easeOut",
             onComplete: () => {
                 this.gapeTween = this.scene.tweens.add({
-                    targets: [this.back, this.front],
+                    targets: this.parts,
                     scale: this.baseScale,
                     duration: SHUT_TIME,
                     ease: "Sine.easeOut",
@@ -162,7 +172,7 @@ export class Garage {
         this.stopTween();
 
         this.gapeTween = this.scene.tweens.add({
-            targets: [this.back, this.front],
+            targets: this.parts,
             scale: this.baseScale * GULP_SCALE,
             duration: GULP_TIME,
             yoyo: true,
@@ -176,17 +186,15 @@ export class Garage {
     cheer(then) {
         this.stopTween();
 
-        const both = [this.back, this.front];
-
         this.gapeTween = this.scene.tweens.add({
-            targets: both,
+            targets: this.parts,
             scaleX: this.baseScale * CHEER_SPREAD,
             scaleY: this.baseScale * CHEER_SQUASH,
             duration: CHEER_IN,
             ease: "Quad.easeOut",
             onComplete: () => {
                 this.gapeTween = this.scene.tweens.add({
-                    targets: both,
+                    targets: this.parts,
                     scaleX: this.baseScale,
                     scaleY: this.baseScale,
                     duration: CHEER_OUT,
@@ -208,10 +216,8 @@ export class Garage {
         this.stopTween();
         this.gone = true;
 
-        const both = [this.back, this.front];
-
         this.gapeTween = this.scene.tweens.add({
-            targets: both,
+            targets: this.parts,
             scale: this.baseScale * VANISH_SQUASH,
             duration: VANISH_SQUASH_TIME,
             ease: "Sine.easeOut",
@@ -220,15 +226,14 @@ export class Garage {
                 this.burst(color, then);
 
                 this.gapeTween = this.scene.tweens.add({
-                    targets: both,
+                    targets: this.parts,
                     scale: this.baseScale * VANISH_SWELL,
                     alpha: 0,
                     duration: VANISH_FADE_TIME,
                     ease: "Sine.easeInOut",
                     onComplete: () => {
                         this.gapeTween = null;
-                        this.back.setVisible(false);
-                        this.front.setVisible(false);
+                        for (const part of this.parts) part.setVisible(false);
                     }
                 });
             }
@@ -326,8 +331,7 @@ export class Garage {
 
         this.gapeTween.remove();
         this.gapeTween = null;
-        this.back.setScale(this.baseScale);
-        this.front.setScale(this.baseScale);
+        for (const part of this.parts) part.setScale(this.baseScale);
     }
 
     destroy() {
@@ -341,8 +345,7 @@ export class Garage {
 
         this.leftovers.length = 0;
 
-        this.back.destroy();
-        this.front.destroy();
+        for (const part of this.parts) part.destroy();
     }
 }
 

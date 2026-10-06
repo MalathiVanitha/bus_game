@@ -4,6 +4,7 @@ import { bakeShape } from '../utils/bake.js';
 import { openModal, shutModal, dropModal, liftModal } from '../utils/modal.js';
 import { unlocks, UNLOCK_AT } from './boosterUnlocks.js';
 import { BOOSTERS } from './boosterList.js';
+import { difficulty, NORMAL, HARD, SUPER_HARD } from './levelDifficulty.js';
 import { fitText } from '../utils/text.js';
 
 const PANEL_W = 450;
@@ -51,6 +52,23 @@ const TAIL_BOTTOM = 34;
 const TAIL_NOTCH = 18;
 const TAIL_FILL = 0x5a69d8;
 const TAIL_FOLD = 0x3844b0;
+
+// The ribbon in each difficulty's colours: blue for a normal level, purple
+// for a Hard one and red for a Super Hard one, which also carry a tag saying
+// so under the ribbon.
+const PLATE_STYLES = {
+    [NORMAL]: { face: PLATE_TINT, tail: TAIL_FILL, fold: TAIL_FOLD, stroke: PLATE_STROKE },
+    [HARD]: { face: 0xb36bff, tail: 0x8a3be0, fold: 0x5a1fa3, stroke: '#5a1fa3', tag: 'HARD' },
+    [SUPER_HARD]: { face: 0xff6b6b, tail: 0xe0413f, fold: 0xa32424, stroke: '#a32424', tag: 'SUPER HARD' }
+};
+const TAG_Y = PLATE_H / 2 + 6;
+const TAG_W = 168;
+const TAG_H = 32;
+const TAG_EDGE = 3;
+const TAG_SIZE = 20;
+const TAG_POP = 1.25;
+const TAG_POP_TIME = 420;
+const TAG_DELAY = 260;
 
 // Sun rays turning slowly behind the card. Turned a whole ray's width every
 // round of the idle loop, so the loop never jumps.
@@ -190,7 +208,9 @@ const NOTE = '3 free uses to start';
 const PLAY_Y = PANEL_H / 2 + 8;
 const PLAY_W = 320;
 const PLAY_H = 92;
-const PLAY_SIZE = 64;
+const PLAY_SIZE = 56;
+// Up off the button's lip, so the tail of the y sits on the green face.
+const PLAY_LABEL_Y = -6;
 const PLAY_STROKE = '#1d8a12';
 // Once the card has landed, Play swells a little now and then to draw the eye.
 const PLAY_BEAT = 0.05;
@@ -373,6 +393,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.buildNote();
 
         this.playButton = this.green(0, PLAY_Y, PLAY_W, PLAY_H, 'Play', PLAY_SIZE, () => this.play(), PLAY_STROKE);
+        this.playButton.label.y = PLAY_LABEL_Y;
         this.card.add(this.playButton);
 
         this.playGlint = this.scene.add.image(PLAY_GLINT_X, PLAY_GLINT_Y, GLINT);
@@ -384,7 +405,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.playShine = bakeShape(this.scene, shineBox, (g) => {
             g.fillStyle(0xffffff, 1);
 
-            for (const [x, w] of [[-SHINE_W, SHINE_W], [SHINE_GAP, SHINE_THIN]]) {
+            for (const [x, w] of[[-SHINE_W, SHINE_W], [SHINE_GAP, SHINE_THIN]]) {
                 g.fillPoints([
                     { x: x + SHINE_SLANT * 2, y: SHINE_TOP },
                     { x: x + SHINE_SLANT * 2 + w, y: SHINE_TOP },
@@ -404,29 +425,12 @@ export class LevelScreen extends Phaser.GameObjects.Container {
     buildPlate() {
         const plate = this.scene.add.container(0, PLATE_Y);
 
-        plate.add(bakeShape(this.scene, { left: -TAIL_OUT, top: TAIL_TOP, width: TAIL_OUT * 2, height: TAIL_BOTTOM - TAIL_TOP }, (g) => {
-            const mid = (TAIL_TOP + TAIL_BOTTOM) / 2;
+        this.plateTails = {};
 
-            for (const side of [-1, 1]) {
-                g.fillStyle(TAIL_FILL, 1);
-                g.beginPath();
-                g.moveTo(side * TAIL_IN, TAIL_TOP);
-                g.lineTo(side * TAIL_OUT, TAIL_TOP);
-                g.lineTo(side * (TAIL_OUT - TAIL_NOTCH), mid);
-                g.lineTo(side * TAIL_OUT, TAIL_BOTTOM);
-                g.lineTo(side * TAIL_IN, TAIL_BOTTOM);
-                g.closePath();
-                g.fillPath();
-
-                // The fold, where the tail turns under the plate.
-                g.fillStyle(TAIL_FOLD, 1);
-                g.fillTriangle(
-                    side * TAIL_IN, TAIL_BOTTOM,
-                    side * (TAIL_IN + 24), TAIL_BOTTOM,
-                    side * TAIL_IN, TAIL_BOTTOM - 14
-                );
-            }
-        }, 'level-plate-tails'));
+        for (const kind in PLATE_STYLES) {
+            this.plateTails[kind] = this.plateTail(PLATE_STYLES[kind], kind);
+            plate.add(this.plateTails[kind]);
+        }
 
         const face = this.scene.add.nineslice(
             0, 0, 'sheet', PLATE,
@@ -436,9 +440,12 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         face.setScale(PLATE_SCALE);
         face.setTint(PLATE_TINT);
         plate.add(face);
+        this.plateFace = face;
 
         this.levelText = this.text(0, -2, 'Level 1', PLATE_SIZE, '#ffffff', .5, PLATE_STROKE);
         plate.add(this.levelText);
+
+        this.buildTag(plate);
 
         this.sparkles = SPARKLES.map((spot) => {
             const sparkle = this.scene.add.image(spot.x, spot.y, GLINT);
@@ -454,6 +461,92 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         plate.modalJolt = PLATE_JOLT;
 
         this.card.add(plate);
+    }
+
+    // The ribbon's folded tails, in one difficulty's colours.
+    plateTail(style, kind) {
+        return bakeShape(this.scene, { left: -TAIL_OUT, top: TAIL_TOP, width: TAIL_OUT * 2, height: TAIL_BOTTOM - TAIL_TOP }, (g) => {
+            const mid = (TAIL_TOP + TAIL_BOTTOM) / 2;
+
+            for (const side of[-1, 1]) {
+                g.fillStyle(style.tail, 1);
+                g.beginPath();
+                g.moveTo(side * TAIL_IN, TAIL_TOP);
+                g.lineTo(side * TAIL_OUT, TAIL_TOP);
+                g.lineTo(side * (TAIL_OUT - TAIL_NOTCH), mid);
+                g.lineTo(side * TAIL_OUT, TAIL_BOTTOM);
+                g.lineTo(side * TAIL_IN, TAIL_BOTTOM);
+                g.closePath();
+                g.fillPath();
+
+                // The fold, where the tail turns under the plate.
+                g.fillStyle(style.fold, 1);
+                g.fillTriangle(
+                    side * TAIL_IN, TAIL_BOTTOM,
+                    side * (TAIL_IN + 24), TAIL_BOTTOM,
+                    side * TAIL_IN, TAIL_BOTTOM - 14
+                );
+            }
+        }, 'level-plate-tails-' + kind);
+    }
+
+    // "HARD" or "SUPER HARD" on a pill hung from the ribbon's foot: a white
+    // rim round a face tinted to the ribbon's tail colour.
+    buildTag(plate) {
+        const tag = this.scene.add.container(0, TAG_Y);
+        const outer = { left: -TAG_W / 2 - TAG_EDGE, top: -TAG_H / 2 - TAG_EDGE, width: TAG_W + TAG_EDGE * 2, height: TAG_H + TAG_EDGE * 2 };
+        const inner = { left: -TAG_W / 2, top: -TAG_H / 2, width: TAG_W, height: TAG_H };
+
+        tag.add(bakeShape(this.scene, outer, (g) => {
+            g.fillStyle(0xffffff, 1);
+            g.fillRoundedRect(outer.left, outer.top, outer.width, outer.height, outer.height / 2);
+        }, 'level-tag-rim'));
+
+        tag.face = bakeShape(this.scene, inner, (g) => {
+            g.fillStyle(0xffffff, 1);
+            g.fillRoundedRect(inner.left, inner.top, TAG_W, TAG_H, TAG_H / 2);
+        }, 'level-tag-face');
+        tag.add(tag.face);
+
+        tag.label = this.text(0, -1, '', TAG_SIZE, '#ffffff', .5, '#000000');
+        tag.add(tag.label);
+
+        tag.visible = false;
+        this.tag = tag;
+        plate.add(tag);
+    }
+
+    // The ribbon dressed for how hard this level is.
+    dressPlate(level) {
+        const kind = difficulty(level);
+        const style = PLATE_STYLES[kind];
+        const tag = this.tag;
+
+        for (const k in this.plateTails) this.plateTails[k].visible = k === kind;
+
+        this.plateFace.setTint(style.face);
+        this.levelText.setStroke(style.stroke, Math.round(PLATE_SIZE / 11));
+
+        this.scene.tweens.killTweensOf(tag);
+        tag.visible = !!style.tag;
+
+        if (!style.tag) return;
+
+        tag.face.setTint(style.tail);
+        tag.label.setText(style.tag);
+        tag.label.setStroke(style.stroke, Math.round(TAG_SIZE / 6));
+        fitText(tag.label, TAG_W - 24, TAG_SIZE);
+
+        // Pops on as the card lands, to be noticed.
+        tag.setScale(0);
+        this.scene.tweens.add({
+            targets: tag,
+            scale: { from: TAG_POP, to: 1 },
+            alpha: { from: 0, to: 1 },
+            delay: TAG_DELAY,
+            duration: TAG_POP_TIME,
+            ease: 'Back.easeOut'
+        });
     }
 
     buildRays() {
@@ -970,7 +1063,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
         if (!booster || this.isOpen || this.offer.visible) return;
 
-        this.inPlay = onDone || (() => { });
+        this.inPlay = onDone || (() => {});
         this.visible = true;
         this.dim.visible = false;
         this.card.visible = false;
@@ -1042,6 +1135,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.level = level;
         this.levelText.setText('Level ' + level);
         fitText(this.levelText, PLATE_W - PLATE_EDGE * 2, PLATE_SIZE);
+        this.dressPlate(level);
 
         this.offer.visible = false;
         this.refresh();

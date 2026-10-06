@@ -1,3 +1,5 @@
+import { SHADOW, SHADOW_ALPHA, SHADOW_X, SHADOW_Y } from "./board.js";
+
 const ART_MARGIN = 200 / 220;
 const TRACTOR_ART_CELL = 220 * ART_MARGIN;
 const CART_ART_CELL = 314 * ART_MARGIN;
@@ -84,8 +86,19 @@ export class Convoy {
             art.setScale(scale);
             config.parent.add(art);
 
+            const shadow = scene.add.sprite(0, 0, VEHICLE_SHEET, art.frame.name);
+
+            shadow.setScale(scale);
+            shadow.setTintFill(SHADOW);
+            shadow.setAlpha(SHADOW_ALPHA);
+            config.shadows.add(shadow);
+
             this.vehicles[i] = {
                 art: art,
+                shadow: shadow,
+                // How much of its shadow still shows: it goes under the
+                // garage roof with the vehicle.
+                shade: 1,
                 scale: scale,
                 facing: tractor ? TRACTOR_FACING : CART_FACING,
                 x: 0,
@@ -219,9 +232,37 @@ export class Convoy {
             art.depth = vehicle.y + this.depthLift;
             art.rotation = vehicle.heading - vehicle.facing;
             art.setScale(vehicle.scale * (door ? this.doorScale(vehicle, door) : 1));
+            vehicle.shade = door ? this.doorShade(vehicle, door) : 1;
+
+            this.castShadow(i);
         }
 
         this.drawLinks();
+    }
+
+    /**
+     * Lays a vehicle's shadow under its art as the art now stands: called
+     * every draw, and by anything that moves the art itself (the pop off the
+     * board).
+     */
+    castShadow(i) {
+        const art = this.vehicles[i].art;
+        const shadow = this.vehicles[i].shadow;
+
+        shadow.visible = art.visible;
+        shadow.x = art.x + SHADOW_X * this.cellSize;
+        shadow.y = art.y + SHADOW_Y * this.cellSize;
+        shadow.rotation = art.rotation;
+        shadow.setScale(art.scaleX, art.scaleY);
+        shadow.alpha = SHADOW_ALPHA * art.alpha * this.vehicles[i].shade;
+    }
+
+    // Full out on the board, fading under the roof edge, gone by the time
+    // the vehicle is cut off at the back of the door.
+    doorShade(vehicle, door) {
+        const along = (vehicle.x - door.x) * door.outX + (vehicle.y - door.y) * door.outY;
+
+        return Math.min(1, Math.max(0, (along - door.back) / (door.mouth - door.back)));
     }
 
     doorScale(vehicle, door) {
@@ -608,6 +649,7 @@ export class Convoy {
             const art = this.vehicles[i].art;
 
             art.alpha = alpha;
+            this.vehicles[i].shadow.alpha = SHADOW_ALPHA * alpha * this.vehicles[i].shade;
 
             if (ghost) art.setTint(GHOST_TINT);
             else art.clearTint();
@@ -618,7 +660,10 @@ export class Convoy {
     }
 
     setVisible(visible) {
-        for (let i = 0; i < this.vehicles.length; i++) this.vehicles[i].art.visible = visible;
+        for (let i = 0; i < this.vehicles.length; i++) {
+            this.vehicles[i].art.visible = visible;
+            this.vehicles[i].shadow.visible = visible;
+        }
 
         this.links.visible = visible;
     }
@@ -640,7 +685,10 @@ export class Convoy {
     }
 
     destroy() {
-        for (let i = 0; i < this.vehicles.length; i++) this.vehicles[i].art.destroy();
+        for (let i = 0; i < this.vehicles.length; i++) {
+            this.vehicles[i].art.destroy();
+            this.vehicles[i].shadow.destroy();
+        }
 
         this.links.destroy();
         this.doorShape.destroy();

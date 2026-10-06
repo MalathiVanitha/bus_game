@@ -341,6 +341,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.iceSheet = this.makeIceSheet();
         this.add(this.iceSheet);
 
+        // The shadows of the garages and convoys: over the ice, under them all.
+        this.castGroup = this.scene.add.container();
+        this.add(this.castGroup);
+
         this.garageBackGroup = this.scene.add.container();
         this.add(this.garageBackGroup);
 
@@ -357,6 +361,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.doorMatrix = new Phaser.GameObjects.Components.TransformMatrix();
         this.doorParent = new Phaser.GameObjects.Components.TransformMatrix();
 
+        // Straight from the level data: Hard and Super Hard levels' times there
+        // are already their shorter clocks.
         this.levelTime = levelData.time > 0 ? levelData.time : DEFAULT_TIME;
         this.timeLeft = this.levelTime;
         this.running = false;
@@ -597,6 +603,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 size: this.cellSize,
                 facing: this.garageFacing(convoy),
                 behind: this.garageBackGroup,
+                shadows: this.castGroup,
                 fx: this.effectGroup,
                 parent: this.stage,
                 mask: this.mouthMask
@@ -734,7 +741,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
             key: convoy.key,
             count: convoy.count,
             cellSize: this.cellSize,
-            parent: this.stage
+            parent: this.stage,
+            shadows: this.castGroup
         });
 
         this.updateConvoyView(convoy, 0);
@@ -1997,11 +2005,13 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         convoy.rig.links.visible = false;
 
-        const vehicles = convoy.rig.vehicles;
+        const rig = convoy.rig;
+        const vehicles = rig.vehicles;
 
         for (let i = 0; i < vehicles.length; i++) {
             const art = vehicles[i].art;
             const scale = vehicles[i].scale;
+            const follow = () => rig.castShadow(i);
             const delay = i * REMOVE_STAGGER;
             const spot = spots[convoy.leadIsHead ? i : spots.length - 1 - i] || spots[0];
             const cell = convoy.cells[convoy.leadIsHead ? i : spots.length - 1 - i];
@@ -2013,6 +2023,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 duration: REMOVE_POP_TIME,
                 delay: delay,
                 ease: 'Quad.easeOut',
+                onUpdate: follow,
                 onStart: () => {
                     SoundManager.fx(this.scene, 'poof', 0.7, i * 150);
                     art.setTintFill(0xffffff);
@@ -2030,6 +2041,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
                         scaleY: scale * REMOVE_POP,
                         duration: REMOVE_POP_TIME,
                         ease: 'Back.easeOut',
+                        onUpdate: follow,
                         onComplete: () => {
                             this.scene.tweens.add({
                                 targets: art,
@@ -2038,7 +2050,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
                                 y: art.y - this.cellSize * REMOVE_RISE,
                                 angle: art.angle + (i % 2 ? REMOVE_SPIN : -REMOVE_SPIN) * 4,
                                 duration: REMOVE_OUT_TIME,
-                                ease: 'Back.easeIn'
+                                ease: 'Back.easeIn',
+                                onUpdate: follow
                             });
                         }
                     });

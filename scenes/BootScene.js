@@ -12,6 +12,7 @@ export default class BootScene extends Phaser.Scene {
         // size, so they are kept as their own images.
         this.load.image('panel_modal', 'assets/panel_modal.png')
         this.load.image('button_purple', 'assets/button_purple.png')
+        this.load.image('button_red', 'assets/button_red.png')
         this.load.image('button_green', 'assets/button_green.png')
         this.load.image('button_blue', 'assets/button_blue.png')
 
