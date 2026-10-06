@@ -134,22 +134,19 @@ const BURST_REACH = 58;
 const BURST_TIME = 520;
 const BURST_SCALE = 0.13;
 const BURST_TINT = 0xffd34d;
-// Once the card has landed, the convoy drives over to the garage and in out
-// of sight (the arrow giving way as it passes), the garage bumps as it takes
-// it, and a fresh convoy rolls in back at the start. Times are from the start
-// of each round.
-const DRIVE_END = 950;
-// How far along the drive the convoy starts shrinking into the garage.
-const DRIVE_SINK = 0.65;
-const SINK_SCALE = 0.3;
+// Once the card has landed, the convoy drives over to the garage and on into
+// it, full size, nose first, until the last cart is in (the arrow giving way
+// as it passes); the garage bumps as it takes the last of it, and a fresh
+// convoy rolls in back at the start. Times are from the start of each round.
+const DRIVE_END = 1250;
 const ARROW_CLEAR = 70;
-const BUMP_AT = 880;
+const BUMP_AT = DRIVE_END - 40;
 const BUMP_TIME = 260;
 const BUMP = 0.16;
-const RETURN_AT = 1500;
+const RETURN_AT = DRIVE_END + 550;
 const RETURN_TIME = 380;
 const RETURN_FROM = 36;
-const DRIVE_ROUND = 2500;
+const DRIVE_ROUND = RETURN_AT + 1000;
 
 const RULE_Y = -80;
 
@@ -1249,23 +1246,26 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
                 if (at < RETURN_AT) {
                     const t = clamp01(at / DRIVE_END);
-                    const sink = clamp01((t - DRIVE_SINK) / (1 - DRIVE_SINK));
-                    const scale = 1 - (1 - SINK_SCALE) * Ease.Quadratic.In(sink);
 
-                    // Steered by its leading (right) end, which runs from where
-                    // it starts to the garage's middle, so the convoy shrinks
-                    // into the garage rather than poking out past it.
+                    // Drives on until its tail is past the garage's middle:
+                    // the garage is drawn over it, so it goes in under it,
+                    // and whatever has gone past the middle is cut away, so
+                    // nothing pokes out the far side.
                     const half = convoy.width * CONVOY_SCALE / 2;
-                    const lead = CONVOY_X + half + (GARAGE_X - CONVOY_X - half) * Ease.Sine.InOut(t);
 
-                    convoy.setScale(CONVOY_SCALE * scale);
-                    convoy.x = lead - half * scale;
-                    convoy.alpha = 1 - Ease.Quadratic.In(sink);
+                    convoy.setScale(CONVOY_SCALE);
+                    // Pulls away gently and keeps its speed going in, so the last
+                    // cart goes in as the garage bumps.
+                    convoy.x = CONVOY_X + (GARAGE_X + half - CONVOY_X) * Ease.Sine.In(t);
+                    convoy.alpha = 1;
 
-                    // Whatever has gone past the garage's middle is inside it.
-                    const left = convoy.x - convoy.displayWidth / 2;
+                    const keep = Math.min(convoy.width, Math.max(0, (GARAGE_X - (convoy.x - half)) / CONVOY_SCALE));
 
-                    convoy.setCrop(0, 0, Math.max(0, (GARAGE_X - left) / convoy.scaleX), convoy.height);
+                    convoy.setCrop(0, 0, keep, convoy.height);
+
+                    // A flipped sprite draws its crop mirrored across it: set
+                    // back by what was cut, so the kept tail stays put.
+                    convoy.x -= (convoy.width - keep) * CONVOY_SCALE;
                 } else {
                     const p = Ease.Back.Out(clamp01((at - RETURN_AT) / RETURN_TIME));
 

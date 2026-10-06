@@ -260,13 +260,25 @@ export class Convoy {
     // Full out on the board, fading under the roof edge, gone by the time
     // the vehicle is cut off at the back of the door.
     doorShade(vehicle, door) {
-        const along = (vehicle.x - door.x) * door.outX + (vehicle.y - door.y) * door.outY;
+        const along = this.doorDistance(vehicle, door);
 
         return Math.min(1, Math.max(0, (along - door.back) / (door.mouth - door.back)));
     }
 
+    // How far out in front of the door a vehicle is. One off to the side is
+    // as far away as it is to the side: a tractor level with the garage but
+    // cells over is not at the door, and keeps its size.
+    doorDistance(vehicle, door) {
+        const dx = vehicle.x - door.x;
+        const dy = vehicle.y - door.y;
+        const along = dx * door.outX + dy * door.outY;
+        const across = dy * door.outX - dx * door.outY;
+
+        return Math.max(along, Math.abs(across));
+    }
+
     doorScale(vehicle, door) {
-        const along = (vehicle.x - door.x) * door.outX + (vehicle.y - door.y) * door.outY;
+        const along = this.doorDistance(vehicle, door);
         const reach = door.mouth + DOOR_REACH * this.cellSize;
         const room = door.mouth - door.back + DOOR_DEEP * this.cellSize;
 

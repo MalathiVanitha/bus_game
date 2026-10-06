@@ -9,27 +9,39 @@
 //   - extra obstacles go where they make the puzzle longest: routes home bend
 //     round them and convoys wait on more others before they can go.
 //
-// Super Hard levels are designed over: the same board size, walls, convoy
-// colours and lengths, but where the convoys park, where their garages stand
-// and where the holes and extra obstacles go is searched for (simulated
-// annealing) to make the board as hard as it gets: ideally only one convoy
-// can go at a time, each freeing the next, down long, crooked roads.
+// Super Hard levels are packed from scratch, the way Gecko Out's hardest are:
+// the same board size and walls, but up to ten long, bent convoys filling
+// most of the floor, garages tucked in among them and holes cut through the
+// middle as well as round the edge. Getting even one convoy home is the
+// puzzle: its road is shut by others that have to go first, and theirs by
+// others again. They are built last-to-go first, each new convoy parked
+// across the roads of the ones already there, so the board always clears;
+// then where everything stands is searched over (simulated annealing) for
+// the longest chain of convoys waiting on each other.
 //
 // Every board written still clears by driving the convoys home one at a time
 // (the promise the level data makes). A Hard level whose own board can't be
 // shown to clear that way is left as it is.
 //
-// Reworked levels are marked "(hardened)" in their comment and skipped on a
-// second run. The picks are seeded by level number.
+// Reworked levels are marked in their comment, "(hardened)" or "(packed)",
+// and skipped on a second run. The picks are seeded by level number.
 //
-//   node tools/harden-levels.mjs
+// Their clocks are set from their boards (see clockFor): a quick player
+// finishes with about CLOCK_LEFT seconds to spare.
+//
+//   node tools/harden-levels.mjs              (both)
+//   node tools/harden-levels.mjs superHard    (only the one difficulty named)
+//   node tools/harden-levels.mjs clock        (only set every Hard and Super
+//                                              Hard level's clock again)
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { HARD, SUPER_HARD } from '../objects/levelDifficulty.js';
 
 const FILE = fileURLToPath(new URL('../data/level-data.js', import.meta.url));
-const MARK = '(hardened)';
+const ONLY = process.argv[2] || null;
+// A Super Hard level hardened before packing came in is packed over.
+const MARK = { [HARD]: '(hardened)', [SUPER_HARD]: '(packed)' };
 
 // holes and obstacles: how many, or under 1 a share of the board's cells.
 // drive, start, wait: how much a longer road home, a convoy blocked at the
@@ -41,26 +53,42 @@ const MARK = '(hardened)';
 // though, blocks the others there and has to be backed out. stair: the
 // penalty for a hole touching another only corner to corner, which reads as
 // scattered blocks rather than a wall and only makes roads zig-zag.
+// bent, crowd, open (packed boards only): what each bent convoy is worth,
+// and the penalty for each two garages side by side and for each 2x2 of
+// open floor - so the board reads like Gecko Out's, convoys winding among
+// garages spread all over it and the free floor only thin roads, not a car
+// park with its garages lined up beside it.
 // tries: cells tried for each piece placed. pairs: when no one cell makes
 // the board harder, look for two that do together (one shuts a road, the
 // other the road round it).
-// Super Hard levels ramp up: the first gets RAMP_FIRST of the plan's holes,
-// obstacles and weights, level 100 all of them, so the early ones stay
-// winnable in a few tries.
-const RAMP_FIRST = 0.35;
+// Super Hard (pack), ramping from level 10 to level 100: convoys, how many
+// (never more than there are colours); fill, the share of the open floor
+// convoys and garages take; holes, the share of the board cut out. length:
+// the shortest and longest a convoy can be.
+const PACK_CONVOYS = [6, 10];
+const PACK_FILL = [0.78, 0.88];
+const PACK_HOLES = [0.08, 0.13];
+const PACK_LENGTH = [4, 8];
+const PACK_BUILD_TRIES = 1000;
+const PACK_EASE = 100;
 
-// The clock a designed level's data asks for covers driving every road home
-// TIME_DRIVE times over at the game's drag speed (cells a second), plus
-// TIME_CONVOY seconds a convoy to find it and TIME_SPARE to spare, and never
-// less than the level had. The data's time is the clock the game runs.
+const COLOURS = ['yellow', 'red', 'cyan', 'pink', 'blue', 'orange', 'green', 'lime', 'purple', 'white'];
+
+// A Hard or Super Hard level's clock: what a quick player needs, plus
+// CLOCK_LEFT seconds. Each convoy takes CLOCK_FIND seconds to spot and grab
+// (more on Super Hard, where finding the one that can go is the puzzle),
+// its road home at the game's drag speed (cells a second) and CLOCK_TURN
+// for each turn the road can't be driven without; the last one's pull into
+// its garage, at the game's pull speed, runs on the clock too.
 const DRAG_SPEED = 4.6;
-const TIME_DRIVE = 2;
-const TIME_CONVOY = 8;
-const TIME_SPARE = 10;
+const PULL_SPEED = 5.5;
+const CLOCK_FIND = { [HARD]: 1.5, [SUPER_HARD]: 2.5 };
+const CLOCK_TURN = 0.2;
+const CLOCK_LEFT = 5;
 
 const PLAN = {
     [HARD]: { holes: 3, squeeze: 0, obstacles: 2, drive: 1, start: 20, wait: 0, tries: 40, pairs: false },
-    [SUPER_HARD]: { design: true, holes: 0.24, obstacles: 0.07, drive: 3, start: 20, wait: 30, turn: 8, lane: 3, share: 14, stair: 45, steps: 60000 }
+    [SUPER_HARD]: { pack: true, obstacles: 0.02, drive: 3, start: 20, wait: 30, turn: 8, lane: 3, share: 14, stair: 45, steps: 60000, bent: 120, crowd: 80, open: 80 }
 };
 
 // Cells looked at in pairs, best singles first.
@@ -74,6 +102,11 @@ const heads = [...source.matchAll(/^ *\/\/ Level (\d+)[^\n]*$/gm)];
 let out = '';
 let at = 0;
 
+if (ONLY === 'clock') {
+    setClocks();
+    process.exit(0);
+}
+
 for (let h = 0; h < heads.length; h++) {
     const level = Number(heads[h][1]);
     const start = heads[h].index;
@@ -85,15 +118,15 @@ for (let h = 0; h < heads.length; h++) {
 
     let block = source.slice(start, end);
 
-    if (PLAN[kind] && !heads[h][0].includes(MARK)) {
+    if (PLAN[kind] && (!ONLY || kind === ONLY) && !heads[h][0].includes(MARK[kind])) {
         const data = levels[level - 1];
         const plan = PLAN[kind];
-        const change = plan.design ?
-            design(data, ramped(plan, level), seeded(level * 7919 + 17)) :
+        const change = plan.pack ?
+            pack(data, plan, level, seeded(level * 7919 + 17)) :
             harden(data, plan, seeded(level * 7919 + 17));
 
         if (change) {
-            block = block.replace(heads[h][0], heads[h][0] + ' ' + MARK);
+            block = block.replace(heads[h][0], heads[h][0].replace(' ' + MARK[HARD], '') + ' ' + MARK[kind]);
             block = replaceField(block, 'pattern', (indent) => formatRows(change.pattern, indent));
             block = replaceField(block, 'obstacles', (indent) => formatRows(change.obstacles, indent));
 
@@ -112,42 +145,36 @@ for (let h = 0; h < heads.length; h++) {
 out += source.slice(at);
 writeFileSync(FILE, out);
 
-// Super Hard: searches convoy spots, garage spots, holes and extra obstacles
-// together for the hardest board that still clears. Starts from the level's
-// own layout (or a random one, if that doesn't clear one by one) and keeps
-// nudging one piece at a time, taking every change that makes the board
-// harder and, early on, some that don't, so it can climb out of dead ends.
-function ramped(plan, level) {
-    const r = RAMP_FIRST + (1 - RAMP_FIRST) * Math.min(1, level / 100);
-    const out = Object.assign({}, plan);
+// Super Hard: a packed board. Holes are cut first, then the convoys parked
+// last-to-go first, each across the roads home of the ones already there and
+// with its own garage as far down its road as it can be; then convoy spots,
+// garage spots, holes and obstacles are nudged one at a time, keeping every
+// change that makes the board harder and, early on, some that don't, so the
+// search can climb out of dead ends.
+function pack(data, plan, level, random) {
+    const t = Math.min(1, Math.max(0, (level - 10) / 90));
+    const lerp = (range) => range[0] + (range[1] - range[0]) * t;
+    const columns = data.columns;
+    const rows = data.rows;
+    const walls = data.walls || [];
+    const walled = new Set();
 
-    ['holes', 'obstacles', 'wait', 'turn', 'lane', 'share'].forEach((k) => out[k] = plan[k] * r);
+    walls.forEach((w) => w.cells.forEach((c) => walled.add(c[1] * columns + c[0])));
 
-    return out;
-}
-
-function design(data, plan, random) {
-    const area = data.columns * data.rows;
-    const maxHoles = Math.round(plan.holes * area);
-    const maxObstacles = Math.round(plan.obstacles * area);
-    const bent = data.convoys.some((c) => new Set(c.cells.map((p) => p[0])).size > 1 &&
-        new Set(c.cells.map((p) => p[1])).size > 1);
-    const types = [...new Set((data.obstacles || []).map((o) => o[2]).concat(['cone', 'planter', 'barrier']))];
-    const original = makeBoard(data);
-    const before = clears(original, true);
-
-    let state = {
-        holes: [],
-        obstacles: [],
-        convoys: data.convoys.map((c) => ({ key: c.key, exit: c.exit.slice(), facing: c.facing, cells: c.cells.map((p) => p.slice()) }))
-    };
+    const count = Math.min(COLOURS.length, Math.round(lerp(PACK_CONVOYS)));
+    const own = data.convoys.map((c) => c.key);
+    const keys = own.concat(shuffle(COLOURS.filter((k) => !own.includes(k)), random)).slice(0, count);
+    const holeCount = Math.round(lerp(PACK_HOLES) * columns * rows);
+    const maxObstacles = Math.round(plan.obstacles * columns * rows);
+    const types = ['cone', 'planter', 'barrier'];
 
     const levelOf = (st) => ({
-        columns: data.columns,
-        rows: data.rows,
-        pattern: data.pattern.map((r, row) => r.map((v, col) => st.holes.some((h) => h[0] === col && h[1] === row) ? 0 : v)),
-        obstacles: (data.obstacles || []).concat(st.obstacles),
-        walls: data.walls || [],
+        columns: columns,
+        rows: rows,
+        pattern: Array.from({ length: rows }, (_, row) =>
+            Array.from({ length: columns }, (_, col) => st.holes.some((h) => h[0] === col && h[1] === row) ? 0 : 1)),
+        obstacles: st.obstacles,
+        walls: walls,
         convoys: st.convoys
     });
 
@@ -159,25 +186,17 @@ function design(data, plan, random) {
         const board = makeBoard(level);
         const result = clears(board, true);
 
-        return result.ok ? { result: result, score: score(result, plan) - stairs(board, st.holes) * plan.stair } : null;
+        return result.ok ? { result: result, score: score(result, plan) - stairs(board, st.holes) * plan.stair + looks(board, plan) } : null;
     };
 
-    let now = judge(state);
+    let state = null;
+    let now = null;
 
-    // The level's own layout doesn't clear one by one: start from a random
-    // one that does.
-    for (let t = 0; !now && t < 20000; t++) {
-        const st = { holes: [], obstacles: [], convoys: state.convoys.map((c) => Object.assign({}, c)) };
-        let ok = true;
-
-        for (let i = 0; i < st.convoys.length && ok; i++) ok = moveConvoy(st, levelOf, i, bent, random);
-        for (let i = 0; i < st.convoys.length && ok; i++) ok = moveGarage(st, levelOf, i, random);
-
-        if (!ok) continue;
-
-        now = judge(st);
-
-        if (now) state = st;
+    // A board too tight to park every convoy on gets a little more room
+    // every PACK_EASE tries.
+    for (let tries = 0; !now && tries < PACK_BUILD_TRIES; tries++) {
+        state = build(keys, holeCount, lerp(PACK_FILL) - Math.floor(tries / PACK_EASE) * 0.02, walled, levelOf, random);
+        now = state && judge(state);
     }
 
     if (!now) return null;
@@ -194,9 +213,9 @@ function design(data, plan, random) {
         const roll = random();
         let ok;
 
-        if (roll < 0.35) ok = moveConvoy(next, levelOf, Math.floor(random() * next.convoys.length), bent, random);
-        else if (roll < 0.6) ok = moveGarage(next, levelOf, Math.floor(random() * next.convoys.length), random);
-        else if (roll < 0.85) ok = toggleHole(next, levelOf, maxHoles, random);
+        if (roll < 0.4) ok = moveConvoy(next, levelOf, Math.floor(random() * next.convoys.length), true, random);
+        else if (roll < 0.7) ok = moveGarage(next, levelOf, Math.floor(random() * next.convoys.length), random);
+        else if (roll < 0.9) ok = moveHole(next, levelOf, walled, random);
         else ok = toggleObstacle(next, levelOf, maxObstacles, types, random);
 
         if (!ok) continue;
@@ -213,25 +232,283 @@ function design(data, plan, random) {
         }
     }
 
-    const level = levelOf(best.state);
+    const done = levelOf(best.state);
     const after = best.judged.result;
-    const needed = after.distance / DRAG_SPEED * TIME_DRIVE + data.convoys.length * TIME_CONVOY + TIME_SPARE;
-    const time = Math.max(data.time, Math.ceil(needed / 5) * 5);
+    const time = clockFor(makeBoard(done), after, SUPER_HARD);
+    const floor = columns * rows - best.state.holes.length - walled.size - best.state.obstacles.length;
+    const taken = best.state.convoys.reduce((n, c) => n + c.cells.length + 1, 0);
 
     return {
         time: time,
-        pattern: level.pattern,
-        obstacles: (data.obstacles || []).map((o) => o.slice()).concat(best.state.obstacles),
+        pattern: done.pattern,
+        obstacles: best.state.obstacles,
         convoys: best.state.convoys,
-        report: 'designed: time ' + data.time + ' -> ' + time + 's, ' + best.state.holes.length + ' holes, +' + best.state.obstacles.length + ' obstacles; rounds ' +
-            (before.ok ? before.rounds : '-') + ' -> ' + after.rounds + ' of ' + data.convoys.length +
-            ', waiting ' + (before.ok ? before.waiting : '-') + ' -> ' + after.waiting +
-            ', drive ' + (before.ok ? before.distance : '-') + ' -> ' + after.distance +
-            ', turns ' + (before.ok ? before.turns : '-') + ' -> ' + after.turns +
-            ', one-lane ' + (before.ok ? before.lanes : '-') + ' -> ' + after.lanes +
-            ', shared lanes ' + (before.ok ? before.shared : '-') + ' -> ' + after.shared +
-            ', corner-only holes ' + stairs(makeBoard(level), best.state.holes)
+        report: 'packed: ' + count + ' convoys (' + best.state.convoys.map((c) => c.cells.length).join(',') + '), ' +
+            Math.round(100 * taken / floor) + '% of the floor taken, ' + best.state.holes.length + ' holes, ' +
+            best.state.obstacles.length + ' obstacles, time ' + time + 's; rounds ' + after.rounds + ' of ' + count +
+            ', blocked at start ' + after.blockedAtStart + ', waiting ' + after.waiting + ', drive ' + after.distance +
+            ', turns ' + after.turns + ', one-lane ' + after.lanes + ', shared lanes ' + after.shared +
+            ', corner-only holes ' + stairs(makeBoard(done), best.state.holes)
     };
+}
+
+// How much a packed board looks the part (see bent, crowd and open).
+function looks(board, plan) {
+    const { columns, rows } = board;
+    const open = (c, r) => !board.blocked[r * columns + c] && board.owner[r * columns + c] === -1 &&
+        board.garage[r * columns + c] === -1;
+    let bent = 0;
+    let crowd = 0;
+    let wide = 0;
+
+    board.convoys.forEach((c) => {
+        if (new Set(c.cells.map((p) => p[0])).size > 1 && new Set(c.cells.map((p) => p[1])).size > 1) bent++;
+    });
+
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < columns; col++) {
+            const k = row * columns + col;
+
+            if (board.garage[k] !== -1) {
+                if (col + 1 < columns && board.garage[k + 1] !== -1) crowd++;
+                if (row + 1 < rows && board.garage[k + columns] !== -1) crowd++;
+            }
+
+            if (col + 1 < columns && row + 1 < rows && open(col, row) && open(col + 1, row) &&
+                open(col, row + 1) && open(col + 1, row + 1)) wide++;
+        }
+    }
+
+    return bent * plan.bent - crowd * plan.crowd - wide * plan.open;
+}
+
+// One packed board that clears, or null if the convoys couldn't all be
+// parked. The convoys are parked in the reverse of the order they can go:
+// one parked later goes earlier, so wherever it stands it can't shut the
+// road of one parked before it, and it is parked across those roads so they
+// have to wait on it.
+function build(keys, holeCount, fill, walled, levelOf, random) {
+    const st = { holes: [], obstacles: [], convoys: [] };
+    let level = levelOf(st);
+    const { columns, rows } = level;
+
+    for (let n = 0, guard = 0; n < holeCount && guard < holeCount * 50; guard++) {
+        const col = Math.floor(random() * columns);
+        const row = Math.floor(random() * rows);
+
+        if (level.pattern[row][col] !== 1 || walled.has(row * columns + col)) continue;
+        if (!staysWhole(level, level.pattern, col, row)) continue;
+
+        st.holes.push([col, row]);
+        level = levelOf(st);
+        n++;
+    }
+
+    // How long, on average, each convoy is to take its share of the floor
+    // (its garage takes a cell too).
+    const open = columns * rows - st.holes.length - walled.size;
+    const each = open * fill / keys.length - 1;
+    const roads = new Set();
+
+    for (let i = 0; i < keys.length; i++) {
+        const length = Math.min(PACK_LENGTH[1], Math.max(PACK_LENGTH[0], Math.round(each + (random() - 0.5) * 2.4)));
+        let parked = false;
+
+        for (let t = 0; !parked && t < 200; t++) {
+            const board = makeBoard(levelOf(st));
+            const body = walk(board, length, roads, random);
+
+            if (!body) continue;
+
+            const home = farGarage(board, body, random);
+
+            if (!home) continue;
+
+            st.convoys.push({ key: keys[i], exit: home.exit, facing: 90, cells: body });
+            home.road.forEach((k) => roads.add(k));
+            parked = true;
+        }
+
+        if (!parked) return null;
+    }
+
+    return st;
+}
+
+// A convoy's cells: a walk over free cells that keeps on along roads home
+// already laid where it can, turning as it likes.
+function walk(board, length, roads, random) {
+    const free = freeCells(board).map((c) => c[1] * board.columns + c[0]);
+    const onRoads = free.filter((k) => roads.has(k));
+    const pool = onRoads.length && random() < 0.75 ? onRoads : free;
+
+    if (!pool.length) return null;
+
+    const first = pool[Math.floor(random() * pool.length)];
+    const cells = [[first % board.columns, Math.floor(first / board.columns)]];
+    const used = new Set([first]);
+
+    while (cells.length < length) {
+        const [col, row] = cells[cells.length - 1];
+        const steps = [];
+        let total = 0;
+
+        for (let d = 0; d < 4; d++) {
+            const c = col + SIDES[d][0];
+            const r = row + SIDES[d][1];
+            const k = r * board.columns + c;
+
+            if (!onBoard(board, c, r) || used.has(k) || board.blocked[k] || board.owner[k] !== -1 || board.garage[k] !== -1) continue;
+
+            const weight = roads.has(k) ? 3 : 1;
+
+            steps.push([d, k, weight]);
+            total += weight;
+        }
+
+        if (!steps.length) return null;
+
+        let pick = random() * total;
+        let step = steps[0];
+
+        for (let s = 0; s < steps.length; s++) {
+            pick -= steps[s][2];
+
+            if (pick <= 0) {
+                step = steps[s];
+                break;
+            }
+        }
+
+        used.add(step[1]);
+        cells.push([step[1] % board.columns, Math.floor(step[1] / board.columns)]);
+    }
+
+    return cells;
+}
+
+// A garage for a convoy just parked, down a long road from either of its
+// ends through the free floor, and the cells of that road.
+function farGarage(board, body, random) {
+    const columns = board.columns;
+    const mine = new Set(body.map((c) => c[1] * columns + c[0]));
+    const from = new Map();
+    const steps = new Map();
+    const queue = [];
+
+    [body[0], body[body.length - 1]].forEach((c) => {
+        const k = c[1] * columns + c[0];
+
+        if (steps.has(k)) return;
+
+        steps.set(k, 0);
+        from.set(k, -1);
+        queue.push(k);
+    });
+
+    for (let q = 0; q < queue.length; q++) {
+        const k = queue[q];
+        const col = k % columns;
+        const row = Math.floor(k / columns);
+
+        for (let d = 0; d < 4; d++) {
+            const c = col + SIDES[d][0];
+            const r = row + SIDES[d][1];
+            const n = r * columns + c;
+
+            if (!onBoard(board, c, r) || steps.has(n) || mine.has(n)) continue;
+            if (board.blocked[n] || board.owner[n] !== -1 || board.garage[n] !== -1) continue;
+
+            steps.set(n, steps.get(k) + 1);
+            from.set(n, k);
+            queue.push(n);
+        }
+    }
+
+    const far = [...steps.keys()].filter((k) => steps.get(k) >= 2);
+
+    if (!far.length) return null;
+
+    // The further, the likelier.
+    let total = 0;
+
+    far.forEach((k) => total += steps.get(k) * steps.get(k));
+
+    let pick = random() * total;
+    let exit = far[0];
+
+    for (let i = 0; i < far.length; i++) {
+        pick -= steps.get(far[i]) * steps.get(far[i]);
+
+        if (pick <= 0) {
+            exit = far[i];
+            break;
+        }
+    }
+
+    const road = [];
+
+    for (let k = exit; k !== -1 && !mine.has(k); k = from.get(k)) road.push(k);
+
+    return { exit: [exit % columns, Math.floor(exit / columns)], road: road };
+}
+
+// Fills one hole back in and cuts another, so the board keeps its shape's
+// share of holes.
+function moveHole(st, levelOf, walled, random) {
+    if (!st.holes.length) return false;
+
+    st.holes.splice(Math.floor(random() * st.holes.length), 1);
+
+    const level = levelOf(st);
+    const board = makeBoard(level);
+    const cells = freeCells(board).filter((c) => !walled.has(c[1] * board.columns + c[0]) &&
+        staysWhole(board, level.pattern, c[0], c[1]));
+
+    if (!cells.length) return false;
+
+    st.holes.push(cells[Math.floor(random() * cells.length)]);
+
+    return true;
+}
+
+function clockFor(board, result, kind) {
+    const longest = Math.max(...board.convoys.map((c) => c.cells.length));
+    const needed = board.convoys.length * CLOCK_FIND[kind] + result.distance / DRAG_SPEED +
+        result.turns * CLOCK_TURN + longest / PULL_SPEED;
+
+    return Math.ceil(needed) + CLOCK_LEFT;
+}
+
+// Sets every Hard and Super Hard level's clock from its board as it stands.
+function setClocks() {
+    let text = source;
+
+    for (let h = heads.length - 1; h >= 0; h--) {
+        const level = Number(heads[h][1]);
+        const data = levels[level - 1];
+
+        if (!CLOCK_FIND[data.difficulty]) continue;
+
+        const board = makeBoard(data);
+        const result = clears(board, true);
+
+        if (!result.ok) {
+            console.log('Level ' + level + ' (' + data.difficulty + '): clock left at ' + data.time + 's, its board does not clear one by one');
+            continue;
+        }
+
+        const time = clockFor(board, result, data.difficulty);
+        const start = heads[h].index;
+        const end = h + 1 < heads.length ? heads[h + 1].index : text.length;
+        const block = text.slice(start, end).replace(/^( *)time: \d+,/m, '$1time: ' + time + ',');
+
+        text = text.slice(0, start) + block + text.slice(end);
+        console.log('Level ' + level + ' (' + data.difficulty + '): ' + data.time + 's -> ' + time + 's (' +
+            board.convoys.length + ' convoys, drive ' + result.distance + ', turns ' + result.turns + ')');
+    }
+
+    writeFileSync(FILE, text);
 }
 
 // Holes that meet another blocked cell only corner to corner, with both cells
@@ -351,26 +628,6 @@ function moveGarage(st, levelOf, i, random) {
     const k = spots[Math.floor(random() * spots.length)];
 
     st.convoys[i] = Object.assign({}, own, { exit: [k % columns, Math.floor(k / columns)] });
-
-    return true;
-}
-
-// Cuts a hole at the edge of the floor or against something solid, or fills
-// one back in.
-function toggleHole(st, levelOf, max, random) {
-    if (st.holes.length && (st.holes.length >= max || random() < 0.3)) {
-        st.holes.splice(Math.floor(random() * st.holes.length), 1);
-
-        return true;
-    }
-
-    const level = levelOf(st);
-    const board = makeBoard(level);
-    const cells = freeCells(board).filter((c) => edgy(board, c[0], c[1]) && staysWhole(board, level.pattern, c[0], c[1]));
-
-    if (!cells.length) return false;
-
-    st.holes.push(cells[Math.floor(random() * cells.length)]);
 
     return true;
 }

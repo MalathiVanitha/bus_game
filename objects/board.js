@@ -49,6 +49,11 @@ const OBSTACLE_OFFSET = {
 
 const OBSTACLE_OFFSET_DEFAULT = { x: 0, y: 0 };
 
+// Obstacles drawn smaller than the cell, by kind; the rest fill it.
+const OBSTACLE_SIZE = {
+    barrier: 0.85
+};
+
 export const SHADOW_ALPHA = 0.42;
 export const SHADOW_X = 0.07;
 export const SHADOW_Y = 0.1;
@@ -312,14 +317,15 @@ export class Board {
             const y = at.y + nudge.y * this.cell;
 
             const piece = this.scene.add.sprite(x, y, 'sheet', frame);
+            const size = scale * (OBSTACLE_SIZE[spot[2]] || 1);
 
-            piece.setScale(scale);
+            piece.setScale(size);
             piece.depth = at.y;
             this.props.add(piece);
             this.pieces.push(piece);
 
             const shadow = this.scene.add.sprite(x + SHADOW_X * this.cell - 2, y + SHADOW_Y * this.cell - 2, 'sheet', frame);
-            shadow.setScale(scale * 1.15);
+            shadow.setScale(size * 1.15);
             shadow.setTintFill(SHADOW);
             shadow.setAlpha(SHADOW_ALPHA);
             this.shadowLayer.add(shadow);
