@@ -14,6 +14,7 @@ import { LevelBadge } from '../objects/levelBadge.js';
 import { Transition } from '../objects/transition.js';
 import { BoosterBar } from '../objects/boosterBar.js';
 import { BoosterTutorial } from '../objects/boosterTutorial.js';
+import { FirstLesson } from '../objects/firstLesson.js';
 import { unlocks, UNLOCK_AT } from '../objects/boosterUnlocks.js';
 import data from '../data/data.js';
 import perf from '../utils/perf.js';
@@ -164,6 +165,11 @@ export default class GameScene extends Phaser.Scene {
         this.boosterTutorial = new BoosterTutorial(this, 0, 0);
         this.gameGroup.add(this.boosterTutorial);
 
+        // Level 1's how-to-play: everything blurred but the one convoy to
+        // drive home. Over the clock, the gear and the boosters likewise.
+        this.firstLesson = new FirstLesson(this, 0, 0);
+        this.gameGroup.add(this.firstLesson);
+
         // Last in, so the end card covers the board, the gear, and whatever
         // else happens to be on the screen when a level lands.
         this.cta = new CTA(this, 0, 0);
@@ -260,6 +266,7 @@ export default class GameScene extends Phaser.Scene {
 
     layoutLevel() {
         this.boosterTutorial.abort();
+        this.firstLesson.abort();
         this.boosterBar.hide();
 
         this.gamePlay.reset();
@@ -287,6 +294,7 @@ export default class GameScene extends Phaser.Scene {
         this.boosterBar.intro();
 
         if (lesson) this.boosterTutorial.teach(lesson);
+        else if (this.level === 1) this.firstLesson.begin();
     }
 
     leaveGame() {
@@ -470,6 +478,7 @@ export default class GameScene extends Phaser.Scene {
         this.storePanel.adjust();
         this.settings.adjust();
         this.boosterTutorial.adjust();
+        this.firstLesson.adjust();
         this.transition.adjust();
 
     }

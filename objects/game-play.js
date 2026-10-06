@@ -240,6 +240,41 @@ const GHOST_SHIMMER_RATE = 0.006;
 
 const byDepth = (a, b) => a.depth - b.depth;
 
+// The hint's chevron, pointing along +x: gold, edged in white, on a soft
+// shadow. Shared with the first level's lesson, which draws it over its blur.
+export function hintArrowImage(scene) {
+    const h = HINT_ARROW_ART / 2;
+    const points = [
+        { x: -h * 0.7, y: -h * 0.9 }, { x: -h * 0.05, y: -h * 0.9 }, { x: h * 0.75, y: 0 },
+        { x: -h * 0.05, y: h * 0.9 }, { x: -h * 0.7, y: h * 0.9 }, { x: h * 0.05, y: 0 }
+    ];
+
+    return bakeShape(scene, { left: -h - 4, top: -h - 4, width: HINT_ARROW_ART + 8, height: HINT_ARROW_ART + 12 }, (g) => {
+        g.fillStyle(HINT_SHADE, 0.22);
+        g.fillPoints(points.map((p) => ({ x: p.x, y: p.y + 4 })), true);
+        g.fillStyle(HINT_RING, 1);
+        g.fillPoints(points, true);
+        g.lineStyle(3.5, HINT_EDGE, 1);
+        g.strokePoints(points, true);
+    }, HINT_ARROW_TEXTURE);
+}
+
+// The hint's fingertip, likewise shared.
+export function hintTouchImage(scene) {
+    const r = HINT_TOUCH_ART / 2;
+
+    return bakeShape(scene, { left: -r - 2, top: -r - 2, width: HINT_TOUCH_ART + 4, height: HINT_TOUCH_ART + 8 }, (g) => {
+        g.fillStyle(HINT_SHADE, 0.25);
+        g.fillCircle(0, 4, r);
+        g.fillStyle(HINT_EDGE, 1);
+        g.fillCircle(0, 0, r);
+        g.fillStyle(HINT_RING, 1);
+        g.fillCircle(0, 0, r * 0.62);
+        g.fillStyle(HINT_EDGE, 0.7);
+        g.fillCircle(-r * 0.2, -r * 0.2, r * 0.18);
+    }, HINT_TOUCH_TEXTURE);
+}
+
 export class GamePlay extends Phaser.GameObjects.Container {
     constructor(scene, x, y) {
         super(scene, x, y);
@@ -378,6 +413,9 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.obstacleMarks = null;
         this.removing = 0;
         this.hint = null;
+        // The first level's lesson: { convoy, onGrab }. Only that convoy can
+        // be taken hold of, and taking hold of it ends the lesson.
+        this.lesson = null;
         // Milliseconds of Freeze left, and how much there was when it was
         // last topped up, for the clock to show what is left of it.
         this.frozen = 0;
@@ -1735,6 +1773,15 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         if (!grabbed) return;
 
+        if (this.lesson) {
+            if (grabbed.convoy !== this.lesson.convoy) return;
+
+            const onGrab = this.lesson.onGrab;
+
+            this.lesson = null;
+            onGrab();
+        }
+
         if (this.hint && this.hint.convoy === grabbed.convoy) this.hint = null;
 
         this.clockStarted = true;
@@ -2600,21 +2647,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.showHintTouch(fx, [at].concat(route.map((c) => this.cellToPixel(c.col, c.row))));
     }
 
-    // A chevron pointing along +x: gold, edged in white, on a soft shadow.
     hintArrow(x, y) {
-        const h = HINT_ARROW_ART / 2;
-        const points = [
-            { x: -h * 0.7, y: -h * 0.9 }, { x: -h * 0.05, y: -h * 0.9 }, { x: h * 0.75, y: 0 },
-            { x: -h * 0.05, y: h * 0.9 }, { x: -h * 0.7, y: h * 0.9 }, { x: h * 0.05, y: 0 }
-        ];
-        const arrow = bakeShape(this.scene, { left: -h - 4, top: -h - 4, width: HINT_ARROW_ART + 8, height: HINT_ARROW_ART + 12 }, (g) => {
-            g.fillStyle(HINT_SHADE, 0.22);
-            g.fillPoints(points.map((p) => ({ x: p.x, y: p.y + 4 })), true);
-            g.fillStyle(HINT_RING, 1);
-            g.fillPoints(points, true);
-            g.lineStyle(3.5, HINT_EDGE, 1);
-            g.strokePoints(points, true);
-        }, HINT_ARROW_TEXTURE);
+        const arrow = hintArrowImage(this.scene);
 
         arrow.setPosition(x, y);
         this.effectGroup.add(arrow);
@@ -2645,17 +2679,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
     // The fingertip, pressing on the end to drive and dragging it home along
     // points, on one repeating counter of its own.
     showHintTouch(fx, points) {
-        const r = HINT_TOUCH_ART / 2;
-        const touch = bakeShape(this.scene, { left: -r - 2, top: -r - 2, width: HINT_TOUCH_ART + 4, height: HINT_TOUCH_ART + 8 }, (g) => {
-            g.fillStyle(HINT_SHADE, 0.25);
-            g.fillCircle(0, 4, r);
-            g.fillStyle(HINT_EDGE, 1);
-            g.fillCircle(0, 0, r);
-            g.fillStyle(HINT_RING, 1);
-            g.fillCircle(0, 0, r * 0.62);
-            g.fillStyle(HINT_EDGE, 0.7);
-            g.fillCircle(-r * 0.2, -r * 0.2, r * 0.18);
-        }, HINT_TOUCH_TEXTURE);
+        const touch = hintTouchImage(this.scene);
         const fit = touch.restScale * this.cellSize * HINT_TOUCH_SIZE / HINT_TOUCH_ART;
 
         touch.alpha = 0;
@@ -2768,10 +2792,11 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
     /**
-     * Finds a convoy that can drive into its garage as the board stands, and
-     * lights its way. False, and nothing shown, if none can.
+     * The convoy that can drive into its garage soonest as the board stands:
+     * { convoy, route, from }, from being the end to drive it by. Null if none
+     * can.
      */
-    showHint() {
+    findHint() {
         let best = null;
 
         for (let i = 0; i < this.convoys.length; i++) {
@@ -2789,6 +2814,16 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 }
             }
         }
+
+        return best;
+    }
+
+    /**
+     * Finds a convoy that can drive into its garage as the board stands, and
+     * lights its way. False, and nothing shown, if none can.
+     */
+    showHint() {
+        const best = this.findHint();
 
         if (!best) return false;
 

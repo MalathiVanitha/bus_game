@@ -108,12 +108,32 @@ const GOAL_Y = -205;
 const GOAL_SIZE = 26;
 
 const ART_Y = -138;
-const CONVOY_X = -78;
-const CONVOY_SCALE = 0.23;
 const ARROW_X = 62;
 const ARROW_COLOR = 0x3d8cf0;
 const GARAGE_X = 138;
 const GARAGE_SCALE = 0.36;
+// The game's own convoy and garage, top-down (convoy.js, garage.js), drawn as
+// on a board whose cells are CELL across: a tractor and carts nose to tail,
+// heading for the garage of their colour.
+const CONVOY_KEY = 'red';
+const CELL = GARAGE_SCALE * 170 / 0.92;
+const VEHICLES = 3;
+const TRACTOR_SCALE = CELL * 0.98 / 200;
+const CART_SCALE = CELL * 0.98 / (314 * 200 / 220);
+const LINK_COLOR = 0x23262d;
+const LINK_WIDTH = 0.11;
+// Where the tractor's middle starts.
+const CONVOY_X = -10;
+// As in the game: the convoy rolls in over the garage's near edge and goes
+// under its roof here, this far in from its middle (art pixels); the garage
+// swells as the nose goes in and gives a little gulp as each vehicle is in.
+const DOOR_BACK = 76;
+const ROOF_X = GARAGE_X - DOOR_BACK * GARAGE_SCALE;
+const GAPE = 0.1;
+const GAPE_TIME = 200;
+const SHUT_TIME = 320;
+const GULP = 0.07;
+const GULP_TIME = 160;
 // The lane the convoy drives along, with a dashed line down it.
 const ROAD_Y = ART_Y + 34;
 const ROAD_LEFT = -196;
@@ -135,9 +155,10 @@ const BURST_TIME = 520;
 const BURST_SCALE = 0.13;
 const BURST_TINT = 0xffd34d;
 // Once the card has landed, the convoy drives over to the garage and on into
-// it, full size, nose first, until the last cart is in (the arrow giving way
-// as it passes); the garage bumps as it takes the last of it, and a fresh
-// convoy rolls in back at the start. Times are from the start of each round.
+// it, full size, nose first, under its roof until the last cart is in (the
+// arrow giving way as it passes); the garage bumps as it takes the last of
+// it, and a fresh convoy rolls in back at the start. Times are from the start
+// of each round.
 const DRIVE_END = 1250;
 const ARROW_CLEAR = 70;
 const BUMP_AT = DRIVE_END - 40;
@@ -603,12 +624,30 @@ export class LevelScreen extends Phaser.GameObjects.Container {
             this.puffs.push(puff);
         }
 
-        const convoy = this.scene.add.sprite(CONVOY_X, ART_Y, 'sheet', 'home/convoy');
-        // The art faces left; turned to face the garage it drives into.
-        convoy.setFlipX(true);
-        convoy.setScale(CONVOY_SCALE);
+        // x is the tractor's middle; the carts trail a cell apart behind it.
+        const convoy = this.scene.add.container(CONVOY_X, ART_Y);
+
+        convoy.links = this.scene.add.graphics();
+        convoy.add(convoy.links);
+        convoy.vehicles = [];
+
+        // Back to front, so each is drawn over the link to the one behind.
+        for (let i = VEHICLES - 1; i >= 0; i--) {
+            const tractor = i === 0;
+            const art = this.scene.add.sprite(-i * CELL, 0, 'luggages',
+                CONVOY_KEY + '/' + (tractor ? 'tractor_front' : 'luggage_cart'));
+
+            art.setScale(tractor ? TRACTOR_SCALE : CART_SCALE);
+            // Heading right, as the game turns them (convoy.js).
+            art.rotation = tractor ? -Math.PI / 2 : Math.PI / 2;
+            art.tractor = tractor;
+            convoy.add(art);
+            convoy.vehicles[i] = art;
+        }
+
         this.card.add(convoy);
         this.convoy = convoy;
+        this.placeConvoy(CONVOY_X, false);
 
         const arrow = bakeShape(this.scene, { left: -14, top: -14, width: 30, height: 28 }, (g) => {
             g.fillStyle(ARROW_COLOR, 1);
@@ -619,9 +658,11 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         this.card.add(arrow);
         this.arrow = arrow;
 
-        const garage = this.scene.add.sprite(GARAGE_X, ART_Y, 'luggages', 'white/garage');
+        const garage = this.scene.add.sprite(GARAGE_X, ART_Y, 'luggages', CONVOY_KEY + '/garage');
         garage.setScale(GARAGE_SCALE);
         this.card.add(garage);
+        // Under the convoy, which is cut off at the roof line instead.
+        this.card.moveBelow(garage, convoy);
         this.garage = garage;
 
         this.burst = [];
@@ -1229,6 +1270,9 @@ export class LevelScreen extends Phaser.GameObjects.Container {
     drive() {
         this.stopDrive();
 
+        this.driveMarks = { nose: null, gulps: [] };
+        this.driveLast = 0;
+
         const Ease = Phaser.Math.Easing;
         const clamp01 = (v) => Math.min(1, Math.max(0, v));
 
@@ -1244,48 +1288,98 @@ export class LevelScreen extends Phaser.GameObjects.Container {
                 this.exhaust(at);
                 this.flash(at);
 
+                // A new round: nothing has gone in yet.
+                if (at < this.driveLast) this.driveMarks = { nose: null, gulps: [] };
+
+                this.driveLast = at;
+
+                const marks = this.driveMarks;
+
                 if (at < RETURN_AT) {
                     const t = clamp01(at / DRIVE_END);
 
-                    // Drives on until its tail is past the garage's middle:
-                    // the garage is drawn over it, so it goes in under it,
-                    // and whatever has gone past the middle is cut away, so
-                    // nothing pokes out the far side.
-                    const half = convoy.width * CONVOY_SCALE / 2;
+                    // Pulls away gently and keeps its speed going in, until
+                    // the last cart is under the roof as the garage bumps.
+                    const x = CONVOY_X + (ROOF_X + (VEHICLES - 0.5) * CELL - CONVOY_X) * Ease.Sine.In(t);
+                    const inside = this.placeConvoy(x, true);
 
-                    convoy.setScale(CONVOY_SCALE);
-                    // Pulls away gently and keeps its speed going in, so the last
-                    // cart goes in as the garage bumps.
-                    convoy.x = CONVOY_X + (GARAGE_X + half - CONVOY_X) * Ease.Sine.In(t);
                     convoy.alpha = 1;
 
-                    const keep = Math.min(convoy.width, Math.max(0, (GARAGE_X - (convoy.x - half)) / CONVOY_SCALE));
+                    if (x + CELL / 2 > ROOF_X && marks.nose === null) marks.nose = at;
 
-                    convoy.setCrop(0, 0, keep, convoy.height);
-
-                    // A flipped sprite draws its crop mirrored across it: set
-                    // back by what was cut, so the kept tail stays put.
-                    convoy.x -= (convoy.width - keep) * CONVOY_SCALE;
+                    // A gulp as each vehicle but the last is all the way in;
+                    // the last is the garage's bump.
+                    while (marks.gulps.length < Math.min(VEHICLES - 1, inside)) marks.gulps.push(at);
                 } else {
                     const p = Ease.Back.Out(clamp01((at - RETURN_AT) / RETURN_TIME));
 
-                    convoy.x = CONVOY_X - RETURN_FROM * (1 - p);
-                    convoy.setScale(CONVOY_SCALE);
-                    convoy.setCrop();
+                    this.placeConvoy(CONVOY_X - RETURN_FROM * (1 - p), false);
                     convoy.alpha = clamp01((at - RETURN_AT) / RETURN_TIME * 2);
                 }
 
                 // The arrow fades as the convoy's nose comes up to it, and
                 // back once the new one is in.
-                const near = at < RETURN_AT ? clamp01((convoy.x - (ARROW_X - ARROW_CLEAR * 2)) / ARROW_CLEAR) : 1 - convoy.alpha;
+                const near = at < RETURN_AT ? clamp01((convoy.x - CELL - (ARROW_X - ARROW_CLEAR * 2)) / ARROW_CLEAR) : 1 - convoy.alpha;
 
                 this.arrow.alpha = 1 - near;
 
                 const bump = clamp01((at - BUMP_AT) / BUMP_TIME);
+                let swell = 1 + BUMP * Math.sin(bump * Math.PI);
 
-                this.garage.setScale(GARAGE_SCALE * (1 + BUMP * Math.sin(bump * Math.PI)));
+                if (marks.nose !== null) {
+                    const d = at - marks.nose;
+
+                    if (d < GAPE_TIME) swell *= 1 + GAPE * Ease.Back.Out(d / GAPE_TIME);
+                    else if (d < GAPE_TIME + SHUT_TIME) swell *= 1 + GAPE * (1 - Ease.Sine.Out((d - GAPE_TIME) / SHUT_TIME));
+                }
+
+                for (let i = 0; i < marks.gulps.length; i++) {
+                    const d = at - marks.gulps[i];
+
+                    if (d >= 0 && d < GULP_TIME) swell *= 1 + GULP * Math.sin(d / GULP_TIME * Math.PI);
+                }
+
+                this.garage.setScale(GARAGE_SCALE * swell);
             }
         });
+    }
+
+    // Puts the tractor's middle at x. With roof, each vehicle is cut where it
+    // goes under the garage roof, as the game's mask cuts it; the links
+    // between them too. Hands back how many are all the way in.
+    placeConvoy(x, roof) {
+        const convoy = this.convoy;
+        const links = convoy.links;
+        let inside = 0;
+
+        convoy.x = x;
+        links.clear();
+        links.lineStyle(LINK_WIDTH * CELL, LINK_COLOR, 1);
+
+        for (let i = 0; i < convoy.vehicles.length; i++) {
+            const art = convoy.vehicles[i];
+            const middle = x - i * CELL;
+            // Turned a quarter, so its length across the screen is the art's
+            // height: the tractor's top end leads, a cart's bottom end does.
+            const length = art.height * art.scaleY;
+            const keep = roof ? Math.min(1, Math.max(0, (ROOF_X - (middle - length / 2)) / length)) : 1;
+            const rows = art.height * keep;
+
+            art.setVisible(keep > 0);
+
+            if (keep <= 0) inside++;
+            else if (keep >= 1) art.setCrop();
+            else if (art.tractor) art.setCrop(0, 0, art.width, rows);
+            else art.setCrop(0, art.height - rows, art.width, rows);
+
+            if (i > 0) {
+                const ahead = Math.min(-(i - 1) * CELL, roof ? ROOF_X - x : Infinity);
+
+                if (ahead > -i * CELL) links.lineBetween(-i * CELL, 0, ahead, 0);
+            }
+        }
+
+        return inside;
     }
 
     stopDrive() {
@@ -1293,9 +1387,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
         this.driveRun.remove();
         this.driveRun = null;
-        this.convoy.setPosition(CONVOY_X, ART_Y);
-        this.convoy.setScale(CONVOY_SCALE);
-        this.convoy.setCrop();
+        this.placeConvoy(CONVOY_X, false);
         this.convoy.alpha = 1;
         this.arrow.alpha = 1;
         this.garage.setScale(GARAGE_SCALE);
@@ -1318,7 +1410,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
             }
 
             // Pinned where the tail was when it was let go.
-            if (puff.startX == null) puff.startX = this.convoy.x - this.convoy.displayWidth / 2 + 6;
+            if (puff.startX == null) puff.startX = this.convoy.x - (VEHICLES - 0.5) * CELL + 6;
 
             puff.x = puff.startX - 14 * p;
             puff.y = ROAD_Y - 10 - PUFF_RISE * p;
