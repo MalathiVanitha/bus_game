@@ -1171,9 +1171,10 @@ function formatConvoys(convoys, indent) {
     const items = convoys.map((c) => [
         inner + 'key: "' + c.key + '",',
         inner + 'exit: [' + c.exit.join(', ') + '],',
-        inner + 'facing: ' + c.facing + ',',
+        inner + 'facing: ' + c.facing + ','
+    ].concat(c.lock ? [inner + 'lock: ' + c.lock + ','] : [], [
         inner + 'cells: ' + formatRows(c.cells, inner)
-    ].join('\n'));
+    ]).join('\n'));
 
     return '[{\n' + items.join('\n' + indent + '    },\n' + indent + '    {\n') + '\n' + indent + '    }\n' + indent + ']';
 }

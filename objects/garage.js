@@ -69,6 +69,93 @@ const POP_LINE = 0.35;
 const FOOT = 0.5;
 const NOSE = 0.5;
 
+// A locked garage sits under a block of ice with a number on it: how many
+// other convoys still have to get home before it opens. Each one home knocks
+// it down by one; at nought the ice cracks and flies off, and the garage
+// takes its convoy like any other. Drawn once to a texture, shared.
+const LOCK_TEXTURE = "garage-lock";
+const LOCK_ART = 160;
+const LOCK_FIT = 0.94;
+const LOCK_ALPHA = 1;
+const LOCK_TEXT = 0.36;
+const LOCK_FONT = "FredokaOne_Regular";
+const LOCK_INK = "#ffffff";
+const LOCK_EDGE = "#1d4f9c";
+// Each tick down: the number squeezes, swells past its size and settles.
+const TICK_SQUEEZE = 0.6;
+const TICK_SWELL = 1.35;
+const TICK_IN = 90;
+const TICK_OUT = 380;
+const TICK_SHAKE = 0.06;
+// Breaking: it swells a touch, flashes white and goes, in a burst of ice.
+const BREAK_SWELL = 1.2;
+const BREAK_TIME = 260;
+const ICE_COLOR = 0xc8f1ff;
+
+function lockTexture(scene) {
+    if (scene.textures.exists(LOCK_TEXTURE)) return LOCK_TEXTURE;
+
+    const size = LOCK_ART;
+    const canvas = scene.textures.createCanvas(LOCK_TEXTURE, size, size);
+    const ctx = canvas.getContext();
+    const round = (x, y, w, h, r) => {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+    };
+
+    // The block: pale on top, deeper at the foot, a white rim.
+    const body = ctx.createLinearGradient(0, 0, 0, size);
+
+    body.addColorStop(0, "rgba(190, 238, 255, 0.55)");
+    body.addColorStop(1, "rgba(80, 170, 240, 0.6)");
+    round(6, 6, size - 12, size - 12, 26);
+    ctx.fillStyle = body;
+    ctx.fill();
+    ctx.lineWidth = 7;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+    ctx.stroke();
+
+    // A shine down the top left and a glint in the far corner.
+    ctx.save();
+    round(6, 6, size - 12, size - 12, 26);
+    ctx.clip();
+    ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.beginPath();
+    ctx.moveTo(0, size * 0.55);
+    ctx.lineTo(size * 0.55, 0);
+    ctx.lineTo(size * 0.78, 0);
+    ctx.lineTo(0, size * 0.78);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+    round(size * 0.7, size * 0.14, size * 0.12, size * 0.05, size * 0.025);
+    ctx.fill();
+
+    // The well the number sits in.
+    const well = ctx.createRadialGradient(size / 2, size * 0.46, 4, size / 2, size / 2, size * 0.3);
+
+    well.addColorStop(0, "rgba(30, 80, 150, 0.85)");
+    well.addColorStop(1, "rgba(18, 52, 112, 0.9)");
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size * 0.25, 0, Math.PI * 2);
+    ctx.fillStyle = well;
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+    ctx.stroke();
+
+    canvas.refresh();
+
+    return LOCK_TEXTURE;
+}
+
 export class Garage {
     constructor(scene, config) {
         this.scene = scene;
@@ -82,6 +169,7 @@ export class Garage {
         this.baseScale = (config.size * GARAGE_FIT) / ART_CELL;
 
         this.size = config.size;
+        this.parent = config.parent;
         this.fx = config.fx || config.parent;
         this.leftovers = [];
 
@@ -110,6 +198,136 @@ export class Garage {
         this.burstTween = null;
 
         this.gone = false;
+
+        this.lock = 0;
+        this.lockArt = null;
+        this.lockText = null;
+        this.lockTween = null;
+
+        if (config.lock > 0) this.addLock(scene, config.lock);
+    }
+
+    get locked() {
+        return this.lock > 0;
+    }
+
+    addLock(scene, count) {
+        const scale = (this.size * LOCK_FIT) / LOCK_ART;
+        const depth = this.front.depth + 0.01;
+
+        this.lock = count;
+
+        this.lockArt = scene.add.image(this.x, this.y, lockTexture(scene));
+        this.lockArt.setScale(scale);
+        this.lockArt.setAlpha(LOCK_ALPHA);
+        this.lockArt.depth = depth;
+        this.lockArt.baseScale = scale;
+
+        this.lockText = scene.add.text(this.x, this.y, String(count), {
+            fontFamily: LOCK_FONT,
+            fontSize: Math.round(this.size * LOCK_TEXT) + "px",
+            color: LOCK_INK,
+            stroke: LOCK_EDGE,
+            strokeThickness: Math.max(2, Math.round(this.size * 0.06))
+        });
+        this.lockText.setOrigin(0.5);
+        this.lockText.depth = depth + 0.01;
+
+        this.parent.add(this.lockArt);
+        this.parent.add(this.lockText);
+    }
+
+    // One more convoy home. True when that was the last it was waiting on.
+    countDown() {
+        if (!this.locked || this.gone) return false;
+
+        this.lock--;
+
+        if (this.lock <= 0) {
+            this.breakLock();
+            return true;
+        }
+
+        this.lockText.setText(String(this.lock));
+        this.tickLock();
+
+        return false;
+    }
+
+    tickLock() {
+        const art = this.lockArt;
+        const text = this.lockText;
+
+        if (this.lockTween) this.lockTween.remove();
+
+        text.setScale(TICK_SQUEEZE);
+        art.setScale(art.baseScale);
+
+        this.lockTween = this.scene.tweens.add({
+            targets: text,
+            scale: TICK_SWELL,
+            duration: TICK_IN,
+            ease: "Quad.easeOut",
+            onComplete: () => {
+                this.lockTween = this.scene.tweens.add({
+                    targets: text,
+                    scale: 1,
+                    duration: TICK_OUT,
+                    ease: "Back.easeOut",
+                    onComplete: () => {
+                        this.lockTween = null;
+                    }
+                });
+            }
+        });
+
+        this.scene.tweens.add({
+            targets: art,
+            angle: { from: -TICK_SHAKE * 57, to: 0 },
+            duration: TICK_OUT,
+            ease: "Elastic.easeOut",
+            easeParams: [1.2, 0.3]
+        });
+    }
+
+    // Cracks the ice off. Quiet when the garage is going anyway.
+    breakLock(quiet = false) {
+        const art = this.lockArt;
+        const text = this.lockText;
+
+        if (!art) return;
+
+        this.lock = 0;
+        this.lockArt = null;
+        this.lockText = null;
+
+        if (this.lockTween) this.lockTween.remove();
+        this.lockTween = null;
+        this.scene.tweens.killTweensOf([art, text]);
+
+        if (quiet) {
+            art.destroy();
+            text.destroy();
+            return;
+        }
+
+        SoundManager.fx(this.scene, 'unlock', 0.8);
+        art.setTintFill(0xffffff);
+        this.burst(ICE_COLOR);
+
+        this.scene.tweens.add({
+            targets: [art, text],
+            scale: (target) => (target === art ? art.baseScale : 1) * BREAK_SWELL,
+            alpha: 0,
+            duration: BREAK_TIME,
+            ease: "Quad.easeOut",
+            onComplete: () => {
+                art.destroy();
+                text.destroy();
+            }
+        });
+
+        this.cheer();
     }
 
     drawing(scene, config, parent) {
@@ -214,6 +432,7 @@ export class Garage {
         if (this.gone) return;
 
         this.stopTween();
+        this.breakLock(true);
         this.gone = true;
 
         this.gapeTween = this.scene.tweens.add({
@@ -335,6 +554,8 @@ export class Garage {
     }
 
     destroy() {
+        this.breakLock(true);
+
         if (this.gapeTween) this.gapeTween.remove();
         if (this.burstTween) this.burstTween.remove();
 

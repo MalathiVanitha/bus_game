@@ -550,6 +550,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         if (garage) {
             if (garage.convoyIndex !== convoy.index) return false;
+            if (garage.locked) return false;
             if (!routing && !this.atDoorstep(convoy, this.leadCell(convoy))) return false;
         }
 
@@ -640,6 +641,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 y: spot.y,
                 size: this.cellSize,
                 facing: this.garageFacing(convoy),
+                lock: convoy.lock,
                 behind: this.garageBackGroup,
                 shadows: this.castGroup,
                 fx: this.effectGroup,
@@ -733,6 +735,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
             key: data.key,
             index: index,
             exit: data.exit,
+            // How many others have to be home before its garage opens.
+            lock: data.lock || 0,
 
             facing: data.facing,
             garage: null,
@@ -1419,11 +1423,25 @@ export class GamePlay extends Phaser.GameObjects.Container {
             }, this.garageColor(convoy));
         }
 
+        this.countDownLocks();
+
         for (let i = 0; i < this.convoys.length; i++) {
             if (!this.convoys[i].escaped) return;
         }
 
         this.finish(true);
+    }
+
+    // A convoy is off the board: every garage still iced over has one fewer
+    // to wait for, and any that reach nought open.
+    countDownLocks() {
+        let opened = false;
+
+        for (let i = 0; i < this.garages.length; i++) {
+            if (this.garages[i].countDown()) opened = true;
+        }
+
+        if (opened) this.boardStamp++;
     }
 
     releaseCells(convoy) {
@@ -2109,6 +2127,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.shudder();
 
         if (convoy.garage) convoy.garage.vanish(() => { this.boardStamp++; }, this.garageColor(convoy));
+
+        this.countDownLocks();
 
         // Its own counter, the length of the whole pop, before the level can
         // be called: the last convoy off the board should be seen to go.
@@ -2872,7 +2892,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
                 const garage = this.garageAt(col, row);
 
-                if (garage && garage.convoyIndex !== convoy.index) continue;
+                if (garage && (garage.convoyIndex !== convoy.index || garage.locked)) continue;
 
                 seen.set(k, cell);
 
