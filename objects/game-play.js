@@ -15,7 +15,8 @@ const BOARD_FIT_W = 450;
 const BOARD_FIT_H = 560;
 
 // Landscape: the board takes the height between the top bar and the bottom
-// edge, and leaves room either side for the boosters.
+// edge of the screen itself (however tall it is), and leaves room either side
+// for the boosters.
 const WIDE_TOP = 108;
 const WIDE_BOTTOM = 52;
 const WIDE_SIDE = 170;
@@ -2973,12 +2974,13 @@ export class GamePlay extends Phaser.GameObjects.Container {
         let room;
 
         if (dimensions.isLandscape) {
-            const tall = dimensions.gameHeight - WIDE_TOP - WIDE_BOTTOM;
+            const top = dimensions.topOffset + WIDE_TOP;
+            const tall = dimensions.bottomOffset - WIDE_BOTTOM - top;
 
-            this.restY = WIDE_TOP + tall / 2;
+            this.restY = top + tall / 2;
 
             room = Math.min(
-                (dimensions.gameWidth - WIDE_SIDE * 2) / this.boardWidth,
+                (dimensions.actualWidth - WIDE_SIDE * 2) / this.boardWidth,
                 tall / this.boardHeight
             );
         } else {

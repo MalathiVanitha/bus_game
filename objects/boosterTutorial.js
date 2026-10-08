@@ -8,8 +8,9 @@ import { fitText } from '../utils/text.js';
 // arrow asks for a tap on it. The tap plays the booster for real, and free -
 // the hint lights a convoy's way home; the remove and crane each ask for
 // something on the board to use it on -
-// and a card then says in a line what it does. "Got it!", or a tap anywhere
-// off the card, hands the level back, clock and all.
+// and a card then says in a line what it does. "Got it!", or a touch anywhere
+// off the card (a drag on the board goes on as one), hands the level back,
+// clock and all.
 
 const DIM = 0x101a33;
 const DIM_ALPHA = 0.62;
@@ -107,9 +108,12 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
         this.blocker.setOrigin(0);
         this.add(this.blocker);
 
-        // With the card up, a tap anywhere off it (the board too) is "Got it!".
+        // With the card up, a touch anywhere off it puts the card away there
+        // and then, so the same touch goes on to the board: the scene's own
+        // pointerdown, which the board listens on, comes after this one, and
+        // the board is let go by then. A convoy can be dragged straight away.
         this.blocker.on('pointerdown', () => {
-            if (this.stage === 'explain') this.gotIt();
+            if (this.stage === 'explain') this.finish();
         });
 
         this.dim = this.scene.add.rectangle(0, 0, 10, 10, DIM, 1);

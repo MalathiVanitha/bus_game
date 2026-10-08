@@ -262,6 +262,7 @@ export class Timer extends Phaser.GameObjects.Container {
 
     adjust() {
         this.x = PANEL_X;
-        this.y = PANEL_Y;
+        // From the screen's real top, however tall the screen is.
+        this.y = dimensions.topOffset + PANEL_Y;
     }
 }

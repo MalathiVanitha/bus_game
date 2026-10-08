@@ -269,6 +269,7 @@ export class Coin extends Phaser.GameObjects.Container {
 
     adjust() {
         this.x = dimensions.gameWidth - PILL_X;
-        this.y = PILL_Y;
+        // From the screen's real top, however tall the screen is.
+        this.y = dimensions.topOffset + PILL_Y;
     }
 }

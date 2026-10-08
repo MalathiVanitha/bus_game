@@ -614,6 +614,7 @@ export class Settings extends Phaser.GameObjects.Container {
         this.gear.x = this.docked ?
             dimensions.gameWidth / 2 - PLAY_GEAR_X :
             -dimensions.gameWidth / 2 + GEAR_X;
-        this.gear.y = -dimensions.gameHeight / 2 + (this.docked ? PLAY_GEAR_Y : GEAR_Y);
+        // From the screen's real top, however tall the screen is.
+        this.gear.y = -dimensions.gameHeight / 2 + dimensions.topOffset + (this.docked ? PLAY_GEAR_Y : GEAR_Y);
     }
 }

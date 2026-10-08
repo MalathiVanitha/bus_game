@@ -33,9 +33,8 @@ const FROM_BOTTOM = 85;
 const BELOW_BOARD = 22;
 const HALF_BUTTON = 46;
 
-// Landscape: a column either side of the board, centred on its middle (the
-// first half of the list on the left), and the tip along the bottom edge of
-// the screen.
+// Landscape: one column to the right of the board, centred on its middle,
+// and the tip along the bottom edge of the screen.
 const BESIDE_BOARD = 40;
 const WIDE_GAP = 108;
 const WIDE_TIP_BOTTOM = 20;
@@ -637,18 +636,14 @@ export class BoosterBar extends Phaser.GameObjects.Container {
         if (dimensions.isLandscape && play) {
             const fit = play.fitScale || 1;
             const side = play.boardWidth / 2 * fit + BESIDE_BOARD + HALF_BUTTON;
-            const left = Math.ceil(BOOSTERS.length / 2);
 
             this.y = play.restY;
 
             BOOSTERS.forEach((booster, i) => {
                 const button = this.buttons[booster.key];
-                const onLeft = i < left;
-                const index = onLeft ? i : i - left;
-                const count = onLeft ? left : BOOSTERS.length - left;
 
-                button.x = onLeft ? -side : side;
-                button.restY = (index - (count - 1) / 2) * WIDE_GAP;
+                button.x = side;
+                button.restY = (i - (BOOSTERS.length - 1) / 2) * WIDE_GAP;
                 button.y = button.restY;
             });
 

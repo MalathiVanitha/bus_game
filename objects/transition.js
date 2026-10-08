@@ -362,7 +362,9 @@ export class Transition extends Phaser.GameObjects.Container {
         this.alpha = 0.001;
         this.visible = true;
 
-        this.scene.events.once('postrender', () => {
+        // 'postrender' comes from the game, not the scene; on the scene it
+        // never fires and the change stays up, faintly, over every screen.
+        this.scene.game.events.once('postrender', () => {
             if (this.running) return;
 
             this.visible = false;

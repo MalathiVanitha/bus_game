@@ -204,6 +204,7 @@ export class LevelBadge extends Phaser.GameObjects.Container {
 
     adjust() {
         this.x = dimensions.gameWidth / 2 + 30;
-        this.y = BADGE_Y;
+        // From the screen's real top, however tall the screen is.
+        this.y = dimensions.topOffset + BADGE_Y;
     }
 }

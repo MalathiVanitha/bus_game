@@ -106,7 +106,7 @@ const CONVOY_SHADOW_SHRINK = 0.006;
 const CONVOY_SHADOW_FADE = 0.018;
 
 const PLAY_FACE = 'home/play-button';
-const PLAY_Y = 270;
+const PLAY_Y = 240;
 
 const PLAY_HIT_W = 470;
 const PLAY_HIT_H = 120;
@@ -123,7 +123,10 @@ const PLAY_LABEL_SIZE = 70;
 const STORE_Y = 390;
 
 const CONTENT_W = 540;
-const CONTENT_H = 960;
+// What the pieces actually span, from the top of the logo to the bottom of
+// Store, so a wide screen fits them by that rather than the whole 960.
+const CONTENT_TOP = -395;
+const CONTENT_BOTTOM = 470;
 const CONTENT_MARGIN = 12;
 
 const PUSH_FROM = 1.06;
@@ -253,7 +256,10 @@ export class Home extends Phaser.GameObjects.Container {
             cloud.restAlpha = spec.alpha;
             cloud.speed = spec.speed;
 
-            cloud.edge = CONTENT_W / 2 + CLOUD_ART_W * spec.scale / 2 + CLOUD_EDGE;
+            // Half its width; adjust() adds it to the screen's half width,
+            // so it goes right off the screen before it wraps round.
+            cloud.half = CLOUD_ART_W * spec.scale / 2;
+            cloud.edge = CONTENT_W / 2 + cloud.half + CLOUD_EDGE;
 
             this.content.add(cloud);
             this.clouds.push(cloud);
@@ -784,7 +790,8 @@ export class Home extends Phaser.GameObjects.Container {
 
             cloud.x += cloud.speed * delta / 1000;
 
-            if (cloud.x > cloud.edge) cloud.x = -cloud.edge;
+            // Off the right edge, it comes back in from just off the left.
+            if (cloud.x > cloud.edge) cloud.x -= cloud.edge * 2;
         }
     }
 
@@ -1062,12 +1069,26 @@ export class Home extends Phaser.GameObjects.Container {
 
         this.sky.setSize(dimensions.actualWidth, dimensions.actualHeight);
 
-        this.fitScale = Math.min(
-            1,
-            (dimensions.gameHeight - CONTENT_MARGIN * 2) / CONTENT_H,
-            (dimensions.gameWidth - CONTENT_MARGIN * 2) / CONTENT_W
-        );
+        const byHeight = (dimensions.actualHeight - CONTENT_MARGIN * 2) / (CONTENT_BOTTOM - CONTENT_TOP);
+        const byWidth = (dimensions.gameWidth - CONTENT_MARGIN * 2) / CONTENT_W;
+
+        this.fitScale = Math.min(1, byHeight, byWidth);
 
         this.content.setScale(this.fitScale);
+
+        // The clouds drift across the whole screen, not just the content.
+        const screenHalf = dimensions.actualWidth / 2 / this.fitScale;
+
+        for (let i = 0; i < this.clouds.length; i++) {
+            const cloud = this.clouds[i];
+
+            cloud.edge = screenHalf + cloud.half + CLOUD_EDGE;
+        }
+
+        // Only when the height is what limits it (a wide screen) is it
+        // centred on what it spans; otherwise it keeps its place.
+        this.content.y = byHeight < Math.min(1, byWidth) ?
+            -(CONTENT_TOP + CONTENT_BOTTOM) / 2 * this.fitScale :
+            0;
     }
 }
