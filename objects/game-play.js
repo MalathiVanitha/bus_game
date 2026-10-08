@@ -126,6 +126,18 @@ const HOLE_OBSTACLES = ['planter', 'cone', 'cargo_pallet'];
 // Seconds on the clock for a level that does not give its own.
 const DEFAULT_TIME = 60;
 
+// A convoy carried inside another ("inside" in the level data) rides small on
+// the carts behind the outer one's tractor, wherever that is driven, and
+// can't be taken hold of. When the outer one's tractor reaches its garage the
+// inner one is set down where it is, on the cells just outside the door, and
+// the outer one's carts slide in from under it; once the last is in, the
+// inner one grows to full size and plays as any other.
+const NESTED_SCALE = 0.56;
+const NESTED_GROW_TIME = 520;
+const NESTED_GROW_STAGGER = 90;
+const NESTED_GLINTS = 5;
+const NESTED_CONFETTI = 6;
+
 // The Remove booster: the picked convoy's vehicles pop and spin away one after
 // another, tractor first, each with a little confetti.
 const REMOVE_POP = 1.25;
@@ -402,6 +414,27 @@ export class GamePlay extends Phaser.GameObjects.Container {
             this.convoys.push(this.createConvoy(levelData.convoys[i], i));
         }
 
+        for (let i = 0; i < this.convoys.length; i++) {
+            const convoy = this.convoys[i];
+
+            if (!convoy.covered) continue;
+
+            const outer = this.convoys.find((c) => c.key === levelData.convoys[i].inside && !c.covered);
+
+            if (!outer || outer.cargo) {
+                console.warn("Convoy '" + convoy.key + "' is inside a convoy the level doesn't have");
+                continue;
+            }
+
+            // On the carts behind its tractor: never more than it has.
+            convoy.inside = outer;
+            convoy.carried = true;
+            convoy.cells = [];
+            outer.cargo = convoy;
+
+            this.updateConvoyView(convoy, 0);
+        }
+
         this.createGarages();
 
         this.attachInput();
@@ -601,6 +634,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 size: this.cellSize,
                 facing: this.garageFacing(convoy),
                 lock: convoy.lock,
+                color: CONVOY_SPLASH[convoy.key] || "#ffffff",
                 behind: this.garageBackGroup,
                 shadows: this.castGroup,
                 fx: this.effectGroup,
@@ -660,6 +694,104 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         tile.owner = -1;
         this.boardStamp++;
+
+        this.handOver(col, row);
+    }
+
+    // A cell left by the convoy carrying another, if the inner one stands on
+    // it, is the inner one's from now on.
+    handOver(col, row) {
+        for (let i = 0; i < this.convoys.length; i++) {
+            const inner = this.convoys[i];
+
+            if (!inner.covered || inner.carried || !inner.cells.some((c) => c.col === col && c.row === row)) continue;
+
+            this.tiles[row][col].owner = inner.index;
+            this.boardStamp++;
+
+            if (inner.cells.every((c) => this.tiles[c.row][c.col].owner === inner.index)) this.uncover(inner);
+        }
+    }
+
+    /**
+     * The outer convoy is at its garage (or being taken off the board): what
+     * it carries is set down where it rides, on the carts right behind the
+     * tractor, and holds those cells from now on. It stays small, and can't
+     * be taken hold of, until the outer one has gone (uncover).
+     */
+    dropCargo(outer) {
+        const inner = outer.cargo;
+
+        if (!inner || !inner.carried) return;
+
+        const n = outer.cells.length;
+        const nth = (k) => outer.leadIsHead ? outer.cells[k] : outer.cells[n - 1 - k];
+        const count = Math.min(inner.count, n - 1);
+
+        inner.carried = false;
+        inner.cells = [];
+
+        for (let k = 1; k <= count; k++) {
+            const cell = nth(k);
+
+            if (cell) inner.cells.push({ col: cell.col, row: cell.row });
+        }
+
+        if (inner.cells.length < inner.count) {
+            console.warn("Convoy '" + inner.key + "' has too few cells under it to be set down");
+        }
+
+        inner.leadIsHead = true;
+        this.rebuildTrail(inner);
+        this.updateConvoyView(inner, 0);
+
+        // Every cell under it is the outer one's until that one has gone.
+        for (let i = 0; i < inner.cells.length; i++) {
+            const cell = inner.cells[i];
+
+            if (this.tiles[cell.row][cell.col].owner === -1) this.handOver(cell.col, cell.row);
+        }
+    }
+
+    // Out in the open: it grows to full size where it was set down, tractor
+    // first, with a burst of its colour from every vehicle.
+    uncover(convoy) {
+        convoy.covered = false;
+
+        const rig = convoy.rig;
+        const color = this.garageColor(convoy);
+        const tint = CONFETTI_TINT[convoy.key] || null;
+
+        this.scene.tweens.addCounter({
+            from: rig.inset,
+            to: 1,
+            duration: NESTED_GROW_TIME,
+            ease: 'Back.easeOut',
+            easeParams: [2.2],
+            onUpdate: (tween) => {
+                rig.inset = tween.getValue();
+                this.updateConvoyView(convoy, 0);
+            },
+            onComplete: () => {
+                rig.inset = 1;
+                rig.lift = 0;
+                this.updateConvoyView(convoy, 0);
+                this.bumpConvoy(convoy);
+            }
+        });
+
+        this.lightConvoy(convoy);
+        SoundManager.fx(this.scene, 'whoosh', 0.6);
+
+        convoy.cells.forEach((cell, i) => {
+            const at = this.cellToPixel(cell.col, cell.row);
+
+            this.scene.time.delayedCall(i * NESTED_GROW_STAGGER, () => {
+                this.ringAt(at.x, at.y, color);
+                this.confettiFrom(at.x, at.y, NESTED_CONFETTI, tint);
+                if (i === 0) this.glintsAt(at.x, at.y, NESTED_GLINTS, color);
+            });
+        });
     }
 
     createConvoy(data, index) {
@@ -671,6 +803,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
             exit: data.exit,
             // How many others have to be home before its garage opens.
             lock: data.lock || 0,
+            // Carried inside another convoy (set once they are all made),
+            // and still under it.
+            inside: null,
+            covered: !!data.inside,
 
             facing: data.facing,
             garage: null,
@@ -707,7 +843,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         this.validateConvoy(convoy, data.cells);
 
-        for (let i = 0; i < cells.length; i++) this.occupy(convoy, cells[i].col, cells[i].row);
+        // Under the convoy carrying it, its cells are that one's.
+        if (!convoy.covered) {
+            for (let i = 0; i < cells.length; i++) this.occupy(convoy, cells[i].col, cells[i].row);
+        }
 
         convoy.bodyLength = (convoy.count - 1) * this.cellSize;
 
@@ -718,7 +857,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
             count: convoy.count,
             cellSize: this.cellSize,
             parent: this.stage,
-            shadows: this.castGroup
+            shadows: this.castGroup,
+            inset: convoy.covered ? NESTED_SCALE : 1
         });
 
         this.updateConvoyView(convoy, 0);
@@ -743,7 +883,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 console.warn("Convoy '" + convoy.key + "' uses a cell off the board:", col, row);
             } else if (this.tiles[row][col].blocked) {
                 console.warn("Convoy '" + convoy.key + "' uses a blocked cell:", col, row);
-            } else if (this.tiles[row][col].owner >= 0) {
+            } else if (!convoy.covered && this.tiles[row][col].owner >= 0) {
                 console.warn("Cell already taken by another convoy:", col, row);
             }
         }
@@ -1167,6 +1307,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         convoy.gulped = 0;
 
+        this.dropCargo(convoy);
+
         if (this.drag && this.drag.convoy === convoy) {
             this.drag = null;
             this.dragPoint = null;
@@ -1339,6 +1481,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         convoy.recoil = 0;
 
+        this.dropCargo(convoy);
         this.releaseCells(convoy);
         convoy.rig.setVisible(false);
 
@@ -1379,14 +1522,21 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
     releaseCells(convoy) {
+        const freed = [];
+
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.columns; col++) {
-                if (this.tiles[row][col].owner === convoy.index) this.tiles[row][col].owner = -1;
+                if (this.tiles[row][col].owner !== convoy.index) continue;
+
+                this.tiles[row][col].owner = -1;
+                freed.push({ col: col, row: row });
             }
         }
 
         convoy.cells.length = 0;
         this.boardStamp++;
+
+        for (let i = 0; i < freed.length; i++) this.handOver(freed[i].col, freed[i].row);
     }
 
     bumpConvoy(convoy) {
@@ -1637,6 +1787,11 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
     updateConvoyView(convoy, delta) {
+        if (convoy.carried) {
+            this.drawCargo(convoy.inside);
+            return;
+        }
+
         convoy.drawnRecoil = convoy.recoil;
 
         this.stackDirty = true;
@@ -1650,6 +1805,16 @@ export class GamePlay extends Phaser.GameObjects.Container {
             door: this.doorwayFor(convoy),
             delta: delta || 0
         });
+
+        if (convoy.cargo && convoy.cargo.carried) this.drawCargo(convoy);
+    }
+
+    // What a convoy carries sits on its carts behind the tractor, drawn with
+    // them every time they are.
+    drawCargo(outer) {
+        this.stackDirty = true;
+
+        outer.cargo.rig.ride(outer.rig);
     }
 
     attachInput() {
@@ -1816,7 +1981,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
     canGrab(convoy) {
-        return !convoy.escaped && !convoy.swallowing && !this.enteringGarage(convoy);
+        return !convoy.escaped && !convoy.covered && !convoy.swallowing && !this.enteringGarage(convoy);
     }
 
     settleConvoy(convoy) {
@@ -1897,6 +2062,9 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
             if (convoy.escaped) continue;
 
+            // Drawn with the convoy carrying it.
+            if (convoy.carried) continue;
+
             if (convoy.swallowing) {
                 this.updateSwallow(convoy, step);
                 this.lightConvoy(convoy);
@@ -1959,6 +2127,9 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.removing++;
 
         if (this.hint && this.hint.convoy === convoy) this.hint = null;
+
+        // What it carries is left behind, and comes out as it goes.
+        this.dropCargo(convoy);
 
         const spots = convoy.cells.map((cell) => this.cellToPixel(cell.col, cell.row));
         const tint = CONFETTI_TINT[convoy.key] || null;

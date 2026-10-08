@@ -50,6 +50,13 @@ const STRAIGHT = 1e-6;
 
 const LINK_DEPTH = -Number.MAX_VALUE;
 
+// A convoy set down inside another (its outer one sliding into the garage
+// from under it) is drawn this far (in cells) over its own row: clear of the
+// carts going out under it, but short of the row below.
+const RIDE_LIFT = 0.4;
+// While carried, each vehicle is drawn this much over the cart it rides.
+const RIDE_OVER = 0.01;
+
 export class Convoy {
     constructor(scene, config) {
         this.scene = scene;
@@ -57,6 +64,10 @@ export class Convoy {
         this.cellSize = config.cellSize;
         this.count = config.count;
         this.settled = false;
+        // Drawn this much smaller, and over anything level with it: a convoy
+        // riding inside another (see NESTED_SCALE in game-play.js).
+        this.inset = config.inset || 1;
+        this.lift = this.inset < 1 ? RIDE_LIFT * this.cellSize : 0;
 
         const tractorScale = (this.cellSize * VEHICLE_FIT) / TRACTOR_ART_CELL;
         const cartScale = (this.cellSize * VEHICLE_FIT) / CART_ART_CELL;
@@ -223,10 +234,52 @@ export class Convoy {
             art.visible = true;
             art.x = vehicle.x;
             art.y = vehicle.y;
-            art.depth = vehicle.y;
+            art.depth = vehicle.y + this.lift;
             art.rotation = vehicle.heading - vehicle.facing;
-            art.setScale(vehicle.scale * (door ? this.doorScale(vehicle, door) : 1));
+            art.setScale(vehicle.scale * this.inset * (door ? this.doorScale(vehicle, door) : 1));
             vehicle.shade = door ? this.doorShade(vehicle, door) : 1;
+
+            this.castShadow(i);
+        }
+
+        this.drawLinks();
+    }
+
+    /**
+     * Carried inside another convoy: each vehicle sits exactly on one of the
+     * carrier's carts, the one behind the tractor first - where it is drawn,
+     * how it is turned, and just over it - so through every turn and bump it
+     * goes with it, never sliding off or under it. Nothing of its own road is
+     * kept, so when it is set down it starts afresh where it stands.
+     */
+    ride(carrier) {
+        this.roadKnown = false;
+        this.settled = true;
+
+        for (let i = 0; i < this.count; i++) {
+            const vehicle = this.vehicles[i];
+            const under = carrier.vehicles[Math.min(i + 1, carrier.count - 1)];
+            const art = vehicle.art;
+
+            vehicle.x = under.x;
+            vehicle.y = under.y;
+            vehicle.heading = under.heading;
+            vehicle.turnRate = 0;
+            vehicle.shown = under.shown;
+            vehicle.shade = under.shade;
+            vehicle.slipX = 0;
+            vehicle.slipY = 0;
+            vehicle.slipTurn = 0;
+            vehicle.slipRateX = 0;
+            vehicle.slipRateY = 0;
+            vehicle.slipRateTurn = 0;
+
+            art.visible = under.art.visible;
+            art.x = under.art.x;
+            art.y = under.art.y;
+            art.depth = under.art.depth + RIDE_OVER;
+            art.rotation = vehicle.heading - vehicle.facing;
+            art.setScale(vehicle.scale * this.inset);
 
             this.castShadow(i);
         }
@@ -632,7 +685,7 @@ export class Convoy {
         const g = this.links;
 
         g.clear();
-        g.lineStyle(LINK_WIDTH * this.cellSize, LINK_COLOR, 1);
+        g.lineStyle(LINK_WIDTH * this.cellSize * this.inset, LINK_COLOR, 1);
 
         for (let i = 1; i < this.count; i++) {
             const a = this.vehicles[i - 1];

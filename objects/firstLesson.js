@@ -2,7 +2,8 @@ import { bakeShape, dropBaked } from '../utils/bake.js';
 import { fitText } from '../utils/text.js';
 import { hintArrowImage, hintTouchImage } from './game-play.js';
 
-// The very first level shows how to play before anything else: the whole
+// The very first level shows how to play before anything else, every time it
+// is played: the whole
 // screen goes soft and dim behind a blur, all but one convoy - one that can
 // drive straight home - and its garage, which stay sharp inside pulsing gold
 // rings. A
@@ -15,8 +16,6 @@ import { hintArrowImage, hintTouchImage } from './game-play.js';
 // a frame, rather than a blur shader over everything. The convoy's and the
 // garage's spots are cut out of it, so what shows through there is the live
 // board.
-
-const SEEN_KEY = 'baggage-out.first-lesson';
 
 // How long the level has to land - board, clock, badge and boosters - before
 // its picture is taken.
@@ -75,22 +74,6 @@ const KICKER_SIZE = 20;
 const LINE_SIZE = 28;
 const INK = '#283085';
 const PURPLE = '#8a3be0';
-
-function seen() {
-    try {
-        return window.localStorage.getItem(SEEN_KEY) === '1';
-    } catch (e) {
-        return false;
-    }
-}
-
-function markSeen() {
-    try {
-        window.localStorage.setItem(SEEN_KEY, '1');
-    } catch (e) {
-        // Shown again next time; nothing worse.
-    }
-}
 
 // One pass of a box blur along every line of an RGBA buffer, src into dst.
 function blurLines(src, dst, lines, length, lineStride, step, r) {
@@ -203,11 +186,9 @@ export class FirstLesson extends Phaser.GameObjects.Container {
         return !!this.target;
     }
 
-    /** Teaches the level, unless it has been seen. Called as level 1 starts. */
+    /** Teaches the level. Called as level 1 starts. */
     begin() {
         this.abort();
-
-        if (seen()) return;
 
         const play = this.gamePlay;
         const target = play.findHint();
@@ -624,10 +605,8 @@ export class FirstLesson extends Phaser.GameObjects.Container {
         });
     }
 
-    // The convoy is taken hold of: seen, and the blur lifts off the drag.
+    // The convoy is taken hold of: the blur lifts off the drag.
     grabbed() {
-        markSeen();
-
         const wasShown = this.visible;
 
         this.target = null;

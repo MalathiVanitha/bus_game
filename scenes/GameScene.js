@@ -281,9 +281,10 @@ export default class GameScene extends Phaser.Scene {
 
         // Boosters open one at a time as levels are reached. One just opened
         // is shown locked as the level comes in, then unlocked and taught.
+        // Level 1 always teaches how to play instead.
         unlocks.reach(this.level);
 
-        const lesson = Object.keys(UNLOCK_AT)
+        const lesson = this.level !== 1 && Object.keys(UNLOCK_AT)
             .sort((a, b) => UNLOCK_AT[a] - UNLOCK_AT[b])
             .find((key) => unlocks.needsLesson(key));
 
@@ -293,8 +294,8 @@ export default class GameScene extends Phaser.Scene {
         this.levelBadge.intro(this.level);
         this.boosterBar.intro();
 
-        if (lesson) this.boosterTutorial.teach(lesson);
-        else if (this.level === 1) this.firstLesson.begin();
+        if (this.level === 1) this.firstLesson.begin();
+        else if (lesson) this.boosterTutorial.teach(lesson);
     }
 
     leaveGame() {

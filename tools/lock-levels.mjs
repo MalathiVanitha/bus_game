@@ -46,6 +46,12 @@ const nextHead = heads.find((h) => Number(h[1]) > 100);
 const tailEnd = nextHead ? nextHead.index : source.lastIndexOf(']');
 const head = source.slice(0, tailEnd).replace(/,?\s*$/, '');
 const base = levels.slice(0, 100);
+
+// Its boards are laid out before convoys are nested (tools/nest-levels.mjs),
+// which it knows nothing of.
+if (base.some((l) => l.convoys.some((c) => c.inside))) {
+    throw new Error('Levels 51-100 are nested: run this on data/level-data.js from before tools/nest-levels.mjs');
+}
 const bases = [];
 const blocks = [];
 const PASSES = ['x', 'y', 'xy'];

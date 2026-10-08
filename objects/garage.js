@@ -72,8 +72,16 @@ const NOSE = 0.5;
 // A locked garage sits under a block of ice with a number on it: how many
 // other convoys still have to get home before it opens. Each one home knocks
 // it down by one; at nought the ice cracks and flies off, and the garage
-// takes its convoy like any other. Drawn once to a texture, shared.
+// takes its convoy like any other. The ice is clear enough for the garage's
+// colour to show through, and the number sits on a badge in that colour, so
+// which convoy is held back reads at a glance. The ice is drawn once to a
+// texture, shared; each colour's badge once to its own.
 const LOCK_TEXTURE = "garage-lock";
+const BADGE_TEXTURE = "garage-lock-badge-";
+const BADGE_R = 0.25;
+// On a badge this light or lighter the number is dark, else white.
+const BADGE_LIGHT = 0.62;
+const LOCK_DARK_INK = "#283085";
 const LOCK_ART = 160;
 const LOCK_FIT = 0.94;
 const LOCK_ALPHA = 1;
@@ -108,11 +116,12 @@ function lockTexture(scene) {
         ctx.closePath();
     };
 
-    // The block: pale on top, deeper at the foot, a white rim.
+    // The block: a light frost, whiter at the foot, and a white rim - clear
+    // enough that the garage under it keeps its own colour.
     const body = ctx.createLinearGradient(0, 0, 0, size);
 
-    body.addColorStop(0, "rgba(190, 238, 255, 0.55)");
-    body.addColorStop(1, "rgba(80, 170, 240, 0.6)");
+    body.addColorStop(0, "rgba(235, 250, 255, 0.16)");
+    body.addColorStop(1, "rgba(200, 236, 255, 0.3)");
     round(6, 6, size - 12, size - 12, 26);
     ctx.fillStyle = body;
     ctx.fill();
@@ -124,7 +133,7 @@ function lockTexture(scene) {
     ctx.save();
     round(6, 6, size - 12, size - 12, 26);
     ctx.clip();
-    ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
     ctx.beginPath();
     ctx.moveTo(0, size * 0.55);
     ctx.lineTo(size * 0.55, 0);
@@ -138,22 +147,58 @@ function lockTexture(scene) {
     round(size * 0.7, size * 0.14, size * 0.12, size * 0.05, size * 0.025);
     ctx.fill();
 
-    // The well the number sits in.
-    const well = ctx.createRadialGradient(size / 2, size * 0.46, 4, size / 2, size / 2, size * 0.3);
+    canvas.refresh();
 
-    well.addColorStop(0, "rgba(30, 80, 150, 0.85)");
-    well.addColorStop(1, "rgba(18, 52, 112, 0.9)");
+    return LOCK_TEXTURE;
+}
+
+// The badge the number sits on, in the garage's colour: lighter at the top,
+// ringed in white and edged darker, so it stands out on the ice.
+function badgeTexture(scene, color) {
+    const key = BADGE_TEXTURE + color;
+
+    if (scene.textures.exists(key)) return key;
+
+    const size = LOCK_ART;
+    const canvas = scene.textures.createCanvas(key, size, size);
+    const ctx = canvas.getContext();
+    const base = Phaser.Display.Color.HexStringToColor(color);
+    const light = Phaser.Display.Color.Interpolate.ColorWithColor(base, new Phaser.Display.Color(255, 255, 255), 100, 35);
+    const dark = Phaser.Display.Color.Interpolate.ColorWithColor(base, new Phaser.Display.Color(0, 0, 0), 100, 40);
+    const rgb = (c) => "rgb(" + Math.round(c.r) + ", " + Math.round(c.g) + ", " + Math.round(c.b) + ")";
+    const r = size * BADGE_R;
+    const fill = ctx.createLinearGradient(0, size / 2 - r, 0, size / 2 + r);
+
+    fill.addColorStop(0, rgb(light));
+    fill.addColorStop(1, rgb(base));
+
     ctx.beginPath();
-    ctx.arc(size / 2, size / 2, size * 0.25, 0, Math.PI * 2);
-    ctx.fillStyle = well;
+    ctx.arc(size / 2, size / 2, r + 5, 0, Math.PI * 2);
+    ctx.fillStyle = rgb(dark);
     ctx.fill();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, r, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "#ffffff";
     ctx.stroke();
 
     canvas.refresh();
 
-    return LOCK_TEXTURE;
+    return key;
+}
+
+// Dark ink on a light badge (white, yellow, lime), white on the rest, edged
+// in the badge's own colour darkened.
+function badgeInk(color) {
+    const c = Phaser.Display.Color.HexStringToColor(color);
+    const shade = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255;
+    const dark = Phaser.Display.Color.Interpolate.ColorWithColor(c, new Phaser.Display.Color(0, 0, 0), 100, 55);
+    const edge = Phaser.Display.Color.RGBToString(Math.round(dark.r), Math.round(dark.g), Math.round(dark.b));
+
+    return shade >= BADGE_LIGHT ? { ink: LOCK_DARK_INK, edge: "#ffffff" } : { ink: LOCK_INK, edge: edge };
 }
 
 export class Garage {
@@ -201,8 +246,10 @@ export class Garage {
 
         this.lock = 0;
         this.lockArt = null;
+        this.lockBadge = null;
         this.lockText = null;
         this.lockTween = null;
+        this.color = config.color || "#ffffff";
 
         if (config.lock > 0) this.addLock(scene, config.lock);
     }
@@ -223,17 +270,25 @@ export class Garage {
         this.lockArt.depth = depth;
         this.lockArt.baseScale = scale;
 
+        this.lockBadge = scene.add.image(this.x, this.y, badgeTexture(scene, this.color));
+        this.lockBadge.setScale(scale);
+        this.lockBadge.depth = depth + 0.005;
+        this.lockBadge.baseScale = scale;
+
+        const ink = badgeInk(this.color);
+
         this.lockText = scene.add.text(this.x, this.y, String(count), {
             fontFamily: LOCK_FONT,
             fontSize: Math.round(this.size * LOCK_TEXT) + "px",
-            color: LOCK_INK,
-            stroke: LOCK_EDGE,
+            color: ink.ink,
+            stroke: ink.edge,
             strokeThickness: Math.max(2, Math.round(this.size * 0.06))
         });
         this.lockText.setOrigin(0.5);
         this.lockText.depth = depth + 0.01;
 
         this.parent.add(this.lockArt);
+        this.parent.add(this.lockBadge);
         this.parent.add(this.lockText);
     }
 
@@ -282,7 +337,7 @@ export class Garage {
         });
 
         this.scene.tweens.add({
-            targets: art,
+            targets: [art, this.lockBadge],
             angle: { from: -TICK_SHAKE * 57, to: 0 },
             duration: TICK_OUT,
             ease: "Elastic.easeOut",
@@ -293,20 +348,23 @@ export class Garage {
     // Cracks the ice off. Quiet when the garage is going anyway.
     breakLock(quiet = false) {
         const art = this.lockArt;
+        const badge = this.lockBadge;
         const text = this.lockText;
 
         if (!art) return;
 
         this.lock = 0;
         this.lockArt = null;
+        this.lockBadge = null;
         this.lockText = null;
 
         if (this.lockTween) this.lockTween.remove();
         this.lockTween = null;
-        this.scene.tweens.killTweensOf([art, text]);
+        this.scene.tweens.killTweensOf([art, badge, text]);
 
         if (quiet) {
             art.destroy();
+            badge.destroy();
             text.destroy();
             return;
         }
@@ -316,13 +374,14 @@ export class Garage {
         this.burst(ICE_COLOR);
 
         this.scene.tweens.add({
-            targets: [art, text],
-            scale: (target) => (target === art ? art.baseScale : 1) * BREAK_SWELL,
+            targets: [art, badge, text],
+            scale: (target) => (target.baseScale || 1) * BREAK_SWELL,
             alpha: 0,
             duration: BREAK_TIME,
             ease: "Quad.easeOut",
             onComplete: () => {
                 art.destroy();
+                badge.destroy();
                 text.destroy();
             }
         });

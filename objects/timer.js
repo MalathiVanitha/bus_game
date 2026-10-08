@@ -38,6 +38,17 @@ const WARN_AT = 10;
 const TICK_SCALE = 1.1;
 const TICK_TIME = 110;
 
+// The stopwatch turning coral pops in and rings like an alarm clock, a few
+// swings that die away; after that each tick gives it a smaller jolt.
+const ALARM_POP = 1.35;
+const ALARM_POP_TIME = 300;
+const ALARM_SWING = 0.32;
+const ALARM_SWINGS = 6;
+const ALARM_SWING_TIME = 55;
+const ICON_TICK_SCALE = 1.18;
+const ICON_TICK_SWING = 0.16;
+const ICON_TICK_TIME = 70;
+
 const INTRO_X = -150;
 const INTRO_TIME = 540;
 const INTRO_DELAY = 260;
@@ -135,12 +146,74 @@ export class Timer extends Phaser.GameObjects.Container {
 
         this.count.setColor(on ? WARN_INK : INK);
         this.icon.setFrame(on ? WARN_ICON : ICON);
+
+        this.scene.tweens.killTweensOf(this.icon);
         this.icon.setScale(on ? WARN_ICON_SCALE : ICON_SCALE);
+        this.icon.rotation = 0;
+
+        if (on) {
+            this.rangAt = this.scene.time.now;
+            this.ring();
+        }
+    }
+
+    /** The alarm going off: a pop, then swings either way that die away. */
+    ring() {
+        const base = WARN_ICON_SCALE;
+
+        this.icon.setScale(base * ALARM_POP);
+        this.scene.tweens.add({
+            targets: this.icon,
+            scale: base,
+            duration: ALARM_POP_TIME,
+            ease: 'Back.easeOut'
+        });
+
+        const swings = [];
+        for (let i = 0; i < ALARM_SWINGS; i++) {
+            const fade = 1 - i / ALARM_SWINGS;
+            swings.push({
+                rotation: (i % 2 ? -1 : 1) * ALARM_SWING * fade,
+                duration: ALARM_SWING_TIME,
+                ease: 'Sine.easeInOut'
+            });
+        }
+        swings.push({ rotation: 0, duration: ALARM_SWING_TIME * 1.5, ease: 'Sine.easeOut' });
+
+        this.scene.tweens.chain({ targets: this.icon, tweens: swings });
+    }
+
+    /** A smaller jolt each second: a bump and a quick left-right shake. */
+    jolt() {
+        const base = WARN_ICON_SCALE;
+
+        this.scene.tweens.killTweensOf(this.icon);
+        this.icon.setScale(base);
+        this.icon.rotation = 0;
+
+        this.scene.tweens.add({
+            targets: this.icon,
+            scale: base * ICON_TICK_SCALE,
+            duration: TICK_TIME,
+            ease: 'Quad.easeOut',
+            yoyo: true
+        });
+        this.scene.tweens.chain({
+            targets: this.icon,
+            tweens: [
+                { rotation: ICON_TICK_SWING, duration: ICON_TICK_TIME, ease: 'Sine.easeOut' },
+                { rotation: -ICON_TICK_SWING * 0.7, duration: ICON_TICK_TIME, ease: 'Sine.easeInOut' },
+                { rotation: 0, duration: ICON_TICK_TIME, ease: 'Sine.easeIn' }
+            ]
+        });
     }
 
     tick() {
         SoundManager.fx(this.scene, 'tick', 0.7);
         this.scene.tweens.killTweensOf(this.pill);
+
+        // The second the alarm goes off it rings on its own; jolt after that.
+        if (this.rangAt !== this.scene.time.now) this.jolt();
 
         this.pill.setScale(1);
         this.scene.tweens.add({
@@ -181,6 +254,8 @@ export class Timer extends Phaser.GameObjects.Container {
 
     hide() {
         this.scene.tweens.killTweensOf(this.pill);
+        this.scene.tweens.killTweensOf(this.icon);
+        this.icon.rotation = 0;
 
         this.visible = false;
     }

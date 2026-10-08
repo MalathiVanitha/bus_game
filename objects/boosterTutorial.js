@@ -420,7 +420,7 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
     askForConvoy() {
         const play = this.gamePlay;
         const key = this.key;
-        const convoy = play.convoys.find((c) => !c.escaped && c.cells.length);
+        const convoy = play.convoys.find((c) => play.canGrab(c) && c.cells.length);
 
         if (!convoy) {
             this.bar.glow(this.bar.buttons[key], false);
