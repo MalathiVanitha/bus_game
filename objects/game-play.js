@@ -21,16 +21,16 @@ const WIDE_TOP = 108;
 const WIDE_BOTTOM = 52;
 const WIDE_SIDE = 170;
 
-const DRAG_SPEED = 4.6;
-const CHASE_SPEED = 10;
+const DRAG_SPEED = 6;
+const CHASE_SPEED = 13;
 const SETTLE_SPEED = 5.5;
 
 // Cells a second, a second: how hard the lead picks up speed, and how hard it
 // brakes as the end of its route comes up, so it rolls off and draws up
 // rather than jumping to speed and stopping dead. Never slower than
 // ARRIVE_FLOOR, so the last of the way does not crawl.
-const ACCELERATION = 40;
-const BRAKING = 30;
+const ACCELERATION = 55;
+const BRAKING = 40;
 const ARRIVE_FLOOR = 0.8;
 
 const CHASE_SLACK = 0.5;
@@ -206,31 +206,55 @@ const HINT_TOUCH_REST = 420;
 const HINT_OUT_TIME = 240;
 
 // The Crane booster: every obstacle rings gold while it waits for a pick.
-// Then a hook on a cable drops in from above, catches the piece, gives it a
-// squeeze, and hauls it off the top, growing a little as it rises.
+// Then a crane rig - twin steel cables, a yellow pulley block in hazard
+// stripes and two long claw arms - lowers in from above with its arms open,
+// its shadow gathering on the board under it. The arms close down the piece's
+// sides and hook in under its foot, the cables take the strain with a tug,
+// and it hauls the piece up and away, swinging on the cables, rig and piece
+// growing together as they near the camera and a puff of dust kicking up off
+// the floor where it stood.
 const CRANE_RING_PULSE = 1.15;
 const CRANE_RING_TIME = 420;
-const CRANE_ICON = 'icons/icon-crane';
-const CRANE_ICON_ART = 128;
-const CRANE_HOOK = 1.4;
-// Where on the art the hook catches (the foot of the hook's bowl).
-const CRANE_ORIGIN_X = 0.42;
-const CRANE_ORIGIN_Y = 0.86;
-// Where the cable meets the top of the art.
-const CRANE_TOP = 0.82;
-const CRANE_CABLE = 0.07;
-const CRANE_CABLE_COLOR = 0x4a5568;
-const CRANE_CABLE_LENGTH = 40;
-const CRANE_FROM = 8;
-const CRANE_OVER = 0.32;
-const CRANE_DROP_TIME = 420;
+// The rig is drawn for a cell CRANE_UNIT across and scaled to the board's.
+const CRANE_UNIT = 100;
+const CRANE_BLOCK = 'crane-block';
+const CRANE_ARM = 'crane-arm';
+const CRANE_INK = 0x252a36;
+const CRANE_YELLOW = 0xffc21a;
+const CRANE_YELLOW_DARK = 0xe0960a;
+const CRANE_STEEL = 0x8792a6;
+const CRANE_STEEL_LIGHT = 0xc9d2e0;
+// Where the arms hang off the block, either side of the middle.
+const CRANE_ARM_X = 17;
+// The rig's pivot (the foot of the block) sits this far above the cell's
+// middle while it holds the piece.
+const CRANE_HOLD = 52;
+const CRANE_CABLE_GAP = 5;
+const CRANE_CABLE_W = 3;
+const CRANE_CABLE_LENGTH = 1600;
+// Arm angles: open wide on the way down, then closed hugging the piece.
+const CRANE_OPEN = 22;
+const CRANE_SHUT = 0;
+const CRANE_FROM = 9;
+const CRANE_DROP_TIME = 520;
+const CRANE_DROP_SWAY = 7;
+const CRANE_CLAMP_TIME = 170;
+const CRANE_SQUASH_X = 0.92;
+const CRANE_SQUASH_Y = 1.06;
+// The tug as the cables take the weight.
+const CRANE_TUG = 6;
+const CRANE_TUG_TIME = 90;
+const CRANE_LIFT = 11;
+const CRANE_LIFT_TIME = 820;
+const CRANE_GROW = 1.3;
+// The swing on the cables as it rises: degrees, and swings a second.
 const CRANE_SWING = 9;
-const CRANE_GRAB_TIME = 110;
-const CRANE_SQUASH_X = 1.12;
-const CRANE_SQUASH_Y = 0.86;
-const CRANE_LIFT = 10;
-const CRANE_LIFT_TIME = 620;
-const CRANE_GROW = 1.35;
+const CRANE_SWING_RATE = 1.7;
+const CRANE_SPOT = 0x101a33;
+const CRANE_SPOT_ALPHA = 0.26;
+const CRANE_DUST = 7;
+const CRANE_DUST_COLOR = 0xf4f1ea;
+const CRANE_DUST_TIME = 520;
 
 const byDepth = (a, b) => a.depth - b.depth;
 
@@ -556,7 +580,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         if (garage) {
             if (garage.convoyIndex !== convoy.index) return false;
-            if (garage.locked) return false;
+            if (garage.frozen) return false;
             if (!routing && !this.atDoorstep(convoy, this.leadCell(convoy))) return false;
         }
 
@@ -634,7 +658,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
                 y: spot.y,
                 size: this.cellSize,
                 facing: this.garageFacing(convoy),
-                lock: convoy.lock,
+                frozen: convoy.frozen,
                 color: CONVOY_SPLASH[convoy.key] || "#ffffff",
                 behind: this.garageBackGroup,
                 shadows: this.castGroup,
@@ -803,7 +827,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             index: index,
             exit: data.exit,
             // How many others have to be home before its garage opens.
-            lock: data.lock || 0,
+            frozen: data.frozen || 0,
             // Carried inside another convoy (set once they are all made),
             // and still under it.
             inside: null,
@@ -1501,7 +1525,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             }, this.garageColor(convoy));
         }
 
-        this.countDownLocks();
+        this.countDownFrozen();
 
         for (let i = 0; i < this.convoys.length; i++) {
             if (!this.convoys[i].escaped) return;
@@ -1512,7 +1536,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
     // A convoy is off the board: every garage still iced over has one fewer
     // to wait for, and any that reach nought open.
-    countDownLocks() {
+    countDownFrozen() {
         let opened = false;
 
         for (let i = 0; i < this.garages.length; i++) {
@@ -2209,7 +2233,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         if (convoy.garage) convoy.garage.vanish(() => { this.boardStamp++; }, this.garageColor(convoy));
 
-        this.countDownLocks();
+        this.countDownFrozen();
 
         // Its own counter, the length of the whole pop, before the level can
         // be called: the last convoy off the board should be seen to go.
@@ -2316,109 +2340,287 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         const at = this.cellToPixel(col, row);
         const size = this.cellSize;
-        const hookScale = size * CRANE_HOOK / CRANE_ICON_ART;
+        const k = size / CRANE_UNIT;
+        const holdY = at.y - CRANE_HOLD * k;
 
-        const crane = this.scene.add.container(at.x, at.y - size * CRANE_FROM);
-        this.effectGroup.add(crane);
-
-        const cable = this.scene.add.rectangle(0, 0, size * CRANE_CABLE, size * CRANE_CABLE_LENGTH, CRANE_CABLE_COLOR);
-        cable.setOrigin(0.5, 1);
-        cable.y = -CRANE_ICON_ART * hookScale * CRANE_TOP;
-        cable.x = CRANE_ICON_ART * hookScale * (0.5 - CRANE_ORIGIN_X);
-        crane.add(cable);
-
-        const hook = this.scene.add.sprite(0, 0, 'sheet', CRANE_ICON);
-        hook.setOrigin(CRANE_ORIGIN_X, CRANE_ORIGIN_Y);
-        hook.setScale(hookScale);
-        crane.add(hook);
+        const rig = this.buildCrane(k);
+        rig.setPosition(at.x, at.y - size * CRANE_FROM);
+        rig.angle = CRANE_DROP_SWAY;
+        this.effectGroup.add(rig);
 
         const art = piece.art;
         const shadow = piece.shadow;
         const artScaleX = art.scaleX;
         const artScaleY = art.scaleY;
 
-        // The piece stays where it stood, under the hook, until it is caught.
+        // The piece stays where it stood, under the rig, until it is caught.
         this.board.shadowLayer.add(shadow);
-        this.effectGroup.addAt(art, this.effectGroup.getIndex(crane));
+        this.effectGroup.addAt(art, this.effectGroup.getIndex(rig));
 
-        crane.angle = CRANE_SWING;
+        // The rig's shadow, gathering on the board as it comes down.
+        const spot = this.scene.add.ellipse(at.x, at.y + size * 0.1, size * 0.9, size * 0.5, CRANE_SPOT, 1);
+        spot.alpha = 0;
+        spot.setScale(1.8);
+        this.board.shadowLayer.add(spot);
+
         SoundManager.fx(this.scene, 'whoosh', 0.6);
 
         this.scene.tweens.add({
-            targets: crane,
-            y: at.y - size * CRANE_OVER,
+            targets: spot,
+            alpha: CRANE_SPOT_ALPHA,
+            scale: 1,
             duration: CRANE_DROP_TIME,
+            ease: 'Cubic.easeOut'
+        });
+
+        this.scene.tweens.add({
+            targets: rig,
+            y: holdY,
+            duration: CRANE_DROP_TIME,
+            ease: 'Back.easeOut',
+            easeParams: [1.1]
+        });
+
+        this.scene.tweens.add({
+            targets: rig,
+            angle: 0,
+            duration: CRANE_DROP_TIME * 1.3,
+            ease: 'Elastic.easeOut',
+            easeParams: [1, 0.5]
+        });
+
+        // Clamped: the arms swing in and squeeze the piece.
+        this.scene.tweens.add({
+            targets: rig.right,
+            angle: CRANE_SHUT,
+            delay: CRANE_DROP_TIME,
+            duration: CRANE_CLAMP_TIME,
+            ease: 'Back.easeOut',
+            onStart: () => {
+                SoundManager.fx(this.scene, 'grab', 0.7);
+                this.board.pulseCell(col, row);
+            }
+        });
+
+        this.scene.tweens.add({
+            targets: rig.left,
+            angle: -CRANE_SHUT,
+            delay: CRANE_DROP_TIME,
+            duration: CRANE_CLAMP_TIME,
             ease: 'Back.easeOut'
         });
 
         this.scene.tweens.add({
-            targets: crane,
-            angle: 0,
-            duration: CRANE_DROP_TIME * 1.4,
-            ease: 'Elastic.easeOut',
-            easeParams: [1.2, 0.5]
-        });
-
-        // Caught: a squeeze, then it hangs from the hook and goes up with it.
-        this.scene.tweens.add({
             targets: art,
             scaleX: artScaleX * CRANE_SQUASH_X,
             scaleY: artScaleY * CRANE_SQUASH_Y,
-            delay: CRANE_DROP_TIME,
-            duration: CRANE_GRAB_TIME,
+            delay: CRANE_DROP_TIME + CRANE_CLAMP_TIME * 0.4,
+            duration: CRANE_CLAMP_TIME * 0.6,
             yoyo: true,
             ease: 'Quad.easeOut',
-            onStart: () => {
-                SoundManager.fx(this.scene, 'grab', 0.7);
-                this.board.pulseCell(col, row);
-            },
             onComplete: () => {
-                crane.addAt(art, 0);
-                art.setPosition(art.x - crane.x, art.y - crane.y);
-                art.angle -= crane.angle;
+                // From here it hangs in the arms, in front of the block.
+                this.scene.tweens.killTweensOf(rig);
+                rig.angle = 0;
+                rig.addAt(art, rig.getIndex(rig.left));
+                art.setPosition(art.x - rig.x, art.y - rig.y);
 
-                this.ringAt(at.x, at.y, HINT_RING);
-                this.glintsAt(at.x, at.y, REMOVE_GLINTS);
-                SoundManager.fx(this.scene, 'whoosh', 0.6);
-
-                this.scene.tweens.add({
-                    targets: crane,
-                    y: at.y - size * CRANE_LIFT,
-                    duration: CRANE_LIFT_TIME,
-                    ease: 'Cubic.easeIn'
-                });
-
-                this.scene.tweens.add({
-                    targets: art,
-                    scaleX: artScaleX * CRANE_GROW,
-                    scaleY: artScaleY * CRANE_GROW,
-                    duration: CRANE_LIFT_TIME,
-                    ease: 'Quad.easeOut'
-                });
-
-                this.scene.tweens.add({
-                    targets: shadow,
-                    scale: 0,
-                    alpha: 0,
-                    duration: CRANE_LIFT_TIME * 0.6,
-                    ease: 'Quad.easeIn'
-                });
-
-                // Its own counter, the length of the lift, to clear up on.
-                this.scene.tweens.addCounter({
-                    from: 0,
-                    to: 1,
-                    duration: CRANE_LIFT_TIME,
-                    onComplete: () => {
-                        this.removing = Math.max(0, this.removing - 1);
-                        shadow.destroy();
-                        crane.destroy();
-                    }
-                });
+                this.craneHaul(rig, shadow, spot, at);
             }
         });
 
         return true;
+    }
+
+    // The tug as the cables take the weight, then up and away on a swing.
+    craneHaul(rig, shadow, spot, at) {
+        const size = this.cellSize;
+        const holdY = rig.y;
+
+        this.scene.tweens.add({
+            targets: rig,
+            y: holdY - CRANE_TUG * size / CRANE_UNIT,
+            duration: CRANE_TUG_TIME,
+            ease: 'Quad.easeOut',
+            yoyo: true,
+            onComplete: () => {
+                this.ringAt(at.x, at.y, HINT_RING);
+                this.glintsAt(at.x, at.y, REMOVE_GLINTS);
+                this.craneDust(at.x, at.y + size * 0.3);
+                SoundManager.fx(this.scene, 'whoosh', 0.6);
+
+                this.scene.tweens.add({
+                    targets: [shadow, spot],
+                    scale: 0.3,
+                    alpha: 0,
+                    duration: CRANE_LIFT_TIME * 0.5,
+                    ease: 'Quad.easeIn'
+                });
+
+                // The rig grows with the piece, so it stays in the arms.
+                this.scene.tweens.add({
+                    targets: rig,
+                    scale: CRANE_GROW,
+                    duration: CRANE_LIFT_TIME,
+                    ease: 'Quad.easeOut'
+                });
+
+                // Up on the cables, swinging wider the higher it goes; the
+                // same counter clears it all away at the end.
+                this.scene.tweens.addCounter({
+                    from: 0,
+                    to: 1,
+                    duration: CRANE_LIFT_TIME,
+                    onUpdate: (tween) => {
+                        const t = tween.getValue();
+                        const rise = t * t * t;
+
+                        rig.y = holdY - (CRANE_LIFT * size) * rise;
+                        rig.angle = CRANE_SWING * Math.sin(t * Math.PI * 2 * CRANE_SWING_RATE * CRANE_LIFT_TIME / 1000) * Math.min(1, t * 2.5);
+                    },
+                    onComplete: () => {
+                        this.removing = Math.max(0, this.removing - 1);
+                        shadow.destroy();
+                        spot.destroy();
+                        rig.destroy();
+                    }
+                });
+            }
+        });
+    }
+
+    // The rig, its pivot at the foot of the block: cables, block, and the
+    // two arms (rig.left, rig.right), open.
+    buildCrane(k) {
+        this.craneTextures();
+
+        const rig = this.scene.add.container(0, 0);
+
+        for (const side of [-1, 1]) {
+            const cable = this.scene.add.rectangle(side * CRANE_CABLE_GAP * k, -30 * k, CRANE_CABLE_W * k, CRANE_CABLE_LENGTH * k, CRANE_INK);
+            cable.setOrigin(0.5, 1);
+            rig.add(cable);
+        }
+
+        const block = bakeShape(this.scene, this.craneBlockBounds, null, CRANE_BLOCK);
+        block.setScale(block.restScale * k);
+        rig.add(block);
+
+        rig.right = bakeShape(this.scene, this.craneArmBounds, null, CRANE_ARM);
+        rig.right.setScale(rig.right.restScale * k);
+        rig.right.x = CRANE_ARM_X * k;
+        rig.right.angle = -CRANE_OPEN;
+
+        rig.left = bakeShape(this.scene, this.craneArmBounds, null, CRANE_ARM);
+        rig.left.setScale(-rig.left.restScale * k, rig.left.restScale * k);
+        rig.left.x = -CRANE_ARM_X * k;
+        rig.left.angle = CRANE_OPEN;
+
+        rig.add([rig.left, rig.right]);
+
+        return rig;
+    }
+
+    // Drawn once, for a cell CRANE_UNIT across.
+    craneTextures() {
+        this.craneBlockBounds = { left: -40, top: -54, width: 80, height: 58 };
+        this.craneArmBounds = { left: -10, top: -10, width: 58, height: 128 };
+
+        if (this.scene.textures.exists(CRANE_BLOCK)) return;
+
+        const block = bakeShape(this.scene, this.craneBlockBounds, (g) => {
+            // The pulley on top, the cables wound over it.
+            g.fillStyle(CRANE_INK, 1);
+            g.fillCircle(0, -36, 15);
+            g.fillStyle(CRANE_STEEL, 1);
+            g.fillCircle(0, -36, 12);
+            g.fillStyle(CRANE_STEEL_LIGHT, 1);
+            g.fillCircle(-3, -39, 5);
+            g.fillStyle(CRANE_INK, 1);
+            g.fillCircle(0, -36, 3.5);
+
+            // The block, edged in ink, darker along its foot.
+            g.fillStyle(CRANE_INK, 1);
+            g.fillRoundedRect(-36, -32, 72, 34, 9);
+            g.fillStyle(CRANE_YELLOW_DARK, 1);
+            g.fillRoundedRect(-33, -29, 66, 28, 7);
+            g.fillStyle(CRANE_YELLOW, 1);
+            g.fillRoundedRect(-33, -29, 66, 22, 7);
+
+            // Hazard stripes across its face.
+            g.fillStyle(CRANE_INK, 1);
+            for (let x = -26; x <= 20; x += 12) {
+                g.fillPoints([
+                    { x: x, y: -11 }, { x: x + 6, y: -11 },
+                    { x: x + 12, y: -23 }, { x: x + 6, y: -23 }
+                ], true);
+            }
+
+            // A shine along the top, and the bolts the arms hang from.
+            g.fillStyle(0xffffff, 0.45);
+            g.fillRoundedRect(-27, -27, 54, 4, 2);
+            g.fillStyle(CRANE_INK, 1);
+            g.fillCircle(-CRANE_ARM_X, 0, 5);
+            g.fillCircle(CRANE_ARM_X, 0, 5);
+        }, CRANE_BLOCK);
+
+        block.destroy();
+
+        // The right-hand arm, hanging from its bolt at (0, 0): out past the
+        // piece's side, down the full height of it, then hooked back in under
+        // its foot, with a rubber pad on the tip. Held, the arm runs just
+        // outside a cell's edge and the hook tucks under the bottom.
+        const path = [{ x: 0, y: 0 }, { x: 36, y: 22 }, { x: 36, y: 98 }, { x: 22, y: 108 }];
+
+        const arm = bakeShape(this.scene, this.craneArmBounds, (g) => {
+            const stroke = (width, color) => {
+                g.lineStyle(width, color, 1);
+                g.strokePoints(path, false);
+                g.fillStyle(color, 1);
+                for (let i = 0; i < path.length; i++) g.fillCircle(path[i].x, path[i].y, width / 2);
+            };
+
+            stroke(13, CRANE_INK);
+            stroke(7, CRANE_STEEL);
+
+            g.lineStyle(2, CRANE_STEEL_LIGHT, 1);
+            g.lineBetween(3, 0, 33, 18);
+            g.lineBetween(33, 28, 33, 92);
+
+            g.fillStyle(CRANE_INK, 1);
+            g.fillRoundedRect(14, 101, 16, 10, 4);
+
+            g.fillStyle(CRANE_STEEL_LIGHT, 1);
+            g.fillCircle(0, 0, 4.5);
+            g.fillStyle(CRANE_INK, 1);
+            g.fillCircle(0, 0, 2);
+        }, CRANE_ARM);
+
+        arm.destroy();
+    }
+
+    // A puff of dust off the floor as the piece leaves it.
+    craneDust(x, y) {
+        const size = this.cellSize;
+
+        for (let i = 0; i < CRANE_DUST; i++) {
+            const side = i % 2 ? 1 : -1;
+            const turn = (i / (CRANE_DUST - 1) - 0.5) * 0.8;
+            const puff = this.scene.add.circle(x, y, size * (0.1 + Math.random() * 0.06), CRANE_DUST_COLOR, 0.85);
+
+            this.effectGroup.add(puff);
+
+            this.scene.tweens.add({
+                targets: puff,
+                x: x + side * size * (0.45 + Math.random() * 0.2),
+                y: y - size * (0.1 + Math.abs(turn) * 0.3) - Math.random() * size * 0.1,
+                scale: 1.8,
+                alpha: 0,
+                duration: CRANE_DUST_TIME,
+                ease: 'Quad.easeOut',
+                onComplete: () => puff.destroy()
+            });
+        }
     }
 
     ringTexture() {
@@ -2788,7 +2990,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
                 const garage = this.garageAt(col, row);
 
-                if (garage && (garage.convoyIndex !== convoy.index || garage.locked)) continue;
+                if (garage && (garage.convoyIndex !== convoy.index || garage.frozen)) continue;
 
                 seen.set(k, cell);
 

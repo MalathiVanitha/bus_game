@@ -8,9 +8,9 @@
 // nowhere else: it colours the level card, and time is the clock the level
 // gets as it is (Hard and Super Hard times are already the shorter ones).
 // Every generated level is solvable by driving the convoys home one at a time.
-// From 51, garages are locked (tools/lock-levels.mjs): "lock: n" on a convoy
-// ices its garage over until n other convoys are home. Levels 101-200 are the
-// boards of 51-100 again, mirrored, with more and bigger locks.
+// From 51, garages are frozen (tools/freeze-levels.mjs): "frozen: n" on a
+// convoy ices its garage over until n other convoys are home. Levels 101-200
+// are the boards of 51-100 again, mirrored, with more and bigger freezes.
 // From 26, convoys ride inside others (tools/nest-levels.mjs): "inside: key"
 // on a convoy carries it on that convoy's carts until that one is home.
 export default [
@@ -5497,7 +5497,7 @@ export default [
         ]
     },
 
-    // Level 51 (locked) (nested)
+    // Level 51 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -5613,7 +5613,7 @@ export default [
                 key: "white",
                 exit: [2, 8],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [4, 3],
                     [4, 4],
@@ -5964,7 +5964,7 @@ export default [
         ]
     },
 
-    // Level 54 (locked) (nested)
+    // Level 54 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -6056,7 +6056,7 @@ export default [
                 key: "pink",
                 exit: [2, 5],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [5, 2],
                     [5, 1],
@@ -6117,7 +6117,7 @@ export default [
         ]
     },
 
-    // Level 55 (hardened) (locked) (nested)
+    // Level 55 (hardened) (frozen) (nested)
     {
         difficulty: "hard",
         rows: 10,
@@ -6238,7 +6238,7 @@ export default [
                 key: "red",
                 exit: [3, 4],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [6, 9],
                     [6, 8],
@@ -6270,7 +6270,7 @@ export default [
         ]
     },
 
-    // Level 56 (locked) (nested)
+    // Level 56 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -6349,7 +6349,7 @@ export default [
                 key: "orange",
                 exit: [3, 2],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [6, 9],
                     [6, 8],
@@ -6576,7 +6576,7 @@ export default [
         ]
     },
 
-    // Level 58 (locked) (nested)
+    // Level 58 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -6642,7 +6642,7 @@ export default [
                 key: "blue",
                 exit: [7, 4],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 inside: "purple",
                 cells: [
                     [5, 2],
@@ -6726,7 +6726,7 @@ export default [
         ]
     },
 
-    // Level 59 (locked) (nested)
+    // Level 59 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -6807,7 +6807,7 @@ export default [
                 key: "blue",
                 exit: [2, 1],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [6, 0],
                     [6, 1],
@@ -7039,7 +7039,7 @@ export default [
         ]
     },
 
-    // Level 61 (locked) (nested)
+    // Level 61 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -7120,7 +7120,7 @@ export default [
                 key: "cyan",
                 exit: [2, 8],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [5, 7],
                     [6, 7],
@@ -7184,7 +7184,7 @@ export default [
         ]
     },
 
-    // Level 62 (locked) (nested)
+    // Level 62 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -7264,7 +7264,7 @@ export default [
                 key: "red",
                 exit: [4, 7],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [0, 3],
                     [1, 3],
@@ -7343,7 +7343,7 @@ export default [
         ]
     },
 
-    // Level 63 (locked) (nested)
+    // Level 63 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -7454,7 +7454,7 @@ export default [
                 key: "yellow",
                 exit: [0, 7],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [2, 5],
                     [2, 4],
@@ -7652,7 +7652,7 @@ export default [
         ]
     },
 
-    // Level 65 (hardened) (locked) (nested)
+    // Level 65 (hardened) (frozen) (nested)
     {
         difficulty: "hard",
         rows: 10,
@@ -7721,7 +7721,7 @@ export default [
                 key: "blue",
                 exit: [1, 0],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "orange",
                 cells: [
                     [7, 3],
@@ -7806,7 +7806,7 @@ export default [
         ]
     },
 
-    // Level 66 (locked) (nested)
+    // Level 66 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -7921,7 +7921,7 @@ export default [
                 key: "blue",
                 exit: [1, 5],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [5, 5],
                     [4, 5],
@@ -7966,7 +7966,7 @@ export default [
         ]
     },
 
-    // Level 67 (locked) (nested)
+    // Level 67 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -8048,7 +8048,7 @@ export default [
                 key: "lime",
                 exit: [7, 9],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [3, 1],
                     [4, 1],
@@ -8122,7 +8122,7 @@ export default [
         ]
     },
 
-    // Level 68 (locked) (nested)
+    // Level 68 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -8203,7 +8203,7 @@ export default [
                 key: "blue",
                 exit: [4, 1],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [7, 1],
                     [7, 0],
@@ -8274,7 +8274,7 @@ export default [
         ]
     },
 
-    // Level 69 (locked) (nested)
+    // Level 69 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -8388,7 +8388,7 @@ export default [
                 key: "cyan",
                 exit: [3, 9],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [3, 3],
                     [3, 4],
@@ -8600,7 +8600,7 @@ export default [
         ]
     },
 
-    // Level 71 (locked) (nested)
+    // Level 71 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -8706,7 +8706,7 @@ export default [
                 key: "lime",
                 exit: [4, 0],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [1, 0],
                     [1, 1],
@@ -8925,7 +8925,7 @@ export default [
         ]
     },
 
-    // Level 73 (locked) (nested)
+    // Level 73 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -9041,7 +9041,7 @@ export default [
                 key: "pink",
                 exit: [4, 5],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [2, 8],
                     [3, 8],
@@ -9600,7 +9600,7 @@ export default [
         ]
     },
 
-    // Level 77 (locked) (nested)
+    // Level 77 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -9681,7 +9681,7 @@ export default [
                 key: "purple",
                 exit: [1, 4],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [5, 4],
                     [5, 3],
@@ -9768,7 +9768,7 @@ export default [
         ]
     },
 
-    // Level 78 (locked) (nested)
+    // Level 78 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -9853,7 +9853,7 @@ export default [
                 key: "pink",
                 exit: [6, 5],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [6, 9],
                     [5, 9],
@@ -9938,7 +9938,7 @@ export default [
         ]
     },
 
-    // Level 79 (locked) (nested)
+    // Level 79 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -10043,7 +10043,7 @@ export default [
                 key: "yellow",
                 exit: [7, 5],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 inside: "blue",
                 cells: [
                     [1, 2],
@@ -10279,7 +10279,7 @@ export default [
         ]
     },
 
-    // Level 81 (locked) (nested)
+    // Level 81 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -10383,7 +10383,7 @@ export default [
                 key: "orange",
                 exit: [0, 8],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [4, 5],
                     [4, 4],
@@ -10459,7 +10459,7 @@ export default [
         ]
     },
 
-    // Level 82 (locked) (nested)
+    // Level 82 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -10555,7 +10555,7 @@ export default [
                 key: "red",
                 exit: [2, 2],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [0, 7],
                     [1, 7],
@@ -10644,7 +10644,7 @@ export default [
         ]
     },
 
-    // Level 83 (locked) (nested)
+    // Level 83 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -10755,7 +10755,7 @@ export default [
                 key: "orange",
                 exit: [3, 1],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "pink",
                 cells: [
                     [6, 4],
@@ -10836,7 +10836,7 @@ export default [
         ]
     },
 
-    // Level 84 (locked) (nested)
+    // Level 84 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -10988,7 +10988,7 @@ export default [
                 key: "blue",
                 exit: [5, 0],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "red",
                 cells: [
                     [4, 2],
@@ -11020,7 +11020,7 @@ export default [
         ]
     },
 
-    // Level 85 (hardened) (locked) (nested)
+    // Level 85 (hardened) (frozen) (nested)
     {
         difficulty: "hard",
         rows: 11,
@@ -11120,7 +11120,7 @@ export default [
                 key: "lime",
                 exit: [5, 3],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 inside: "purple",
                 cells: [
                     [2, 4],
@@ -11209,7 +11209,7 @@ export default [
         ]
     },
 
-    // Level 86 (locked) (nested)
+    // Level 86 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -11296,7 +11296,7 @@ export default [
                 key: "pink",
                 exit: [8, 4],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [1, 6],
                     [2, 6],
@@ -11395,7 +11395,7 @@ export default [
         ]
     },
 
-    // Level 87 (locked) (nested)
+    // Level 87 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -11526,7 +11526,7 @@ export default [
                 key: "green",
                 exit: [0, 6],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [3, 3],
                     [3, 4],
@@ -11582,7 +11582,7 @@ export default [
         ]
     },
 
-    // Level 88 (locked) (nested)
+    // Level 88 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -11718,7 +11718,7 @@ export default [
                 key: "red",
                 exit: [6, 0],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [6, 4],
                     [6, 5],
@@ -12138,7 +12138,7 @@ export default [
         ]
     },
 
-    // Level 91 (locked) (nested)
+    // Level 91 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -12236,7 +12236,7 @@ export default [
                 key: "yellow",
                 exit: [3, 3],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [7, 7],
                     [7, 6],
@@ -12326,7 +12326,7 @@ export default [
         ]
     },
 
-    // Level 92 (locked) (nested)
+    // Level 92 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -12412,7 +12412,7 @@ export default [
                 key: "white",
                 exit: [7, 0],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "cyan",
                 cells: [
                     [4, 0],
@@ -12522,7 +12522,7 @@ export default [
         ]
     },
 
-    // Level 93 (locked) (nested)
+    // Level 93 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -12665,7 +12665,7 @@ export default [
                 key: "green",
                 exit: [4, 1],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [5, 8],
                     [5, 7],
@@ -13107,7 +13107,7 @@ export default [
         ]
     },
 
-    // Level 96 (locked) (nested)
+    // Level 96 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -13190,7 +13190,7 @@ export default [
                 key: "white",
                 exit: [0, 8],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [3, 1],
                     [2, 1],
@@ -13693,7 +13693,7 @@ export default [
         ]
     },
 
-    // Level 99 (locked) (nested)
+    // Level 99 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -13772,7 +13772,7 @@ export default [
                 key: "yellow",
                 exit: [2, 7],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [6, 3],
                     [6, 2],
@@ -14078,7 +14078,7 @@ export default [
         ]
     },
 
-    // Level 101 (locked) (nested)
+    // Level 101 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -14185,7 +14185,7 @@ export default [
                 key: "white",
                 exit: [5, 8],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [3, 3],
                     [3, 4],
@@ -14226,7 +14226,7 @@ export default [
         ]
     },
 
-    // Level 102 (locked) (nested)
+    // Level 102 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -14333,7 +14333,7 @@ export default [
                 key: "white",
                 exit: [5, 8],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [3, 3],
                     [3, 4],
@@ -14374,7 +14374,7 @@ export default [
         ]
     },
 
-    // Level 103 (locked) (nested)
+    // Level 103 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -14460,7 +14460,7 @@ export default [
                 key: "pink",
                 exit: [5, 5],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [2, 2],
                     [2, 1],
@@ -14521,7 +14521,7 @@ export default [
         ]
     },
 
-    // Level 104 (hardened) (locked) (nested)
+    // Level 104 (hardened) (frozen) (nested)
     {
         difficulty: "hard",
         rows: 10,
@@ -14636,7 +14636,7 @@ export default [
                 key: "red",
                 exit: [4, 4],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [1, 9],
                     [1, 8],
@@ -14668,7 +14668,7 @@ export default [
         ]
     },
 
-    // Level 105 (locked) (nested)
+    // Level 105 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -14740,7 +14740,7 @@ export default [
                 key: "orange",
                 exit: [4, 2],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [1, 9],
                     [1, 8],
@@ -14814,7 +14814,7 @@ export default [
         ]
     },
 
-    // Level 106 (locked) (nested)
+    // Level 106 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -14871,7 +14871,7 @@ export default [
                 key: "blue",
                 exit: [0, 4],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 inside: "purple",
                 cells: [
                     [2, 2],
@@ -14955,7 +14955,7 @@ export default [
         ]
     },
 
-    // Level 107 (locked) (nested)
+    // Level 107 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -15031,7 +15031,7 @@ export default [
                 key: "blue",
                 exit: [5, 1],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [1, 0],
                     [1, 1],
@@ -15105,7 +15105,7 @@ export default [
         ]
     },
 
-    // Level 108 (locked) (nested)
+    // Level 108 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -15182,7 +15182,7 @@ export default [
                 key: "cyan",
                 exit: [5, 8],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 inside: "white",
                 cells: [
                     [2, 6],
@@ -15246,7 +15246,7 @@ export default [
         ]
     },
 
-    // Level 109 (locked) (nested)
+    // Level 109 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -15319,7 +15319,7 @@ export default [
                 key: "red",
                 exit: [3, 7],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [7, 3],
                     [6, 3],
@@ -15398,7 +15398,7 @@ export default [
         ]
     },
 
-    // Level 110 (locked) (nested)
+    // Level 110 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -15501,7 +15501,7 @@ export default [
                 key: "yellow",
                 exit: [7, 7],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [5, 5],
                     [5, 4],
@@ -15543,7 +15543,7 @@ export default [
         ]
     },
 
-    // Level 111 (hardened) (locked) (nested)
+    // Level 111 (hardened) (frozen) (nested)
     {
         difficulty: "hard",
         rows: 10,
@@ -15607,7 +15607,7 @@ export default [
                 key: "blue",
                 exit: [6, 0],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "orange",
                 cells: [
                     [0, 3],
@@ -15692,7 +15692,7 @@ export default [
         ]
     },
 
-    // Level 112 (locked) (nested)
+    // Level 112 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -15803,7 +15803,7 @@ export default [
                 key: "blue",
                 exit: [6, 5],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [2, 5],
                     [3, 5],
@@ -15845,7 +15845,7 @@ export default [
         ]
     },
 
-    // Level 113 (locked) (nested)
+    // Level 113 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -15922,7 +15922,7 @@ export default [
                 key: "lime",
                 exit: [0, 9],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [4, 1],
                     [3, 1],
@@ -15995,7 +15995,7 @@ export default [
         ]
     },
 
-    // Level 114 (locked) (nested)
+    // Level 114 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -16070,7 +16070,7 @@ export default [
                 key: "blue",
                 exit: [3, 1],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "purple",
                 cells: [
                     [5, 2],
@@ -16142,7 +16142,7 @@ export default [
         ]
     },
 
-    // Level 115 (locked) (nested)
+    // Level 115 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -16251,7 +16251,7 @@ export default [
                 key: "cyan",
                 exit: [4, 9],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [4, 3],
                     [4, 4],
@@ -16295,7 +16295,7 @@ export default [
         ]
     },
 
-    // Level 116 (locked) (nested)
+    // Level 116 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -16396,7 +16396,7 @@ export default [
                 key: "lime",
                 exit: [4, 0],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [7, 0],
                     [7, 1],
@@ -16450,7 +16450,7 @@ export default [
         ]
     },
 
-    // Level 117 (locked) (nested)
+    // Level 117 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -16560,7 +16560,7 @@ export default [
                 key: "pink",
                 exit: [4, 5],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [6, 8],
                     [5, 8],
@@ -16617,7 +16617,7 @@ export default [
         ]
     },
 
-    // Level 118 (locked) (nested)
+    // Level 118 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -16691,7 +16691,7 @@ export default [
                 key: "purple",
                 exit: [7, 4],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [3, 4],
                     [3, 3],
@@ -16777,7 +16777,7 @@ export default [
         ]
     },
 
-    // Level 119 (locked) (nested)
+    // Level 119 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -16851,7 +16851,7 @@ export default [
                 key: "purple",
                 exit: [7, 4],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [3, 4],
                     [3, 3],
@@ -16937,7 +16937,7 @@ export default [
         ]
     },
 
-    // Level 120 (locked) (nested)
+    // Level 120 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -17016,7 +17016,7 @@ export default [
                 key: "pink",
                 exit: [2, 5],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 inside: "white",
                 cells: [
                     [0, 9],
@@ -17102,7 +17102,7 @@ export default [
         ]
     },
 
-    // Level 121 (locked) (nested)
+    // Level 121 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -17202,7 +17202,7 @@ export default [
                 key: "yellow",
                 exit: [1, 5],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 inside: "orange",
                 cells: [
                     [3, 0],
@@ -17265,7 +17265,7 @@ export default [
         ]
     },
 
-    // Level 122 (locked) (nested)
+    // Level 122 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -17356,7 +17356,7 @@ export default [
                 key: "orange",
                 exit: [8, 8],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [4, 5],
                     [4, 4],
@@ -17380,7 +17380,7 @@ export default [
                 key: "green",
                 exit: [8, 7],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "orange",
                 cells: [
                     [4, 4],
@@ -17433,7 +17433,7 @@ export default [
         ]
     },
 
-    // Level 123 (locked) (nested)
+    // Level 123 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -17520,7 +17520,7 @@ export default [
                 key: "red",
                 exit: [6, 2],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [8, 7],
                     [7, 7],
@@ -17578,7 +17578,7 @@ export default [
                 key: "pink",
                 exit: [7, 10],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [8, 3],
                     [7, 3],
@@ -17611,7 +17611,7 @@ export default [
         ]
     },
 
-    // Level 124 (locked) (nested)
+    // Level 124 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -17712,7 +17712,7 @@ export default [
                 key: "orange",
                 exit: [5, 1],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "pink",
                 cells: [
                     [2, 4],
@@ -17793,7 +17793,7 @@ export default [
         ]
     },
 
-    // Level 125 (locked) (nested)
+    // Level 125 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -17935,7 +17935,7 @@ export default [
                 key: "blue",
                 exit: [3, 0],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "white",
                 cells: [
                     [8, 7],
@@ -17967,7 +17967,7 @@ export default [
         ]
     },
 
-    // Level 126 (hardened) (locked) (nested)
+    // Level 126 (hardened) (frozen) (nested)
     {
         difficulty: "hard",
         rows: 11,
@@ -18054,7 +18054,7 @@ export default [
                 key: "lime",
                 exit: [3, 3],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [7, 0],
                     [6, 0],
@@ -18145,7 +18145,7 @@ export default [
         ]
     },
 
-    // Level 127 (locked) (nested)
+    // Level 127 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -18222,7 +18222,7 @@ export default [
                 key: "pink",
                 exit: [0, 4],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [7, 6],
                     [6, 6],
@@ -18321,7 +18321,7 @@ export default [
         ]
     },
 
-    // Level 128 (locked) (nested)
+    // Level 128 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -18442,7 +18442,7 @@ export default [
                 key: "green",
                 exit: [8, 6],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [5, 3],
                     [5, 4],
@@ -18497,7 +18497,7 @@ export default [
         ]
     },
 
-    // Level 129 (locked) (nested)
+    // Level 129 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -18570,7 +18570,7 @@ export default [
                 key: "lime",
                 exit: [2, 10],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [5, 10],
                     [6, 10],
@@ -18628,7 +18628,7 @@ export default [
                 key: "red",
                 exit: [2, 0],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [2, 4],
                     [2, 5],
@@ -18674,7 +18674,7 @@ export default [
         ]
     },
 
-    // Level 130 (locked) (nested)
+    // Level 130 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -18762,7 +18762,7 @@ export default [
                 key: "yellow",
                 exit: [5, 3],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [1, 7],
                     [1, 6],
@@ -18852,7 +18852,7 @@ export default [
         ]
     },
 
-    // Level 131 (locked) (nested)
+    // Level 131 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -18928,7 +18928,7 @@ export default [
                 key: "white",
                 exit: [1, 0],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "orange",
                 cells: [
                     [7, 10],
@@ -19039,7 +19039,7 @@ export default [
         ]
     },
 
-    // Level 132 (locked) (nested)
+    // Level 132 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -19116,7 +19116,7 @@ export default [
                 key: "purple",
                 exit: [5, 5],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [7, 4],
                     [7, 3],
@@ -19173,7 +19173,7 @@ export default [
                 key: "green",
                 exit: [4, 1],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [3, 8],
                     [3, 7],
@@ -19227,7 +19227,7 @@ export default [
         ]
     },
 
-    // Level 133 (locked) (nested)
+    // Level 133 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -19300,7 +19300,7 @@ export default [
                 key: "white",
                 exit: [8, 8],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [5, 1],
                     [6, 1],
@@ -19413,7 +19413,7 @@ export default [
         ]
     },
 
-    // Level 134 (locked) (nested)
+    // Level 134 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -19485,7 +19485,7 @@ export default [
                 key: "yellow",
                 exit: [6, 7],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [2, 3],
                     [2, 2],
@@ -19566,7 +19566,7 @@ export default [
                 key: "lime",
                 exit: [3, 9],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 inside: "cyan",
                 cells: [
                     [6, 2],
@@ -19599,7 +19599,7 @@ export default [
         ]
     },
 
-    // Level 135 (locked) (nested)
+    // Level 135 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -19675,7 +19675,7 @@ export default [
                 key: "purple",
                 exit: [4, 3],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [4, 8],
                     [5, 8],
@@ -19707,7 +19707,7 @@ export default [
                 key: "white",
                 exit: [2, 1],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [4, 6],
                     [4, 5],
@@ -19748,7 +19748,7 @@ export default [
         ]
     },
 
-    // Level 136 (locked) (nested)
+    // Level 136 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -19856,7 +19856,7 @@ export default [
                 key: "white",
                 exit: [2, 1],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [4, 6],
                     [4, 5],
@@ -19897,7 +19897,7 @@ export default [
         ]
     },
 
-    // Level 137 (locked) (nested)
+    // Level 137 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -19970,7 +19970,7 @@ export default [
                 key: "orange",
                 exit: [6, 1],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [1, 5],
                     [2, 5],
@@ -19981,7 +19981,7 @@ export default [
                 key: "pink",
                 exit: [2, 4],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "white",
                 cells: [
                     [0, 2],
@@ -20044,7 +20044,7 @@ export default [
         ]
     },
 
-    // Level 138 (hardened) (locked) (nested)
+    // Level 138 (hardened) (frozen) (nested)
     {
         difficulty: "hard",
         rows: 10,
@@ -20158,7 +20158,7 @@ export default [
                 key: "red",
                 exit: [3, 5],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "white",
                 cells: [
                     [4, 8],
@@ -20190,7 +20190,7 @@ export default [
         ]
     },
 
-    // Level 139 (locked) (nested)
+    // Level 139 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -20262,7 +20262,7 @@ export default [
                 key: "orange",
                 exit: [3, 7],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [6, 0],
                     [6, 1],
@@ -20296,7 +20296,7 @@ export default [
                 key: "blue",
                 exit: [6, 7],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 inside: "cyan",
                 cells: [
                     [3, 4],
@@ -20337,7 +20337,7 @@ export default [
         ]
     },
 
-    // Level 140 (locked) (nested)
+    // Level 140 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -20394,7 +20394,7 @@ export default [
                 key: "blue",
                 exit: [7, 5],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 inside: "pink",
                 cells: [
                     [0, 5],
@@ -20448,7 +20448,7 @@ export default [
                 key: "pink",
                 exit: [5, 3],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [1, 5],
                     [0, 5],
@@ -20479,7 +20479,7 @@ export default [
         ]
     },
 
-    // Level 141 (locked) (nested)
+    // Level 141 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -20555,7 +20555,7 @@ export default [
                 key: "blue",
                 exit: [2, 8],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [6, 9],
                     [6, 8],
@@ -20566,7 +20566,7 @@ export default [
                 key: "orange",
                 exit: [7, 9],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 inside: "cyan",
                 cells: [
                     [3, 7],
@@ -20630,7 +20630,7 @@ export default [
         ]
     },
 
-    // Level 142 (locked) (nested)
+    // Level 142 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -20705,7 +20705,7 @@ export default [
                 key: "cyan",
                 exit: [2, 1],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [5, 2],
                     [6, 2],
@@ -20717,7 +20717,7 @@ export default [
                 key: "red",
                 exit: [4, 4],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "cyan",
                 cells: [
                     [6, 2],
@@ -20772,7 +20772,7 @@ export default [
         ]
     },
 
-    // Level 143 (locked) (nested)
+    // Level 143 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -20846,7 +20846,7 @@ export default [
                 key: "red",
                 exit: [4, 2],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [0, 6],
                     [1, 6],
@@ -20880,7 +20880,7 @@ export default [
                 key: "pink",
                 exit: [3, 8],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 inside: "purple",
                 cells: [
                     [6, 5],
@@ -20926,7 +20926,7 @@ export default [
         ]
     },
 
-    // Level 144 (locked) (nested)
+    // Level 144 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -20990,7 +20990,7 @@ export default [
                 key: "lime",
                 exit: [5, 3],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [3, 9],
                     [2, 9],
@@ -21032,7 +21032,7 @@ export default [
                 key: "yellow",
                 exit: [0, 2],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [2, 4],
                     [2, 5],
@@ -21074,7 +21074,7 @@ export default [
         ]
     },
 
-    // Level 145 (hardened) (locked) (nested)
+    // Level 145 (hardened) (frozen) (nested)
     {
         difficulty: "hard",
         rows: 10,
@@ -21138,7 +21138,7 @@ export default [
                 key: "blue",
                 exit: [1, 9],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [7, 1],
                     [7, 2],
@@ -21149,7 +21149,7 @@ export default [
                 key: "white",
                 exit: [5, 8],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 inside: "cyan",
                 cells: [
                     [6, 9],
@@ -21224,7 +21224,7 @@ export default [
         ]
     },
 
-    // Level 146 (locked) (nested)
+    // Level 146 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -21334,7 +21334,7 @@ export default [
                 key: "blue",
                 exit: [1, 4],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [5, 4],
                     [4, 4],
@@ -21345,7 +21345,7 @@ export default [
                 key: "green",
                 exit: [4, 3],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 inside: "white",
                 cells: [
                     [4, 0],
@@ -21377,7 +21377,7 @@ export default [
         ]
     },
 
-    // Level 147 (locked) (nested)
+    // Level 147 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -21437,7 +21437,7 @@ export default [
                 key: "white",
                 exit: [6, 7],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [1, 1],
                     [1, 0],
@@ -21450,7 +21450,7 @@ export default [
                 key: "lime",
                 exit: [7, 0],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [3, 8],
                     [4, 8],
@@ -21525,7 +21525,7 @@ export default [
         ]
     },
 
-    // Level 148 (locked) (nested)
+    // Level 148 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -21598,7 +21598,7 @@ export default [
                 key: "blue",
                 exit: [4, 8],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [7, 8],
                     [7, 9],
@@ -21652,7 +21652,7 @@ export default [
                 key: "lime",
                 exit: [4, 9],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [1, 6],
                     [1, 7],
@@ -21673,7 +21673,7 @@ export default [
         ]
     },
 
-    // Level 149 (locked) (nested)
+    // Level 149 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -21731,7 +21731,7 @@ export default [
                 key: "pink",
                 exit: [3, 2],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [4, 8],
                     [4, 7],
@@ -21775,7 +21775,7 @@ export default [
                 key: "cyan",
                 exit: [3, 0],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 inside: "white",
                 cells: [
                     [1, 7],
@@ -21820,7 +21820,7 @@ export default [
         ]
     },
 
-    // Level 150 (locked) (nested)
+    // Level 150 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -21884,7 +21884,7 @@ export default [
                 key: "blue",
                 exit: [0, 6],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 inside: "red",
                 cells: [
                     [1, 4],
@@ -21920,7 +21920,7 @@ export default [
                 key: "lime",
                 exit: [4, 9],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [1, 9],
                     [1, 8],
@@ -21974,7 +21974,7 @@ export default [
         ]
     },
 
-    // Level 151 (locked) (nested)
+    // Level 151 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -22051,7 +22051,7 @@ export default [
                 key: "blue",
                 exit: [2, 5],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [3, 9],
                     [2, 9],
@@ -22086,7 +22086,7 @@ export default [
                 key: "pink",
                 exit: [4, 4],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [2, 1],
                     [3, 1],
@@ -22143,7 +22143,7 @@ export default [
         ]
     },
 
-    // Level 152 (locked) (nested)
+    // Level 152 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -22219,7 +22219,7 @@ export default [
                 key: "purple",
                 exit: [1, 5],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [5, 5],
                     [5, 6],
@@ -22240,7 +22240,7 @@ export default [
                 key: "blue",
                 exit: [4, 1],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [5, 8],
                     [6, 8],
@@ -22303,7 +22303,7 @@ export default [
         ]
     },
 
-    // Level 153 (locked) (nested)
+    // Level 153 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -22384,7 +22384,7 @@ export default [
                 key: "pink",
                 exit: [6, 4],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "green",
                 cells: [
                     [2, 3],
@@ -22396,7 +22396,7 @@ export default [
                 key: "orange",
                 exit: [1, 8],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [7, 2],
                     [7, 3],
@@ -22470,7 +22470,7 @@ export default [
         ]
     },
 
-    // Level 154 (locked) (nested)
+    // Level 154 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -22538,7 +22538,7 @@ export default [
                 key: "orange",
                 exit: [4, 3],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 inside: "red",
                 cells: [
                     [6, 4],
@@ -22570,7 +22570,7 @@ export default [
                 key: "yellow",
                 exit: [7, 4],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "blue",
                 cells: [
                     [1, 7],
@@ -22634,7 +22634,7 @@ export default [
         ]
     },
 
-    // Level 155 (locked) (nested)
+    // Level 155 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -22730,7 +22730,7 @@ export default [
                 key: "orange",
                 exit: [0, 2],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [4, 5],
                     [4, 6],
@@ -22754,7 +22754,7 @@ export default [
                 key: "green",
                 exit: [0, 3],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 inside: "white",
                 cells: [
                     [6, 2],
@@ -22810,7 +22810,7 @@ export default [
         ]
     },
 
-    // Level 156 (locked) (nested)
+    // Level 156 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -22896,7 +22896,7 @@ export default [
                 key: "red",
                 exit: [2, 8],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 inside: "lime",
                 cells: [
                     [4, 9],
@@ -22951,7 +22951,7 @@ export default [
                 key: "pink",
                 exit: [1, 0],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [0, 7],
                     [1, 7],
@@ -22983,7 +22983,7 @@ export default [
         ]
     },
 
-    // Level 157 (locked) (nested)
+    // Level 157 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -23085,7 +23085,7 @@ export default [
                 key: "orange",
                 exit: [3, 9],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 inside: "pink",
                 cells: [
                     [6, 6],
@@ -23109,7 +23109,7 @@ export default [
                 key: "cyan",
                 exit: [5, 0],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 inside: "green",
                 cells: [
                     [4, 1],
@@ -23167,7 +23167,7 @@ export default [
         ]
     },
 
-    // Level 158 (locked) (nested)
+    // Level 158 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -23265,7 +23265,7 @@ export default [
                 key: "purple",
                 exit: [1, 10],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [2, 1],
                     [2, 0],
@@ -23309,7 +23309,7 @@ export default [
                 key: "blue",
                 exit: [5, 10],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 inside: "white",
                 cells: [
                     [0, 3],
@@ -23340,7 +23340,7 @@ export default [
         ]
     },
 
-    // Level 159 (hardened) (locked) (nested)
+    // Level 159 (hardened) (frozen) (nested)
     {
         difficulty: "hard",
         rows: 11,
@@ -23427,7 +23427,7 @@ export default [
                 key: "lime",
                 exit: [5, 7],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [1, 10],
                     [2, 10],
@@ -23518,7 +23518,7 @@ export default [
         ]
     },
 
-    // Level 160 (locked) (nested)
+    // Level 160 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -23594,7 +23594,7 @@ export default [
                 key: "pink",
                 exit: [8, 6],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [1, 4],
                     [2, 4],
@@ -23661,7 +23661,7 @@ export default [
                 key: "green",
                 exit: [1, 10],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 inside: "purple",
                 cells: [
                     [4, 1],
@@ -23693,7 +23693,7 @@ export default [
         ]
     },
 
-    // Level 161 (locked) (nested)
+    // Level 161 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -23779,7 +23779,7 @@ export default [
                 key: "orange",
                 exit: [2, 0],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 inside: "blue",
                 cells: [
                     [1, 9],
@@ -23815,7 +23815,7 @@ export default [
                 key: "green",
                 exit: [0, 4],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 inside: "red",
                 cells: [
                     [2, 1],
@@ -23870,7 +23870,7 @@ export default [
         ]
     },
 
-    // Level 162 (locked) (nested)
+    // Level 162 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -23945,7 +23945,7 @@ export default [
                 key: "lime",
                 exit: [6, 0],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 inside: "purple",
                 cells: [
                     [8, 5],
@@ -24002,7 +24002,7 @@ export default [
                 key: "red",
                 exit: [6, 10],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [6, 6],
                     [6, 5],
@@ -24048,7 +24048,7 @@ export default [
         ]
     },
 
-    // Level 163 (locked) (nested)
+    // Level 163 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -24138,7 +24138,7 @@ export default [
                 key: "yellow",
                 exit: [3, 7],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [7, 3],
                     [7, 4],
@@ -24172,7 +24172,7 @@ export default [
                 key: "lime",
                 exit: [1, 6],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [8, 10],
                     [8, 9],
@@ -24230,7 +24230,7 @@ export default [
         ]
     },
 
-    // Level 164 (locked) (nested)
+    // Level 164 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -24307,7 +24307,7 @@ export default [
                 key: "white",
                 exit: [7, 10],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 inside: "blue",
                 cells: [
                     [7, 1],
@@ -24320,7 +24320,7 @@ export default [
                 key: "blue",
                 exit: [8, 10],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [7, 2],
                     [7, 1],
@@ -24418,7 +24418,7 @@ export default [
         ]
     },
 
-    // Level 165 (locked) (nested)
+    // Level 165 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -24545,7 +24545,7 @@ export default [
                 key: "red",
                 exit: [4, 10],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [6, 7],
                     [7, 7],
@@ -24556,7 +24556,7 @@ export default [
                 key: "green",
                 exit: [4, 9],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [5, 2],
                     [5, 3],
@@ -24609,7 +24609,7 @@ export default [
         ]
     },
 
-    // Level 166 (locked) (nested)
+    // Level 166 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -24682,7 +24682,7 @@ export default [
                 key: "white",
                 exit: [0, 2],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [3, 9],
                     [2, 9],
@@ -24694,7 +24694,7 @@ export default [
                 key: "red",
                 exit: [0, 9],
                 facing: 90,
-                lock: 9,
+                frozen: 9,
                 inside: "orange",
                 cells: [
                     [6, 4],
@@ -24796,7 +24796,7 @@ export default [
         ]
     },
 
-    // Level 167 (locked) (nested)
+    // Level 167 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -24868,7 +24868,7 @@ export default [
                 key: "yellow",
                 exit: [2, 3],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [6, 7],
                     [6, 8],
@@ -24948,7 +24948,7 @@ export default [
                 key: "lime",
                 exit: [5, 1],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 inside: "cyan",
                 cells: [
                     [2, 8],
@@ -24981,7 +24981,7 @@ export default [
         ]
     },
 
-    // Level 168 (locked) (nested)
+    // Level 168 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -25060,7 +25060,7 @@ export default [
                 key: "purple",
                 exit: [3, 3],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [3, 8],
                     [2, 8],
@@ -25092,7 +25092,7 @@ export default [
                 key: "white",
                 exit: [5, 1],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [3, 6],
                     [3, 5],
@@ -25133,7 +25133,7 @@ export default [
         ]
     },
 
-    // Level 169 (locked) (nested)
+    // Level 169 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -25209,7 +25209,7 @@ export default [
                 key: "purple",
                 exit: [3, 3],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [3, 8],
                     [2, 8],
@@ -25241,7 +25241,7 @@ export default [
                 key: "white",
                 exit: [5, 1],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [3, 6],
                     [3, 5],
@@ -25281,7 +25281,7 @@ export default [
         ]
     },
 
-    // Level 170 (locked) (nested)
+    // Level 170 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -25359,7 +25359,7 @@ export default [
                 key: "orange",
                 exit: [1, 1],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 inside: "red",
                 cells: [
                     [1, 6],
@@ -25370,7 +25370,7 @@ export default [
                 key: "pink",
                 exit: [5, 4],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [2, 7],
                     [2, 8],
@@ -25431,7 +25431,7 @@ export default [
         ]
     },
 
-    // Level 171 (hardened) (locked) (nested)
+    // Level 171 (hardened) (frozen) (nested)
     {
         difficulty: "hard",
         rows: 10,
@@ -25545,7 +25545,7 @@ export default [
                 key: "red",
                 exit: [4, 5],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 inside: "white",
                 cells: [
                     [3, 8],
@@ -25577,7 +25577,7 @@ export default [
         ]
     },
 
-    // Level 172 (locked) (nested)
+    // Level 172 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -25651,7 +25651,7 @@ export default [
                 key: "orange",
                 exit: [4, 7],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [1, 0],
                     [1, 1],
@@ -25685,7 +25685,7 @@ export default [
                 key: "blue",
                 exit: [1, 7],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 inside: "orange",
                 cells: [
                     [1, 1],
@@ -25726,7 +25726,7 @@ export default [
         ]
     },
 
-    // Level 173 (locked) (nested)
+    // Level 173 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -25784,7 +25784,7 @@ export default [
                 key: "blue",
                 exit: [0, 5],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 inside: "pink",
                 cells: [
                     [7, 5],
@@ -25838,7 +25838,7 @@ export default [
                 key: "pink",
                 exit: [2, 3],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [6, 5],
                     [7, 5],
@@ -25869,7 +25869,7 @@ export default [
         ]
     },
 
-    // Level 174 (locked) (nested)
+    // Level 174 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -25948,7 +25948,7 @@ export default [
                 key: "blue",
                 exit: [5, 8],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [1, 9],
                     [1, 8],
@@ -25959,7 +25959,7 @@ export default [
                 key: "orange",
                 exit: [0, 9],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 inside: "cyan",
                 cells: [
                     [4, 7],
@@ -26023,7 +26023,7 @@ export default [
         ]
     },
 
-    // Level 175 (locked) (nested)
+    // Level 175 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -26099,7 +26099,7 @@ export default [
                 key: "cyan",
                 exit: [5, 1],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [2, 2],
                     [1, 2],
@@ -26111,7 +26111,7 @@ export default [
                 key: "red",
                 exit: [3, 4],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [3, 1],
                     [2, 1],
@@ -26134,7 +26134,7 @@ export default [
                 key: "green",
                 exit: [2, 8],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 inside: "purple",
                 cells: [
                     [7, 8],
@@ -26164,7 +26164,7 @@ export default [
         ]
     },
 
-    // Level 176 (locked) (nested)
+    // Level 176 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -26237,7 +26237,7 @@ export default [
                 key: "red",
                 exit: [3, 2],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [7, 6],
                     [6, 6],
@@ -26271,7 +26271,7 @@ export default [
                 key: "pink",
                 exit: [4, 8],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [6, 1],
                     [6, 0],
@@ -26317,7 +26317,7 @@ export default [
         ]
     },
 
-    // Level 177 (locked) (nested)
+    // Level 177 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -26382,7 +26382,7 @@ export default [
                 key: "lime",
                 exit: [2, 3],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [4, 9],
                     [5, 9],
@@ -26425,7 +26425,7 @@ export default [
                 key: "yellow",
                 exit: [7, 2],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 inside: "red",
                 cells: [
                     [1, 5],
@@ -26467,7 +26467,7 @@ export default [
         ]
     },
 
-    // Level 178 (hardened) (locked) (nested)
+    // Level 178 (hardened) (frozen) (nested)
     {
         difficulty: "hard",
         rows: 10,
@@ -26531,7 +26531,7 @@ export default [
                 key: "blue",
                 exit: [6, 9],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 inside: "orange",
                 cells: [
                     [0, 6],
@@ -26542,7 +26542,7 @@ export default [
                 key: "white",
                 exit: [2, 8],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 inside: "red",
                 cells: [
                     [7, 4],
@@ -26617,7 +26617,7 @@ export default [
         ]
     },
 
-    // Level 179 (locked) (nested)
+    // Level 179 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -26727,7 +26727,7 @@ export default [
                 key: "blue",
                 exit: [6, 4],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [2, 4],
                     [3, 4],
@@ -26738,7 +26738,7 @@ export default [
                 key: "green",
                 exit: [3, 3],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 inside: "white",
                 cells: [
                     [3, 0],
@@ -26770,7 +26770,7 @@ export default [
         ]
     },
 
-    // Level 180 (locked) (nested)
+    // Level 180 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -26835,7 +26835,7 @@ export default [
                 key: "white",
                 exit: [1, 7],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 inside: "pink",
                 cells: [
                     [0, 8],
@@ -26847,7 +26847,7 @@ export default [
                 key: "lime",
                 exit: [0, 0],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [4, 8],
                     [3, 8],
@@ -26921,7 +26921,7 @@ export default [
         ]
     },
 
-    // Level 181 (locked) (nested)
+    // Level 181 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -26991,7 +26991,7 @@ export default [
                 key: "blue",
                 exit: [3, 8],
                 facing: 90,
-                lock: 4,
+                frozen: 4,
                 cells: [
                     [0, 8],
                     [0, 9],
@@ -27043,7 +27043,7 @@ export default [
                 key: "lime",
                 exit: [3, 9],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [6, 6],
                     [6, 7],
@@ -27065,7 +27065,7 @@ export default [
         ]
     },
 
-    // Level 182 (locked) (nested)
+    // Level 182 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -27124,7 +27124,7 @@ export default [
                 key: "pink",
                 exit: [4, 2],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [3, 8],
                     [3, 7],
@@ -27170,7 +27170,7 @@ export default [
                 key: "cyan",
                 exit: [4, 0],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 inside: "blue",
                 cells: [
                     [0, 5],
@@ -27215,7 +27215,7 @@ export default [
         ]
     },
 
-    // Level 183 (locked) (nested)
+    // Level 183 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -27280,7 +27280,7 @@ export default [
                 key: "blue",
                 exit: [8, 6],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [1, 1],
                     [1, 2],
@@ -27314,7 +27314,7 @@ export default [
                 key: "lime",
                 exit: [4, 9],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [7, 9],
                     [7, 8],
@@ -27369,7 +27369,7 @@ export default [
         ]
     },
 
-    // Level 184 (locked) (nested)
+    // Level 184 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -27447,7 +27447,7 @@ export default [
                 key: "blue",
                 exit: [6, 5],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [5, 9],
                     [6, 9],
@@ -27481,7 +27481,7 @@ export default [
                 key: "pink",
                 exit: [4, 4],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [6, 1],
                     [5, 1],
@@ -27537,7 +27537,7 @@ export default [
         ]
     },
 
-    // Level 185 (locked) (nested)
+    // Level 185 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -27615,7 +27615,7 @@ export default [
                 key: "purple",
                 exit: [7, 5],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [3, 5],
                     [3, 6],
@@ -27636,7 +27636,7 @@ export default [
                 key: "blue",
                 exit: [4, 1],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [3, 8],
                     [2, 8],
@@ -27699,7 +27699,7 @@ export default [
         ]
     },
 
-    // Level 186 (locked) (nested)
+    // Level 186 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -27777,7 +27777,7 @@ export default [
                 key: "pink",
                 exit: [2, 4],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 inside: "orange",
                 cells: [
                     [1, 3],
@@ -27788,7 +27788,7 @@ export default [
                 key: "orange",
                 exit: [7, 8],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [1, 2],
                     [1, 3],
@@ -27862,7 +27862,7 @@ export default [
         ]
     },
 
-    // Level 187 (locked) (nested)
+    // Level 187 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 10,
@@ -27932,7 +27932,7 @@ export default [
                 key: "orange",
                 exit: [4, 3],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [3, 8],
                     [3, 9],
@@ -27965,7 +27965,7 @@ export default [
                 key: "yellow",
                 exit: [1, 4],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 inside: "orange",
                 cells: [
                     [3, 9],
@@ -28028,7 +28028,7 @@ export default [
         ]
     },
 
-    // Level 188 (locked) (nested)
+    // Level 188 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -28126,7 +28126,7 @@ export default [
                 key: "orange",
                 exit: [8, 2],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [4, 5],
                     [4, 6],
@@ -28150,7 +28150,7 @@ export default [
                 key: "green",
                 exit: [8, 3],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 inside: "white",
                 cells: [
                     [2, 2],
@@ -28204,7 +28204,7 @@ export default [
         ]
     },
 
-    // Level 189 (locked) (nested)
+    // Level 189 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -28291,7 +28291,7 @@ export default [
                 key: "red",
                 exit: [6, 8],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 inside: "pink",
                 cells: [
                     [7, 7],
@@ -28347,7 +28347,7 @@ export default [
                 key: "pink",
                 exit: [7, 0],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [8, 7],
                     [7, 7],
@@ -28379,7 +28379,7 @@ export default [
         ]
     },
 
-    // Level 190 (locked) (nested)
+    // Level 190 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -28457,7 +28457,7 @@ export default [
                 key: "green",
                 exit: [1, 7],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [4, 2],
                     [4, 1],
@@ -28481,7 +28481,7 @@ export default [
                 key: "orange",
                 exit: [5, 9],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 inside: "pink",
                 cells: [
                     [2, 6],
@@ -28505,7 +28505,7 @@ export default [
                 key: "cyan",
                 exit: [3, 0],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 inside: "green",
                 cells: [
                     [4, 1],
@@ -28563,7 +28563,7 @@ export default [
         ]
     },
 
-    // Level 191 (locked) (nested)
+    // Level 191 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -28660,7 +28660,7 @@ export default [
                 key: "purple",
                 exit: [7, 10],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [6, 1],
                     [6, 0],
@@ -28705,7 +28705,7 @@ export default [
                 key: "blue",
                 exit: [3, 10],
                 facing: 90,
-                lock: 6,
+                frozen: 6,
                 cells: [
                     [3, 3],
                     [3, 4],
@@ -28738,7 +28738,7 @@ export default [
         ]
     },
 
-    // Level 192 (hardened) (locked) (nested)
+    // Level 192 (hardened) (frozen) (nested)
     {
         difficulty: "hard",
         rows: 11,
@@ -28828,7 +28828,7 @@ export default [
                 key: "lime",
                 exit: [3, 7],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 inside: "purple",
                 cells: [
                     [6, 6],
@@ -28918,7 +28918,7 @@ export default [
         ]
     },
 
-    // Level 193 (locked) (nested)
+    // Level 193 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -28995,7 +28995,7 @@ export default [
                 key: "pink",
                 exit: [0, 6],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 cells: [
                     [7, 4],
                     [6, 4],
@@ -29062,7 +29062,7 @@ export default [
                 key: "green",
                 exit: [7, 10],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 inside: "pink",
                 cells: [
                     [6, 4],
@@ -29096,7 +29096,7 @@ export default [
         ]
     },
 
-    // Level 194 (locked) (nested)
+    // Level 194 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -29185,7 +29185,7 @@ export default [
                 key: "orange",
                 exit: [6, 0],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 inside: "blue",
                 cells: [
                     [7, 9],
@@ -29220,7 +29220,7 @@ export default [
                 key: "green",
                 exit: [8, 4],
                 facing: 90,
-                lock: 2,
+                frozen: 2,
                 cells: [
                     [5, 7],
                     [5, 6],
@@ -29276,7 +29276,7 @@ export default [
         ]
     },
 
-    // Level 195 (locked) (nested)
+    // Level 195 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -29348,7 +29348,7 @@ export default [
                 key: "lime",
                 exit: [2, 0],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [5, 0],
                     [6, 0],
@@ -29405,7 +29405,7 @@ export default [
                 key: "red",
                 exit: [2, 10],
                 facing: 90,
-                lock: 3,
+                frozen: 3,
                 inside: "cyan",
                 cells: [
                     [5, 9],
@@ -29450,7 +29450,7 @@ export default [
         ]
     },
 
-    // Level 196 (locked) (nested)
+    // Level 196 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -29538,7 +29538,7 @@ export default [
                 key: "yellow",
                 exit: [5, 7],
                 facing: 90,
-                lock: 5,
+                frozen: 5,
                 cells: [
                     [1, 3],
                     [1, 4],
@@ -29572,7 +29572,7 @@ export default [
                 key: "lime",
                 exit: [7, 6],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 inside: "yellow",
                 cells: [
                     [1, 4],
@@ -29629,7 +29629,7 @@ export default [
         ]
     },
 
-    // Level 197 (locked) (nested)
+    // Level 197 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -29708,7 +29708,7 @@ export default [
                 key: "white",
                 exit: [1, 10],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 inside: "blue",
                 cells: [
                     [1, 1],
@@ -29721,7 +29721,7 @@ export default [
                 key: "blue",
                 exit: [0, 10],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 cells: [
                     [1, 2],
                     [1, 1],
@@ -29823,7 +29823,7 @@ export default [
         ]
     },
 
-    // Level 198 (locked) (nested)
+    // Level 198 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -29943,7 +29943,7 @@ export default [
                 key: "red",
                 exit: [4, 10],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 inside: "cyan",
                 cells: [
                     [0, 6],
@@ -29955,7 +29955,7 @@ export default [
                 key: "green",
                 exit: [4, 9],
                 facing: 90,
-                lock: 7,
+                frozen: 7,
                 cells: [
                     [3, 2],
                     [3, 3],
@@ -29967,7 +29967,7 @@ export default [
                 key: "cyan",
                 exit: [5, 9],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 cells: [
                     [0, 5],
                     [0, 6],
@@ -30010,7 +30010,7 @@ export default [
         ]
     },
 
-    // Level 199 (locked) (nested)
+    // Level 199 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -30085,7 +30085,7 @@ export default [
                 key: "white",
                 exit: [8, 2],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 cells: [
                     [5, 9],
                     [6, 9],
@@ -30196,7 +30196,7 @@ export default [
         ]
     },
 
-    // Level 200 (locked) (nested)
+    // Level 200 (frozen) (nested)
     {
         difficulty: "normal",
         rows: 11,
@@ -30268,7 +30268,7 @@ export default [
                 key: "yellow",
                 exit: [6, 3],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 cells: [
                     [2, 7],
                     [2, 8],
@@ -30348,7 +30348,7 @@ export default [
                 key: "lime",
                 exit: [3, 1],
                 facing: 90,
-                lock: 8,
+                frozen: 8,
                 inside: "yellow",
                 cells: [
                     [2, 8],

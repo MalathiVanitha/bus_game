@@ -17,7 +17,7 @@
 // convoy that safely can - and keeps the inner one waiting longest.
 //
 // Every board written clears by driving the convoys home one at a time
-// (the promise the level data makes): locks counting down, an inner convoy
+// (the promise the level data makes): freezes counting down, an inner convoy
 // only once its outer one is home, and set down where the outer one stops
 // when driven home the shortest way. Setting one down can block others, so
 // unlike the other level tools this searches the orders convoys can go in,
@@ -299,7 +299,7 @@ function moves(board, state, i) {
     const cells = state.cells[i];
 
     if (state.home[i] || !cells) return [];
-    if ((convoy.lock || 0) > state.count) return [];
+    if ((convoy.frozen || 0) > state.count) return [];
 
     const out = [];
 
@@ -561,7 +561,7 @@ function dragClears(data) {
                     let next;
 
                     if (k === exit[i]) {
-                        if ((convoys[i].lock || 0) > state.count) continue;
+                        if ((convoys[i].frozen || 0) > state.count) continue;
 
                         next = driveIn(state, i, end === 0 ? cells : cells.slice().reverse());
                     } else {
@@ -613,7 +613,7 @@ function dragClears(data) {
                 const j = board.cargo[i];
 
                 if (state.home[i] || !cells || (j !== -1 && !state.home[j] && !state.cells[j])) continue;
-                if ((convoys[i].lock || 0) > state.count) continue;
+                if ((convoys[i].frozen || 0) > state.count) continue;
 
                 const ends = [0, cells.length - 1];
 
@@ -731,7 +731,7 @@ function formatConvoys(convoys, indent) {
         inner + 'exit: [' + c.exit.join(', ') + '],',
         inner + 'facing: ' + c.facing + ','
     ].concat(
-        c.lock ? [inner + 'lock: ' + c.lock + ','] : [],
+        c.frozen ? [inner + 'frozen: ' + c.frozen + ','] : [],
         c.inside ? [inner + 'inside: "' + c.inside + '",'] : [],
         [inner + 'cells: ' + formatRows(c.cells, inner)]
     ).join('\n'));

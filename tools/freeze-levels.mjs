@@ -1,31 +1,31 @@
-// Locks garages on levels 51-100 of data/level-data.js in place, and writes
+// Freezes garages on levels 51-100 of data/level-data.js in place, and writes
 // levels 101-200: the boards of levels 51-100 again, with some of their
-// garages locked. Only the boards that clear by
+// garages frozen. Only the boards that clear by
 // driving convoys home one at a time are used (the others need convoys
 // shuffled about first, which this can't check), and of them only those a
-// lock can hold something back on (see lockable), walked three times over,
+// freeze can hold something back on (see freezable), walked three times over,
 // easiest first: mirrored left to right for 101-133, top to bottom for
 // 134-166 and both ways for 167-200, so they don't read as repeats. Levels
-// 51-100 keep their own boards and get one gentle lock where one fits, to
-// bring locks in.
+// 51-100 keep their own boards and get one gentle freeze where one fits, to
+// bring freezes in.
 //
-// A locked garage ("lock: n" on its convoy) sits under a block of ice showing
-// n: it opens once n other convoys are home. The locks go on the convoys that
+// A frozen garage ("frozen: n" on its convoy) sits under a block of ice showing
+// n: it opens once n other convoys are home. The freezes go on the convoys that
 // could go home soonest, so the easy first move is shut and the player has to
-// clear others first; each lock is only kept if the board still clears by
-// driving the convoys home one at a time with the locks counting down (the
+// clear others first; each freeze is only kept if the board still clears by
+// driving the convoys home one at a time with the freezes counting down (the
 // promise the level data makes), and only if it really holds that convoy
-// back. More locks and bigger numbers further on:
+// back. More freezes and bigger numbers further on:
 //
-//   51-100   one lock (counting 2-3)
-//   101-120  one lock       141-170  two locks
+//   51-100   one freeze (counting 2-3)
+//   101-120  one freeze       141-170  two freezes
 //   121-140  one or two     171-200  two or three
 //
 // The levels it wrote before (everything past 100) are replaced on every run,
-// and 51-100 locked again from their boards; the picks are seeded by level
+// and 51-100 frozen again from their boards; the picks are seeded by level
 // number.
 //
-//   node tools/lock-levels.mjs
+//   node tools/freeze-levels.mjs
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -34,11 +34,11 @@ const FILE = fileURLToPath(new URL('../data/level-data.js', import.meta.url));
 const FIRST = 101;
 const LAST = 200;
 const BASE = 51;
-// Levels locked in place, on their own boards.
+// Levels frozen in place, on their own boards.
 const INTRO_LAST = 100;
-// Seconds more on the clock for each lock: waiting on one is thinking time.
-const LOCK_TIME = 6;
-const MARK = '(locked)';
+// Seconds more on the clock for each freeze: waiting on one is thinking time.
+const FREEZE_TIME = 6;
+const MARK = '(frozen)';
 
 const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
@@ -52,8 +52,8 @@ const lastHead = keep[keep.length - 1];
 const nextHead = heads.find((h) => Number(h[1]) > 100);
 const tailEnd = nextHead ? nextHead.index : source.lastIndexOf(']');
 const head = source.slice(0, tailEnd).replace(/,?\s*$/, '');
-// Levels 51-100 as they were before being locked here.
-const base = levels.slice(0, 100).map(unlocked);
+// Levels 51-100 as they were before being frozen here.
+const base = levels.slice(0, 100).map(thawed);
 
 // Its boards are laid out before convoys are nested (tools/nest-levels.mjs),
 // which it knows nothing of.
@@ -75,26 +75,26 @@ for (let h = 0; h < keep.length; h++) {
     const data = copy(base[level - 1]);
     const marks = keep[h][0].trim().replace(/^\/\/ Level \d+\s*/, '').replace(MARK, '').trim();
     const board = makeBoard(data);
-    let result = { locks: 0, report: 'left as it is, its board does not clear' };
+    let result = { freezes: 0, report: 'left as it is, its board does not clear' };
 
-    if (lockable(board)) result = lock(data, level, seeded(level * 7919 + 101));
+    if (freezable(board)) result = freeze(data, level, seeded(level * 7919 + 101));
 
     let block = head.slice(start, end);
 
     block = block.replace(keep[h][0], keep[h][0].replace(/^( *\/\/ Level \d+).*$/, '$1') +
-        [marks, result.locks ? MARK : ''].filter(Boolean).map((m) => ' ' + m).join(''));
+        [marks, result.freezes ? MARK : ''].filter(Boolean).map((m) => ' ' + m).join(''));
     block = replaceField(block, 'convoys', (indent) => formatConvoys(data.convoys, indent));
-    block = block.replace(/^( *)time: \d+,/m, '$1time: ' + ((data.time || 60) + LOCK_TIME * result.locks) + ',');
+    block = block.replace(/^( *)time: \d+,/m, '$1time: ' + ((data.time || 60) + FREEZE_TIME * result.freezes) + ',');
     intro += head.slice(at, start) + block;
     at = end;
     console.log('Level ' + level + ': ' + result.report);
 }
 
-const lockedHead = intro + head.slice(at);
+const frozenHead = intro + head.slice(at);
 const PASSES = ['x', 'y', 'xy'];
 
 for (let from = BASE; from <= 100; from++) {
-    if (lockable(makeBoard(base[from - 1]))) bases.push(from);
+    if (freezable(makeBoard(base[from - 1]))) bases.push(from);
 }
 
 for (let level = FIRST; level <= LAST; level++) {
@@ -105,9 +105,9 @@ for (let level = FIRST; level <= LAST; level++) {
     const from = bases[Math.floor((i - passStart) * bases.length / (passEnd - passStart))];
     const data = mirror(base[from - 1], PASSES[pass]);
     const random = seeded(level * 7919 + 101);
-    const result = lock(data, level, random);
+    const result = freeze(data, level, random);
 
-    data.time = (data.time || 60) + LOCK_TIME * result.locks;
+    data.time = (data.time || 60) + FREEZE_TIME * result.freezes;
 
     const baseHead = heads.find((h) => Number(h[1]) === from)[0].trim();
     const marks = baseHead.replace(/^\/\/ Level \d+\s*/, '').replace(MARK, '').trim();
@@ -118,20 +118,20 @@ for (let level = FIRST; level <= LAST; level++) {
 
 if (lastHead === undefined) throw new Error('No levels found');
 
-writeFileSync(FILE, lockedHead + ',\n\n' + blocks.join(',\n\n') + '\n]\n');
+writeFileSync(FILE, frozenHead + ',\n\n' + blocks.join(',\n\n') + '\n]\n');
 
 // ---- making a level ------------------------------------------------------
 
-// A level with its locks, and the time they put on its clock, taken off.
-function unlocked(data) {
-    const locks = data.convoys.filter((c) => c.lock).length;
+// A level with its freezes, and the time they put on its clock, taken off.
+function thawed(data) {
+    const freezes = data.convoys.filter((c) => c.frozen).length;
 
     return Object.assign(copy(data), {
-        time: (data.time || 60) - LOCK_TIME * locks,
+        time: (data.time || 60) - FREEZE_TIME * freezes,
         convoys: data.convoys.map((c) => {
             const rest = Object.assign({}, c, { cells: c.cells.map((p) => p.slice()) });
 
-            delete rest.lock;
+            delete rest.frozen;
 
             return rest;
         })
@@ -179,7 +179,7 @@ function mirror(data, axis) {
     };
 }
 
-// How many locks a level gets, and the most each can count.
+// How many freezes a level gets, and the most each can count.
 function plan(level, random) {
     if (level <= INTRO_LAST) return { count: 1, most: level <= 75 ? 2 : 3 };
 
@@ -194,20 +194,20 @@ function plan(level, random) {
     return { count: count, most: Math.round(2 + t * 6) };
 }
 
-function lock(data, level, random) {
+function freeze(data, level, random) {
     const want = plan(level, random);
     const board = makeBoard(data);
     const n = board.convoys.length;
-    const locks = new Array(n).fill(0);
+    const freezes = new Array(n).fill(0);
     const done = [];
 
     for (let k = 0; k < want.count; k++) {
         // When each convoy gets home as things stand: soonest first.
-        const order = clearOrder(board, locks);
+        const order = clearOrder(board, freezes);
 
         if (!order) break;
 
-        const free = order.filter((i) => !locks[i]);
+        const free = order.filter((i) => !freezes[i]);
 
         let placed = false;
 
@@ -225,51 +225,51 @@ function lock(data, level, random) {
             if (tries.length > 2 && random() < 0.4) tries.push(tries.shift());
 
             for (let v = 0; v < tries.length; v++) {
-                locks[index] = tries[v];
+                freezes[index] = tries[v];
 
-                if (clearOrder(board, locks)) {
+                if (clearOrder(board, freezes)) {
                     placed = true;
                     done.push(index);
                     break;
                 }
 
-                locks[index] = 0;
+                freezes[index] = 0;
             }
         }
 
         if (!placed) break;
     }
 
-    if (!clearOrder(board, locks)) throw new Error('Level ' + level + ' does not clear');
+    if (!clearOrder(board, freezes)) throw new Error('Level ' + level + ' does not clear');
 
     data.convoys.forEach((c, i) => {
-        if (locks[i]) c.lock = locks[i];
+        if (freezes[i]) c.frozen = freezes[i];
     });
 
     return {
-        locks: done.length,
-        report: done.length ? done.map((i) => data.convoys[i].key + ' ' + locks[i]).join(', ') : 'no lock fits'
+        freezes: done.length,
+        report: done.length ? done.map((i) => data.convoys[i].key + ' ' + freezes[i]).join(', ') : 'no freeze fits'
     };
 }
 
-// Whether the board clears and has a convoy a lock would really hold back:
-// on some boards every convoy has to go in the one order, and there a lock
+// Whether the board clears and has a convoy a freeze would really hold back:
+// on some boards every convoy has to go in the one order, and there a freeze
 // only ever counts down to where it would go anyway.
-function lockable(board) {
+function freezable(board) {
     const order = clearOrder(board, []);
 
     if (!order) return false;
 
-    const locks = new Array(board.convoys.length).fill(0);
+    const freezes = new Array(board.convoys.length).fill(0);
 
     for (let at = 0; at < order.length; at++) {
         for (let v = at + 1; v < order.length; v++) {
-            locks[order[at]] = v;
+            freezes[order[at]] = v;
 
-            if (clearOrder(board, locks)) return true;
+            if (clearOrder(board, freezes)) return true;
         }
 
-        locks[order[at]] = 0;
+        freezes[order[at]] = 0;
     }
 
     return false;
@@ -308,11 +308,11 @@ function makeBoard(data) {
 }
 
 // Drives convoys home one at a time, any that has a clear road from either
-// end and whose lock has counted down, until none is left (the order they
+// end and whose freeze has counted down, until none is left (the order they
 // went, soonest first) or none can go (null). Getting one home only frees
-// cells and counts locks down, so taking whichever can go never shuts out
+// cells and counts freezes down, so taking whichever can go never shuts out
 // an order that would have cleared.
-function clearOrder(board, locks) {
+function clearOrder(board, freezes) {
     const owner = board.owner.slice();
     const garage = board.garage.slice();
     const left = board.convoys.map((c, i) => i);
@@ -325,7 +325,7 @@ function clearOrder(board, locks) {
             const index = left[i];
             const convoy = board.convoys[index];
 
-            if ((locks[index] || 0) > order.length) continue;
+            if ((freezes[index] || 0) > order.length) continue;
 
             const ends = [convoy.cells[0], convoy.cells[convoy.cells.length - 1]];
 
@@ -447,7 +447,7 @@ function formatConvoys(convoys, indent) {
         inner + 'key: "' + c.key + '",',
         inner + 'exit: [' + c.exit.join(', ') + '],',
         inner + 'facing: ' + c.facing + ','
-    ].concat(c.lock ? [inner + 'lock: ' + c.lock + ','] : [], [
+    ].concat(c.frozen ? [inner + 'frozen: ' + c.frozen + ','] : [], [
         inner + 'cells: ' + formatRows(c.cells, inner)
     ]).join('\n'));
 

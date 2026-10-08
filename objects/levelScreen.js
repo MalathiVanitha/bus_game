@@ -181,7 +181,9 @@ const PICK_SIZE = 28;
 // tile scaled down; its count and tick are scaled back up some, to stay
 // readable.
 const TILE_Y = 42;
-const TILE_GAP = 86;
+// Centre to centre; a tile's ring is about 86 across, so this leaves a clear
+// gap between them.
+const TILE_GAP = 112;
 const TILE_SCALE = 0.58;
 const TILE_BADGE_SCALE = 1.25;
 const TILE_HIT = 144;

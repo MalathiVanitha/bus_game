@@ -112,8 +112,10 @@ export class LevelBadge extends Phaser.GameObjects.Container {
     horn(side) {
         const tip = { x: side * HORN_LEAN, y: -HORN_TALL };
         const bounds = {
-            left: -HORN_BASE - HORN_LEAN, top: -HORN_TALL - 2,
-            width: (HORN_BASE + HORN_LEAN) * 2, height: HORN_TALL + 4
+            left: -HORN_BASE - HORN_LEAN,
+            top: -HORN_TALL - 2,
+            width: (HORN_BASE + HORN_LEAN) * 2,
+            height: HORN_TALL + 4
         };
 
         return bakeShape(this.scene, bounds, (g) => {
@@ -204,6 +206,9 @@ export class LevelBadge extends Phaser.GameObjects.Container {
 
     adjust() {
         this.x = dimensions.gameWidth / 2 + 30;
+        if (dimensions.gameWidth > dimensions.gameHeight) {
+            this.x = dimensions.gameWidth / 2;
+        }
         // From the screen's real top, however tall the screen is.
         this.y = dimensions.topOffset + BADGE_Y;
     }

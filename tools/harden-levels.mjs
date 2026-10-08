@@ -1172,7 +1172,7 @@ function formatConvoys(convoys, indent) {
         inner + 'key: "' + c.key + '",',
         inner + 'exit: [' + c.exit.join(', ') + '],',
         inner + 'facing: ' + c.facing + ','
-    ].concat(c.lock ? [inner + 'lock: ' + c.lock + ','] : [], [
+    ].concat(c.frozen ? [inner + 'frozen: ' + c.frozen + ','] : [], [
         inner + 'cells: ' + formatRows(c.cells, inner)
     ]).join('\n'));
 

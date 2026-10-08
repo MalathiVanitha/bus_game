@@ -69,21 +69,21 @@ const POP_LINE = 0.35;
 const FOOT = 0.5;
 const NOSE = 0.5;
 
-// A locked garage sits frozen in a cube of ice with a number on it: how many
+// A frozen garage sits in a cube of ice with a number on it: how many
 // other convoys still have to get home before it opens. Each one home knocks
 // it down by one; at nought the ice cracks and flies off, and the garage
 // takes its convoy like any other. The ice is clear enough for the garage,
 // colour and all, to show through, so which convoy is held back reads at a
 // glance. It is drawn once to a texture, shared.
-const LOCK_TEXTURE = "garage-lock";
-const LOCK_ART = 160;
-const LOCK_FIT = 1;
-const LOCK_ALPHA = 1;
-const LOCK_TEXT = 0.46;
-const LOCK_FONT = "FredokaOne_Regular";
-const LOCK_INK = "#ffffff";
-const LOCK_EDGE = "#1b3f8f";
-const LOCK_SHADOW = "rgba(16, 40, 100, 0.55)";
+const ICE_TEXTURE = "garage-ice";
+const ICE_ART = 160;
+const ICE_FIT = 1;
+const ICE_ALPHA = 1;
+const ICE_TEXT = 0.46;
+const ICE_FONT = "FredokaOne_Regular";
+const ICE_INK = "#ffffff";
+const ICE_EDGE = "#1b3f8f";
+const ICE_SHADOW = "rgba(16, 40, 100, 0.55)";
 // Each tick down: the number squeezes, swells past its size and settles.
 const TICK_SQUEEZE = 0.6;
 const TICK_SWELL = 1.35;
@@ -95,11 +95,11 @@ const BREAK_SWELL = 1.2;
 const BREAK_TIME = 260;
 const ICE_COLOR = 0xc8f1ff;
 
-function lockTexture(scene) {
-    if (scene.textures.exists(LOCK_TEXTURE)) return LOCK_TEXTURE;
+function iceTexture(scene) {
+    if (scene.textures.exists(ICE_TEXTURE)) return ICE_TEXTURE;
 
-    const size = LOCK_ART;
-    const canvas = scene.textures.createCanvas(LOCK_TEXTURE, size, size);
+    const size = ICE_ART;
+    const canvas = scene.textures.createCanvas(ICE_TEXTURE, size, size);
     const ctx = canvas.getContext();
     const round = (x, y, w, h, r) => {
         ctx.beginPath();
@@ -224,7 +224,7 @@ function lockTexture(scene) {
 
     canvas.refresh();
 
-    return LOCK_TEXTURE;
+    return ICE_TEXTURE;
 }
 
 export class Garage {
@@ -270,85 +270,85 @@ export class Garage {
 
         this.gone = false;
 
-        this.lock = 0;
-        this.lockArt = null;
-        this.lockText = null;
-        this.lockTween = null;
+        this.frozenFor = 0;
+        this.iceArt = null;
+        this.iceText = null;
+        this.iceTween = null;
         this.color = config.color || "#ffffff";
 
-        if (config.lock > 0) this.addLock(scene, config.lock);
+        if (config.frozen > 0) this.freeze(scene, config.frozen);
     }
 
-    get locked() {
-        return this.lock > 0;
+    get frozen() {
+        return this.frozenFor > 0;
     }
 
-    addLock(scene, count) {
-        const scale = (this.size * LOCK_FIT) / LOCK_ART;
+    freeze(scene, count) {
+        const scale = (this.size * ICE_FIT) / ICE_ART;
         const depth = this.front.depth + 0.01;
 
-        this.lock = count;
+        this.frozenFor = count;
 
-        this.lockArt = scene.add.image(this.x, this.y, lockTexture(scene));
-        this.lockArt.setScale(scale);
-        this.lockArt.setAlpha(LOCK_ALPHA);
-        this.lockArt.depth = depth;
-        this.lockArt.baseScale = scale;
+        this.iceArt = scene.add.image(this.x, this.y, iceTexture(scene));
+        this.iceArt.setScale(scale);
+        this.iceArt.setAlpha(ICE_ALPHA);
+        this.iceArt.depth = depth;
+        this.iceArt.baseScale = scale;
 
-        this.lockText = scene.add.text(this.x, this.y, String(count), {
-            fontFamily: LOCK_FONT,
-            fontSize: Math.round(this.size * LOCK_TEXT) + "px",
-            color: LOCK_INK,
-            stroke: LOCK_EDGE,
+        this.iceText = scene.add.text(this.x, this.y, String(count), {
+            fontFamily: ICE_FONT,
+            fontSize: Math.round(this.size * ICE_TEXT) + "px",
+            color: ICE_INK,
+            stroke: ICE_EDGE,
             strokeThickness: Math.max(3, Math.round(this.size * 0.09))
         });
-        this.lockText.setShadow(0, Math.max(1, Math.round(this.size * 0.035)), LOCK_SHADOW, 0, true, false);
-        this.lockText.setOrigin(0.5);
-        this.lockText.depth = depth + 0.01;
+        this.iceText.setShadow(0, Math.max(1, Math.round(this.size * 0.035)), ICE_SHADOW, 0, true, false);
+        this.iceText.setOrigin(0.5);
+        this.iceText.depth = depth + 0.01;
 
-        this.parent.add(this.lockArt);
-        this.parent.add(this.lockText);
+        this.parent.add(this.iceArt);
+        this.parent.add(this.iceText);
     }
 
     // One more convoy home. True when that was the last it was waiting on.
     countDown() {
-        if (!this.locked || this.gone) return false;
+        if (!this.frozen || this.gone) return false;
 
-        this.lock--;
+        this.frozenFor--;
 
-        if (this.lock <= 0) {
-            this.breakLock();
+        if (this.frozenFor <= 0) {
+            this.thaw();
             return true;
         }
 
-        this.lockText.setText(String(this.lock));
-        this.tickLock();
+        this.iceText.setText(String(this.frozenFor));
+        this.tickIce();
 
         return false;
     }
 
-    tickLock() {
-        const art = this.lockArt;
-        const text = this.lockText;
+    tickIce() {
+        const art = this.iceArt;
+        const text = this.iceText;
 
-        if (this.lockTween) this.lockTween.remove();
+        if (this.iceTween) this.iceTween.remove();
 
         text.setScale(TICK_SQUEEZE);
         art.setScale(art.baseScale);
 
-        this.lockTween = this.scene.tweens.add({
+        this.iceTween = this.scene.tweens.add({
             targets: text,
             scale: TICK_SWELL,
             duration: TICK_IN,
             ease: "Quad.easeOut",
             onComplete: () => {
-                this.lockTween = this.scene.tweens.add({
+                this.iceTween = this.scene.tweens.add({
                     targets: text,
                     scale: 1,
                     duration: TICK_OUT,
                     ease: "Back.easeOut",
                     onComplete: () => {
-                        this.lockTween = null;
+                        this.iceTween = null;
                     }
                 });
             }
@@ -364,18 +364,18 @@ export class Garage {
     }
 
     // Cracks the ice off. Quiet when the garage is going anyway.
-    breakLock(quiet = false) {
-        const art = this.lockArt;
-        const text = this.lockText;
+    thaw(quiet = false) {
+        const art = this.iceArt;
+        const text = this.iceText;
 
         if (!art) return;
 
-        this.lock = 0;
-        this.lockArt = null;
-        this.lockText = null;
+        this.frozenFor = 0;
+        this.iceArt = null;
+        this.iceText = null;
 
-        if (this.lockTween) this.lockTween.remove();
-        this.lockTween = null;
+        if (this.iceTween) this.iceTween.remove();
+        this.iceTween = null;
         this.scene.tweens.killTweensOf([art, text]);
 
         if (quiet) {
@@ -505,7 +505,7 @@ export class Garage {
         if (this.gone) return;
 
         this.stopTween();
-        this.breakLock(true);
+        this.thaw(true);
         this.gone = true;
 
         this.gapeTween = this.scene.tweens.add({
@@ -627,7 +627,7 @@ export class Garage {
     }
 
     destroy() {
-        this.breakLock(true);
+        this.thaw(true);
 
         if (this.gapeTween) this.gapeTween.remove();
         if (this.burstTween) this.burstTween.remove();
