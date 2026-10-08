@@ -69,26 +69,21 @@ const POP_LINE = 0.35;
 const FOOT = 0.5;
 const NOSE = 0.5;
 
-// A locked garage sits under a block of ice with a number on it: how many
+// A locked garage sits frozen in a cube of ice with a number on it: how many
 // other convoys still have to get home before it opens. Each one home knocks
 // it down by one; at nought the ice cracks and flies off, and the garage
-// takes its convoy like any other. The ice is clear enough for the garage's
-// colour to show through, and the number sits on a badge in that colour, so
-// which convoy is held back reads at a glance. The ice is drawn once to a
-// texture, shared; each colour's badge once to its own.
+// takes its convoy like any other. The ice is clear enough for the garage,
+// colour and all, to show through, so which convoy is held back reads at a
+// glance. It is drawn once to a texture, shared.
 const LOCK_TEXTURE = "garage-lock";
-const BADGE_TEXTURE = "garage-lock-badge-";
-const BADGE_R = 0.25;
-// On a badge this light or lighter the number is dark, else white.
-const BADGE_LIGHT = 0.62;
-const LOCK_DARK_INK = "#283085";
 const LOCK_ART = 160;
-const LOCK_FIT = 0.94;
+const LOCK_FIT = 1;
 const LOCK_ALPHA = 1;
-const LOCK_TEXT = 0.36;
+const LOCK_TEXT = 0.46;
 const LOCK_FONT = "FredokaOne_Regular";
 const LOCK_INK = "#ffffff";
-const LOCK_EDGE = "#1d4f9c";
+const LOCK_EDGE = "#1b3f8f";
+const LOCK_SHADOW = "rgba(16, 40, 100, 0.55)";
 // Each tick down: the number squeezes, swells past its size and settles.
 const TICK_SQUEEZE = 0.6;
 const TICK_SWELL = 1.35;
@@ -115,90 +110,121 @@ function lockTexture(scene) {
         ctx.arcTo(x, y, x + w, y, r);
         ctx.closePath();
     };
+    const poly = (points) => {
+        ctx.beginPath();
+        points.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+        ctx.closePath();
+    };
+    // The same frost every time, so the shared texture never changes.
+    let seed = 11;
+    const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 
-    // The block: a light frost, whiter at the foot, and a white rim - clear
-    // enough that the garage under it keeps its own colour.
-    const body = ctx.createLinearGradient(0, 0, 0, size);
+    const out = 5;
+    const end = size - out;
+    const face = 22;
+    const faceEnd = size - face;
 
-    body.addColorStop(0, "rgba(235, 250, 255, 0.16)");
-    body.addColorStop(1, "rgba(200, 236, 255, 0.3)");
-    round(6, 6, size - 12, size - 12, 26);
+    // The cube: clear blue ice the garage shows through, deeper to the
+    // bottom right.
+    const body = ctx.createLinearGradient(0, 0, size, size);
+
+    body.addColorStop(0, "rgba(200, 238, 255, 0.5)");
+    body.addColorStop(1, "rgba(95, 175, 240, 0.6)");
+    round(out, out, size - out * 2, size - out * 2, 16);
     ctx.fillStyle = body;
     ctx.fill();
-    ctx.lineWidth = 7;
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+
+    ctx.save();
+    round(out, out, size - out * 2, size - out * 2, 16);
+    ctx.clip();
+
+    // Bevelled sides: lit along the top and left, shaded bottom and right.
+    ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
+    poly([[0, 0], [size, 0], [faceEnd, face], [face, face]]);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+    poly([[0, 0], [face, face], [face, faceEnd], [0, size]]);
+    ctx.fill();
+    ctx.fillStyle = "rgba(40, 120, 205, 0.4)";
+    poly([[size, 0], [size, size], [faceEnd, faceEnd], [faceEnd, face]]);
+    ctx.fill();
+    ctx.fillStyle = "rgba(40, 120, 205, 0.5)";
+    poly([[0, size], [face, faceEnd], [faceEnd, faceEnd], [size, size]]);
+    ctx.fill();
+
+    // The face: frost creeping in from its edges, clear in the middle.
+    const frost = ctx.createRadialGradient(size / 2, size / 2, size * 0.18, size / 2, size / 2, size * 0.42);
+
+    frost.addColorStop(0, "rgba(255, 255, 255, 0)");
+    frost.addColorStop(1, "rgba(235, 248, 255, 0.45)");
+    round(face, face, faceEnd - face, faceEnd - face, 8);
+    ctx.fillStyle = frost;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
     ctx.stroke();
 
-    // A shine down the top left and a glint in the far corner.
-    ctx.save();
-    round(6, 6, size - 12, size - 12, 26);
-    ctx.clip();
-    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-    ctx.beginPath();
-    ctx.moveTo(0, size * 0.55);
-    ctx.lineTo(size * 0.55, 0);
-    ctx.lineTo(size * 0.78, 0);
-    ctx.lineTo(0, size * 0.78);
-    ctx.closePath();
+    // Two shine streaks across the top left.
+    ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+    poly([[face, 62], [62, face], [80, face], [face, 80]]);
     ctx.fill();
+    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+    poly([[face, 92], [92, face], [100, face], [face, 100]]);
+    ctx.fill();
+
+    // Frost specks round the face.
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+
+    for (let i = 0; i < 26; i++) {
+        const side = i % 4;
+        const along = face + random() * (faceEnd - face);
+        const into = face + 3 + Math.pow(random(), 2) * 16;
+        const x = side === 0 ? into : side === 1 ? size - into : along;
+        const y = side === 2 ? into : side === 3 ? size - into : along;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 0.8 + random() * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // A small crack in the bottom right corner.
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    [[[faceEnd, 112], [122, 120], [118, 130]], [[122, 120], [112, 122]]].forEach((line) => {
+        ctx.beginPath();
+        line.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(40, 120, 205, 0.45)";
+        ctx.stroke();
+        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+        ctx.stroke();
+    });
+
     ctx.restore();
 
-    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-    round(size * 0.7, size * 0.14, size * 0.12, size * 0.05, size * 0.025);
-    ctx.fill();
+    // The rim: a darker icy edge so it stands off the floor, then a bright one.
+    round(out, out, size - out * 2, size - out * 2, 16);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "rgba(45, 125, 200, 0.9)";
+    ctx.stroke();
+    round(out + 2, out + 2, size - out * 2 - 4, size - out * 2 - 4, 14);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(240, 252, 255, 1)";
+    ctx.stroke();
+
+    // Sparkles: four-pointed glints on the corners of the face.
+    [[124, 34, 10], [34, 126, 7], [end - 14, end - 30, 5]].forEach(([x, y, r]) => {
+        const k = r * 0.22;
+
+        poly([[x, y - r], [x + k, y - k], [x + r, y], [x + k, y + k], [x, y + r], [x - k, y + k], [x - r, y], [x - k, y - k]]);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+    });
 
     canvas.refresh();
 
     return LOCK_TEXTURE;
-}
-
-// The badge the number sits on, in the garage's colour: lighter at the top,
-// ringed in white and edged darker, so it stands out on the ice.
-function badgeTexture(scene, color) {
-    const key = BADGE_TEXTURE + color;
-
-    if (scene.textures.exists(key)) return key;
-
-    const size = LOCK_ART;
-    const canvas = scene.textures.createCanvas(key, size, size);
-    const ctx = canvas.getContext();
-    const base = Phaser.Display.Color.HexStringToColor(color);
-    const light = Phaser.Display.Color.Interpolate.ColorWithColor(base, new Phaser.Display.Color(255, 255, 255), 100, 35);
-    const dark = Phaser.Display.Color.Interpolate.ColorWithColor(base, new Phaser.Display.Color(0, 0, 0), 100, 40);
-    const rgb = (c) => "rgb(" + Math.round(c.r) + ", " + Math.round(c.g) + ", " + Math.round(c.b) + ")";
-    const r = size * BADGE_R;
-    const fill = ctx.createLinearGradient(0, size / 2 - r, 0, size / 2 + r);
-
-    fill.addColorStop(0, rgb(light));
-    fill.addColorStop(1, rgb(base));
-
-    ctx.beginPath();
-    ctx.arc(size / 2, size / 2, r + 5, 0, Math.PI * 2);
-    ctx.fillStyle = rgb(dark);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(size / 2, size / 2, r, 0, Math.PI * 2);
-    ctx.fillStyle = fill;
-    ctx.fill();
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = "#ffffff";
-    ctx.stroke();
-
-    canvas.refresh();
-
-    return key;
-}
-
-// Dark ink on a light badge (white, yellow, lime), white on the rest, edged
-// in the badge's own colour darkened.
-function badgeInk(color) {
-    const c = Phaser.Display.Color.HexStringToColor(color);
-    const shade = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255;
-    const dark = Phaser.Display.Color.Interpolate.ColorWithColor(c, new Phaser.Display.Color(0, 0, 0), 100, 55);
-    const edge = Phaser.Display.Color.RGBToString(Math.round(dark.r), Math.round(dark.g), Math.round(dark.b));
-
-    return shade >= BADGE_LIGHT ? { ink: LOCK_DARK_INK, edge: "#ffffff" } : { ink: LOCK_INK, edge: edge };
 }
 
 export class Garage {
@@ -246,7 +272,6 @@ export class Garage {
 
         this.lock = 0;
         this.lockArt = null;
-        this.lockBadge = null;
         this.lockText = null;
         this.lockTween = null;
         this.color = config.color || "#ffffff";
@@ -270,25 +295,18 @@ export class Garage {
         this.lockArt.depth = depth;
         this.lockArt.baseScale = scale;
 
-        this.lockBadge = scene.add.image(this.x, this.y, badgeTexture(scene, this.color));
-        this.lockBadge.setScale(scale);
-        this.lockBadge.depth = depth + 0.005;
-        this.lockBadge.baseScale = scale;
-
-        const ink = badgeInk(this.color);
-
         this.lockText = scene.add.text(this.x, this.y, String(count), {
             fontFamily: LOCK_FONT,
             fontSize: Math.round(this.size * LOCK_TEXT) + "px",
-            color: ink.ink,
-            stroke: ink.edge,
-            strokeThickness: Math.max(2, Math.round(this.size * 0.06))
+            color: LOCK_INK,
+            stroke: LOCK_EDGE,
+            strokeThickness: Math.max(3, Math.round(this.size * 0.09))
         });
+        this.lockText.setShadow(0, Math.max(1, Math.round(this.size * 0.035)), LOCK_SHADOW, 0, true, false);
         this.lockText.setOrigin(0.5);
         this.lockText.depth = depth + 0.01;
 
         this.parent.add(this.lockArt);
-        this.parent.add(this.lockBadge);
         this.parent.add(this.lockText);
     }
 
@@ -337,7 +355,7 @@ export class Garage {
         });
 
         this.scene.tweens.add({
-            targets: [art, this.lockBadge],
+            targets: art,
             angle: { from: -TICK_SHAKE * 57, to: 0 },
             duration: TICK_OUT,
             ease: "Elastic.easeOut",
@@ -348,23 +366,20 @@ export class Garage {
     // Cracks the ice off. Quiet when the garage is going anyway.
     breakLock(quiet = false) {
         const art = this.lockArt;
-        const badge = this.lockBadge;
         const text = this.lockText;
 
         if (!art) return;
 
         this.lock = 0;
         this.lockArt = null;
-        this.lockBadge = null;
         this.lockText = null;
 
         if (this.lockTween) this.lockTween.remove();
         this.lockTween = null;
-        this.scene.tweens.killTweensOf([art, badge, text]);
+        this.scene.tweens.killTweensOf([art, text]);
 
         if (quiet) {
             art.destroy();
-            badge.destroy();
             text.destroy();
             return;
         }
@@ -374,15 +389,14 @@ export class Garage {
         this.burst(ICE_COLOR);
 
         this.scene.tweens.add({
-            targets: [art, badge, text],
+            targets: [art, text],
             scale: (target) => (target.baseScale || 1) * BREAK_SWELL,
             alpha: 0,
             duration: BREAK_TIME,
             ease: "Quad.easeOut",
             onComplete: () => {
                 art.destroy();
-                badge.destroy();
-                text.destroy();
+                    text.destroy();
             }
         });
 
