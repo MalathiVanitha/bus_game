@@ -774,9 +774,21 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
             // Over the arrow, kept on the screen.
             const bubble = this.bubble;
             const half = (bubble.bubbleW || 0) / 2 + BUBBLE_MARGIN;
+            const halfH = (bubble.bubbleH || BUBBLE_H) / 2;
+            const above = this.arrow.y - ARROW_BOB - BUBBLE_GAP - halfH;
 
-            bubble.x = Phaser.Math.Clamp(this.spot.x, left + half, left + width - half);
-            bubble.y = this.arrow.y - ARROW_BOB - BUBBLE_GAP - (bubble.bubbleH || BUBBLE_H) / 2;
+            if (above - halfH >= top + BUBBLE_MARGIN) {
+                bubble.x = Phaser.Math.Clamp(this.spot.x, left + half, left + width - half);
+                bubble.y = above;
+            } else {
+                // No room over the arrow (a button near the top, in landscape):
+                // beside it instead, on whichever side has the more screen.
+                const toLeft = this.spot.x > left + width / 2;
+                const side = (bubble.bubbleW || 0) / 2 + SPOT_R + BUBBLE_GAP / 2;
+
+                bubble.x = Phaser.Math.Clamp(this.spot.x + (toLeft ? -side : side), left + half, left + width - half);
+                bubble.y = Phaser.Math.Clamp(this.arrow.y - ARROW_BOB, top + halfH + BUBBLE_MARGIN, top + height - halfH - BUBBLE_MARGIN);
+            }
         }
 
         // The card along the foot of the screen, over the booster buttons, or

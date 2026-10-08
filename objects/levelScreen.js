@@ -1392,9 +1392,9 @@ export class LevelScreen extends Phaser.GameObjects.Container {
 
         this.driveRun.remove();
         this.driveRun = null;
-        this.placeConvoy(CONVOY_X, false);
+        // this.placeConvoy(CONVOY_X, false);
         this.convoy.alpha = 1;
-        this.arrow.alpha = 1;
+        // this.arrow.alpha = 1;
         this.garage.setScale(GARAGE_SCALE);
         this.puffs.forEach((puff) => { puff.alpha = 0; });
         this.burst.forEach((glint) => { glint.alpha = 0; });

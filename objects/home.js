@@ -79,12 +79,27 @@ const RING_LINE = 7;
 const RING_LIFE = 420;
 
 const CLOUD = 'home/cloud';
-const CLOUD_ART_W = 300;
-const CLOUD_EDGE = 20;
+// Drawn in this order, far to near. Each sways side to side around its spot
+// and floats up and down on a different beat, so it traces a slow loop that
+// never quite repeats; nearer (bigger) clouds swing wider and quicker.
 const CLOUDS = [
-    { x: -90, y: -118, scale: 0.5, alpha: 0.9, speed: 7 },
-    { x: 150, y: -62, scale: 0.34, alpha: 0.7, speed: 4.5, flip: true }
+    { x: 215, y: -300, scale: 0.22, alpha: 0.45, swing: 10, swayTime: 13000, float: 2, floatTime: 6100, phase: 4.2 },
+    { x: -140, y: 545, scale: 0.28, alpha: 0.5, swing: 14, swayTime: 11000, float: 2.5, floatTime: 5300, phase: 5.3, flip: true },
+    { x: 150, y: -62, scale: 0.34, alpha: 0.7, swing: 22, swayTime: 9000, float: 3, floatTime: 4700, phase: 2.1, flip: true },
+    { x: -90, y: -118, scale: 0.5, alpha: 0.9, swing: 30, swayTime: 7600, float: 4, floatTime: 4100, phase: 0 }
 ];
+
+// A soft puff: the whole cloud swells a touch and settles, never squashes.
+const CLOUD_PUFF = 0.025;
+const CLOUD_PUFF_TIME = 5600;
+
+// And thins out and thickens as it goes.
+const CLOUD_THIN = 0.08;
+const CLOUD_THIN_TIME = 11000;
+
+// A frame longer than this (a dropped frame, the tab coming back) counts as
+// only this long, so a cloud never jumps.
+const CLOUD_MAX_DELTA = 50;
 
 const CONVOY = 'home/convoy';
 const CONVOY_Y = 0;
@@ -151,7 +166,10 @@ const BRAKE_FROM = 0.6;
 const INTRO_FADE = 240;
 const INTRO_SETTLE = 170;
 
-const INTRO_CLOUD_TIME = 900;
+const INTRO_CLOUD_TIME = 1400;
+// They glide in from upwind of where they rest, nearer ones from further.
+const INTRO_CLOUD_DRIFT = 90;
+const INTRO_CLOUD_STAGGER = 160;
 
 // After the convoy has braked and levelled out, so its rock does not fight it.
 const IDLE_DELAY = 1700;
@@ -187,7 +205,9 @@ const OUTRO_SQUAT_TIME = 110;
 const OUTRO_PUSH = 1.04;
 const OUTRO_SKY_TIME = 380;
 const OUTRO_SKY_DELAY = 220;
-const OUTRO_CLOUD_TIME = 320;
+const OUTRO_CLOUD_TIME = 420;
+// A gust carries them off downwind as they fade.
+const OUTRO_CLOUD_DRIFT = 70;
 
 export class Home extends Phaser.GameObjects.Container {
     constructor(scene, x = 0, y = 0, onPlay = null) {
@@ -252,17 +272,47 @@ export class Home extends Phaser.GameObjects.Container {
             const cloud = this.scene.add.sprite(spec.x, spec.y, 'sheet', CLOUD);
 
             cloud.setScale(spec.flip ? -spec.scale : spec.scale, spec.scale);
-            cloud.alpha = spec.alpha;
             cloud.restAlpha = spec.alpha;
-            cloud.speed = spec.speed;
-
-            // Half its width; adjust() adds it to the screen's half width,
-            // so it goes right off the screen before it wraps round.
-            cloud.half = CLOUD_ART_W * spec.scale / 2;
-            cloud.edge = CONTENT_W / 2 + cloud.half + CLOUD_EDGE;
+            cloud.fade = 1;
+            cloud.offsetX = 0;
+            cloud.homeX = spec.x;
+            cloud.homeY = spec.y;
+            cloud.swing = spec.swing;
+            cloud.swayRate = Math.PI * 2 / spec.swayTime;
+            cloud.float = spec.float;
+            cloud.floatRate = Math.PI * 2 / spec.floatTime;
+            cloud.restScaleX = cloud.scaleX;
+            cloud.restScaleY = cloud.scaleY;
+            cloud.phase = spec.phase;
+            cloud.depthRatio = spec.scale / CLOUDS[CLOUDS.length - 1].scale;
 
             this.content.add(cloud);
             this.clouds.push(cloud);
+        }
+    }
+
+    placeClouds(delta) {
+        const step = Math.min(delta, CLOUD_MAX_DELTA);
+
+        this.cloudClock = (this.cloudClock || 0) + step;
+
+        const t = this.cloudClock;
+        const TAU = Math.PI * 2;
+
+        for (let i = 0; i < this.clouds.length; i++) {
+            const cloud = this.clouds[i];
+
+            // A sine eases into and out of each turn, so it never stops dead.
+            cloud.x = cloud.homeX + cloud.offsetX + cloud.swing * Math.sin(t * cloud.swayRate + cloud.phase);
+            cloud.y = cloud.homeY + cloud.float * Math.sin(t * cloud.floatRate + cloud.phase * 1.3);
+
+            const puff = 1 + CLOUD_PUFF * Math.sin(t / CLOUD_PUFF_TIME * TAU + cloud.phase * 0.7);
+
+            cloud.setScale(cloud.restScaleX * puff, cloud.restScaleY * puff);
+
+            const thin = 1 - CLOUD_THIN * (0.5 + 0.5 * Math.sin(t / CLOUD_THIN_TIME * TAU + cloud.phase * 1.7));
+
+            cloud.alpha = cloud.restAlpha * cloud.fade * thin;
         }
     }
 
@@ -785,14 +835,7 @@ export class Home extends Phaser.GameObjects.Container {
         this.placeFlourish(delta);
         this.placeConvoyShadow();
 
-        for (let i = 0; i < this.clouds.length; i++) {
-            const cloud = this.clouds[i];
-
-            cloud.x += cloud.speed * delta / 1000;
-
-            // Off the right edge, it comes back in from just off the left.
-            if (cloud.x > cloud.edge) cloud.x -= cloud.edge * 2;
-        }
+        this.placeClouds(delta);
     }
 
     play() {
@@ -873,13 +916,16 @@ export class Home extends Phaser.GameObjects.Container {
         }
 
         for (let i = 0; i < this.clouds.length; i++) {
-            this.scene.tweens.killTweensOf(this.clouds[i]);
+            const cloud = this.clouds[i];
+
+            this.scene.tweens.killTweensOf(cloud);
             this.scene.tweens.add({
-                targets: this.clouds[i],
-                alpha: 0,
+                targets: cloud,
+                fade: 0,
+                offsetX: cloud.offsetX + OUTRO_CLOUD_DRIFT * cloud.depthRatio,
                 duration: OUTRO_CLOUD_TIME,
                 delay: OUTRO_SKY_DELAY,
-                ease: 'Quad.easeIn'
+                ease: 'Sine.easeIn'
             });
         }
 
@@ -1001,12 +1047,22 @@ export class Home extends Phaser.GameObjects.Container {
 
             this.scene.tweens.killTweensOf(cloud);
 
+            cloud.fade = 0;
             cloud.alpha = 0;
+            cloud.offsetX = -INTRO_CLOUD_DRIFT * cloud.depthRatio;
             this.scene.tweens.add({
                 targets: cloud,
-                alpha: cloud.restAlpha,
+                offsetX: 0,
                 duration: INTRO_CLOUD_TIME,
-                ease: 'Quad.easeOut'
+                delay: i * INTRO_CLOUD_STAGGER,
+                ease: 'Cubic.easeOut'
+            });
+            this.scene.tweens.add({
+                targets: cloud,
+                fade: 1,
+                duration: INTRO_CLOUD_TIME * 0.7,
+                delay: i * INTRO_CLOUD_STAGGER,
+                ease: 'Sine.easeOut'
             });
         }
 
@@ -1075,15 +1131,6 @@ export class Home extends Phaser.GameObjects.Container {
         this.fitScale = Math.min(1, byHeight, byWidth);
 
         this.content.setScale(this.fitScale);
-
-        // The clouds drift across the whole screen, not just the content.
-        const screenHalf = dimensions.actualWidth / 2 / this.fitScale;
-
-        for (let i = 0; i < this.clouds.length; i++) {
-            const cloud = this.clouds[i];
-
-            cloud.edge = screenHalf + cloud.half + CLOUD_EDGE;
-        }
 
         // Only when the height is what limits it (a wide screen) is it
         // centred on what it spans; otherwise it keeps its place.
