@@ -76,6 +76,8 @@ const RAYS = 14;
 const RAY_R = 560;
 const RAY_Y = -60;
 const RAY_ALPHA = 0.16;
+// Past the far corner by this much: a ray's tip is a flat edge, not an arc.
+const RAY_REACH_SPARE = 1.08;
 const RAY_GLOW = 0xfff4c8;
 const RAYS_IN = 420;
 const RAYS_OUT = 200;
@@ -592,6 +594,7 @@ export class LevelScreen extends Phaser.GameObjects.Container {
         }, 'level-rays', 1);
         this.rays.setPosition(0, RAY_Y);
         this.rays.alpha = 0;
+        this.rays.bakedScale = this.rays.restScale;
         this.fitter.add(this.rays);
     }
 
@@ -1551,5 +1554,24 @@ export class LevelScreen extends Phaser.GameObjects.Container {
             (dimensions.gameHeight - MODAL_MARGIN * 2) / FIT_H,
             (dimensions.gameWidth - MODAL_MARGIN * 2) / FIT_W
         ));
+
+        this.fitRays();
+    }
+
+    // Long enough to reach past every corner of the screen, however wide it
+    // is, so no ray ends short as they turn.
+    fitRays() {
+        const rays = this.rays;
+
+        if (!rays) return;
+
+        const fit = this.fitter.scaleX;
+        const reach = Math.hypot(dimensions.actualWidth / 2, dimensions.actualHeight / 2 + Math.abs(RAY_Y) * fit);
+        const grow = Math.max(1, (reach * RAY_REACH_SPARE) / (RAY_R * fit));
+        const wasScale = rays.restScale;
+
+        rays.restScale = rays.bakedScale * grow;
+
+        if (!this.scene.tweens.isTweening(rays)) rays.setScale(rays.scaleX * rays.restScale / wasScale);
     }
 }

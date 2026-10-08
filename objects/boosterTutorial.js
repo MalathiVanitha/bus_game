@@ -6,8 +6,8 @@ import { fitText } from '../utils/text.js';
 // The first time a booster is there to use, the level stops and shows how:
 // the button is unlocked in front of the player, everything else dims, and an
 // arrow asks for a tap on it. The tap plays the booster for real, and free -
-// the hint lights a convoy's way home; the freeze frosts the clock; the
-// remove, crane and ghost each ask for something on the board to use it on -
+// the hint lights a convoy's way home; the remove and crane each ask for
+// something on the board to use it on -
 // and a card then says in a line what it does. "Got it!" hands the level
 // back, clock and all.
 
@@ -349,16 +349,6 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
             return;
         }
 
-        // The clock is held for the lesson, so the freeze is all still there
-        // once it is over.
-        if (key === 'freeze') {
-            this.gamePlay.freeze();
-
-            this.releaseGuide();
-            this.later(EXPLAIN_WAIT, () => this.explain());
-            return;
-        }
-
         this.bar.glow(this.bar.buttons[key], true);
         this.releaseGuide(() => key === 'crane' ? this.askForObstacle() : this.askForConvoy());
     }
@@ -426,7 +416,7 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
         });
     }
 
-    // Remove and Ghost: point at a convoy and wait for it to be tapped.
+    // Remove: point at a convoy and wait for it to be tapped.
     askForConvoy() {
         const play = this.gamePlay;
         const key = this.key;
@@ -463,12 +453,6 @@ export class BoosterTutorial extends Phaser.GameObjects.Container {
             this.bar.glow(this.bar.buttons[key], false);
             this.showGuide(false);
             this.spot = null;
-
-            if (key === 'ghost') {
-                play.makeGhost(picked);
-                this.explain();
-                return;
-            }
 
             play.removeConvoy(picked);
 

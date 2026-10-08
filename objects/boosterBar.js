@@ -55,9 +55,6 @@ const TIP_INK = '#283085';
 const TIP_STROKE = '#ffffff';
 const TIP_NONE = 'No free way home to hint yet';
 const TIP_NO_OBSTACLE = 'Nothing on the board to lift';
-const TIP_GHOST_BUSY = 'Land the ghost first';
-const TIP_FROZEN = 'The clock is already frozen';
-const TIP_GHOST_STUCK = 'Set the ghost down clear of other convoys';
 const TIP_SHOW = 1600;
 
 // A booster not yet earned: greyed, with a padlock where its count goes.
@@ -124,11 +121,6 @@ export class BoosterBar extends Phaser.GameObjects.Container {
         this.tip.setResolution(this.textRes);
         this.tip.visible = false;
         this.add(this.tip);
-
-        // A ghost let go on top of another convoy is still a ghost: it says so.
-        this.scene.events.on('ghost:stuck', () => {
-            if (this.visible) this.say(TIP_GHOST_STUCK, TIP_SHOW * 1.5);
-        });
 
         this.visible = false;
     }
@@ -257,9 +249,7 @@ export class BoosterBar extends Phaser.GameObjects.Container {
         }
 
         if (key === 'hint') this.hint();
-        else if (key === 'freeze') this.freeze();
         else if (key === 'crane') this.crane();
-        else if (key === 'ghost') this.ghost();
         else this.remove();
     }
 
@@ -306,16 +296,6 @@ export class BoosterBar extends Phaser.GameObjects.Container {
         else this.say(TIP_NONE, TIP_SHOW);
     }
 
-    // One at a time: not again until the frost is off the clock.
-    freeze() {
-        if (this.gamePlay.frozen > 0) {
-            this.say(TIP_FROZEN, TIP_SHOW);
-            return;
-        }
-
-        if (this.gamePlay.freeze()) this.spend('freeze');
-    }
-
     // A tap anywhere but an obstacle puts the crane away again, unspent.
     crane() {
         if (!this.gamePlay.hasObstacles()) {
@@ -330,21 +310,6 @@ export class BoosterBar extends Phaser.GameObjects.Container {
 
             if (this.levelScreen.counts.crane > 0 && this.gamePlay.liftObstacle(col, row)) this.spend('crane');
         }, () => this.stopPicking());
-    }
-
-    ghost() {
-        if (this.gamePlay.ghost) {
-            this.say(TIP_GHOST_BUSY, TIP_SHOW);
-            return;
-        }
-
-        this.startPicking('ghost');
-
-        this.gamePlay.pickConvoy((convoy) => {
-            this.stopPicking();
-
-            if (this.levelScreen.counts.ghost > 0 && this.gamePlay.makeGhost(convoy)) this.spend('ghost');
-        });
     }
 
     // Run out: the level card's offer, over the board, with the clock held

@@ -192,18 +192,6 @@ const HINT_TOUCH_REST = 420;
 // All of it fades together when the hint is over.
 const HINT_OUT_TIME = 240;
 
-// The Freeze booster: the clock stands still this long, and a frost lies over
-// the board meanwhile, flickering over the last THAW_WARN of it. One runs out
-// before another can be used.
-const FREEZE_TIME = 10000;
-const ICE_FILL = 0x9fdcff;
-const ICE_FILL_ALPHA = 0.16;
-const ICE_EDGE = 0xffffff;
-const ICE_IN = 320;
-const ICE_OUT = 260;
-const THAW_WARN = 2000;
-const THAW_FLICKER = 0.012;
-
 // The Crane booster: every obstacle rings gold while it waits for a pick.
 // Then a hook on a cable drops in from above, catches the piece, gives it a
 // squeeze, and hauls it off the top, growing a little as it rises.
@@ -230,13 +218,6 @@ const CRANE_SQUASH_Y = 0.86;
 const CRANE_LIFT = 10;
 const CRANE_LIFT_TIME = 620;
 const CRANE_GROW = 1.35;
-
-// The Ghost booster: the picked convoy goes see-through and drives through
-// other convoys (never walls, obstacles or another's garage) until it is let
-// go clear of them, or gets home. It shimmers between these.
-const GHOST_ALPHA = 0.55;
-const GHOST_SHIMMER = 0.12;
-const GHOST_SHIMMER_RATE = 0.006;
 
 const byDepth = (a, b) => a.depth - b.depth;
 
@@ -372,11 +353,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             startY: this.startY
         });
 
-        // Over the floor and walls, under everything that moves.
-        this.iceSheet = this.makeIceSheet();
-        this.add(this.iceSheet);
-
-        // The shadows of the garages and convoys: over the ice, under them all.
+        // The shadows of the garages and convoys: under them all.
         this.castGroup = this.scene.add.container();
         this.add(this.castGroup);
 
@@ -416,11 +393,6 @@ export class GamePlay extends Phaser.GameObjects.Container {
         // The first level's lesson: { convoy, onGrab }. Only that convoy can
         // be taken hold of, and taking hold of it ends the lesson.
         this.lesson = null;
-        // Milliseconds of Freeze left, and how much there was when it was
-        // last topped up, for the clock to show what is left of it.
-        this.frozen = 0;
-        this.frozenTotal = 0;
-        this.ghost = null;
         this.convoys = [];
         this.garages = [];
 
@@ -554,20 +526,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
             if (!routing && !this.atDoorstep(convoy, this.leadCell(convoy))) return false;
         }
 
-        const owner = this.tiles[row][col].owner;
-
-        if (owner === -1) return true;
-
-        // A ghost passes over other convoys, but never over itself.
-        return convoy === this.ghost && owner !== convoy.index && !this.inConvoy(convoy, col, row);
-    }
-
-    inConvoy(convoy, col, row) {
-        for (let i = 0; i < convoy.cells.length; i++) {
-            if (convoy.cells[i].col === col && convoy.cells[i].row === row) return true;
-        }
-
-        return false;
+        return this.tiles[row][col].owner === -1;
     }
 
     // Any cell beside the garage is a way in: it is open on all four sides.
@@ -685,16 +644,10 @@ export class GamePlay extends Phaser.GameObjects.Container {
         }
     }
 
-    // A ghost over another convoy leaves the cell that convoy's: it takes it
-    // when that one moves off (claimGhostCells).
     occupy(convoy, col, row) {
         if (!this.onBoard(col, row)) return;
 
-        const tile = this.tiles[row][col];
-
-        if (convoy === this.ghost && tile.owner !== -1) return;
-
-        tile.owner = convoy.index;
+        this.tiles[row][col].owner = convoy.index;
         this.boardStamp++;
     }
 
@@ -707,25 +660,6 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         tile.owner = -1;
         this.boardStamp++;
-
-        if (this.ghost && this.ghost !== convoy) this.claimGhostCells();
-    }
-
-    // Every free cell under the ghost is its own, so nothing else drives in
-    // under it.
-    claimGhostCells() {
-        const ghost = this.ghost;
-
-        if (!ghost) return;
-
-        for (let i = 0; i < ghost.cells.length; i++) {
-            const tile = this.tiles[ghost.cells[i].row][ghost.cells[i].col];
-
-            if (tile.owner === -1) {
-                tile.owner = ghost.index;
-                this.boardStamp++;
-            }
-        }
     }
 
     createConvoy(data, index) {
@@ -1451,8 +1385,6 @@ export class GamePlay extends Phaser.GameObjects.Container {
             }
         }
 
-        if (this.ghost && this.ghost !== convoy) this.claimGhostCells();
-
         convoy.cells.length = 0;
         this.boardStamp++;
     }
@@ -1812,7 +1744,6 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.updateConvoyView(grabbed.convoy, 0);
 
         this.drag = { convoy: grabbed.convoy };
-        if (grabbed.convoy === this.ghost) grabbed.convoy.ghostDriven = true;
         SoundManager.fx(this.scene, 'grab', 0.55);
         this.routeDrag(p);
     }
@@ -1832,14 +1763,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         if (convoy) this.settleConvoy(convoy);
     }
 
-    // Over another convoy, the ghost is the one taken hold of.
     pickEnd(x, y) {
-        if (this.ghost) {
-            const ghost = this.pickEndOf([this.ghost], x, y);
-
-            if (ghost) return ghost;
-        }
-
         return this.pickEndOf(this.convoys, x, y);
     }
 
@@ -1956,22 +1880,13 @@ export class GamePlay extends Phaser.GameObjects.Container {
         const step = Math.min(delta || 16, 50);
 
         if (this.running && this.clockStarted && !this.paused) {
-            if (this.frozen > 0) {
-                this.frozen = Math.max(0, this.frozen - step);
+            this.timeLeft -= step / 1000;
 
-                if (this.frozen <= 0) this.thaw();
-            } else {
-                this.timeLeft -= step / 1000;
-
-                if (this.timeLeft <= 0) {
-                    this.timeLeft = 0;
-                    this.finish(false);
-                }
+            if (this.timeLeft <= 0) {
+                this.timeLeft = 0;
+                this.finish(false);
             }
         }
-
-        if (this.frozen > 0) this.frostBoard(time);
-        if (this.ghost) this.watchGhost(time);
 
         if (this.drag && this.dragPoint && !this.drag.convoy.queue.length) {
             this.routeDrag(this.dragPoint);
@@ -2044,12 +1959,6 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.removing++;
 
         if (this.hint && this.hint.convoy === convoy) this.hint = null;
-
-        // Popped as it is, see-through and all.
-        if (convoy === this.ghost) {
-            this.ghost = null;
-            convoy.ghost = false;
-        }
 
         const spots = convoy.cells.map((cell) => this.cellToPixel(cell.col, cell.row));
         const tint = CONFETTI_TINT[convoy.key] || null;
@@ -2145,95 +2054,6 @@ export class GamePlay extends Phaser.GameObjects.Container {
         });
 
         return true;
-    }
-
-    // ---- Freeze ---------------------------------------------------------
-
-    /**
-     * Stands the clock still for FREEZE_TIME. False, and nothing done, while
-     * a freeze is still running or once the level is over.
-     */
-    freeze() {
-        if (!this.running || this.finished || this.frozen > 0) return false;
-
-        this.frostIn();
-
-        this.frozen = FREEZE_TIME;
-        this.frozenTotal = FREEZE_TIME;
-
-        SoundManager.fx(this.scene, 'star', 0.6);
-
-        return true;
-    }
-
-    thaw() {
-        this.frozen = 0;
-        this.frozenTotal = 0;
-
-        const sheet = this.iceSheet;
-
-        this.scene.tweens.killTweensOf(sheet);
-        this.scene.tweens.add({
-            targets: sheet,
-            alpha: 0,
-            duration: ICE_OUT,
-            ease: 'Quad.easeIn',
-            onComplete: () => { sheet.visible = false; }
-        });
-    }
-
-    frostIn() {
-        const sheet = this.iceSheet;
-
-        this.scene.tweens.killTweensOf(sheet);
-
-        sheet.visible = true;
-        sheet.alpha = 0;
-        sheet.fading = true;
-
-        this.scene.tweens.add({
-            targets: sheet,
-            alpha: 1,
-            duration: ICE_IN,
-            ease: 'Quad.easeOut',
-            onComplete: () => { sheet.fading = false; }
-        });
-    }
-
-    // The frost flickers as the freeze runs out.
-    frostBoard(time) {
-        const sheet = this.iceSheet;
-
-        if (sheet.fading) return;
-
-        sheet.alpha = this.frozen > THAW_WARN ? 1 :
-            0.55 + 0.45 * Math.abs(Math.cos(time * THAW_FLICKER));
-    }
-
-    // A pale blue wash over the floor, whitening towards the rim like frost
-    // creeping in from the edges. Drawn once a board size.
-    makeIceSheet() {
-        const w = this.boardWidth;
-        const h = this.boardHeight;
-        const edge = this.cellSize * 0.18;
-        const key = 'ice-sheet-' + Math.round(w) + 'x' + Math.round(h);
-
-        const sheet = bakeShape(this.scene, { left: -w / 2, top: -h / 2, width: w, height: h }, (g) => {
-            g.fillStyle(ICE_FILL, ICE_FILL_ALPHA);
-            g.fillRoundedRect(-w / 2, -h / 2, w, h, edge);
-
-            for (let i = 0; i < 4; i++) {
-                const inset = edge * (0.25 + i * 0.5);
-
-                g.lineStyle(edge * 0.6, ICE_EDGE, 0.34 - i * 0.08);
-                g.strokeRoundedRect(-w / 2 + inset, -h / 2 + inset, w - inset * 2, h - inset * 2, edge);
-            }
-        }, key);
-
-        sheet.visible = false;
-        sheet.alpha = 0;
-
-        return sheet;
     }
 
     // ---- Crane ----------------------------------------------------------
@@ -2427,102 +2247,6 @@ export class GamePlay extends Phaser.GameObjects.Container {
         });
 
         return true;
-    }
-
-    // ---- Ghost ----------------------------------------------------------
-
-    /** Makes a convoy the ghost. False if it can't be (one already is). */
-    makeGhost(convoy) {
-        if (this.ghost || this.finished || !this.canGrab(convoy)) return false;
-
-        this.ghost = convoy;
-        convoy.ghost = true;
-        convoy.ghostDriven = false;
-        convoy.ghostStuck = false;
-
-        convoy.rig.setGhost(GHOST_ALPHA);
-        this.bumpConvoy(convoy);
-        this.lightConvoy(convoy);
-        SoundManager.fx(this.scene, 'whoosh', 0.7);
-
-        for (let i = 0; i < convoy.cells.length; i += 2) {
-            const at = this.cellToPixel(convoy.cells[i].col, convoy.cells[i].row);
-
-            this.glintsAt(at.x, at.y, 2, 0xffffff);
-        }
-
-        return true;
-    }
-
-    endGhost() {
-        const convoy = this.ghost;
-
-        if (!convoy) return;
-
-        this.ghost = null;
-        convoy.ghost = false;
-
-        if (convoy.escaped) return;
-
-        convoy.rig.setGhost(1);
-        this.claimCells(convoy);
-        this.lightConvoy(convoy);
-        SoundManager.fx(this.scene, 'poof', 0.5);
-
-        const head = this.headCell(convoy);
-        const at = this.cellToPixel(head.col, head.row);
-
-        this.ringAt(at.x, at.y, 0xffffff);
-    }
-
-    // Landed: every free cell it stands on is its own.
-    claimCells(convoy) {
-        for (let i = 0; i < convoy.cells.length; i++) {
-            const cell = convoy.cells[i];
-
-            if (this.tiles[cell.row][cell.col].owner === -1) this.occupy(convoy, cell.col, cell.row);
-        }
-    }
-
-    ghostOverlaps(convoy) {
-        for (let i = 0; i < convoy.cells.length; i++) {
-            if (this.tiles[convoy.cells[i].row][convoy.cells[i].col].owner !== convoy.index) return true;
-        }
-
-        return false;
-    }
-
-    // Shimmers while it lasts. Once it has been driven and let go, it lands
-    // as soon as it stands clear of every other convoy; let go over one, it
-    // says so once and waits to be moved off.
-    watchGhost(time) {
-        const ghost = this.ghost;
-
-        if (ghost.escaped) {
-            this.endGhost();
-            return;
-        }
-
-        ghost.rig.setGhost(GHOST_ALPHA + GHOST_SHIMMER * Math.sin(time * GHOST_SHIMMER_RATE));
-
-        if (!ghost.ghostDriven || ghost.swallowing || this.enteringGarage(ghost)) return;
-
-        if (this.drag && this.drag.convoy === ghost) {
-            ghost.ghostStuck = false;
-            return;
-        }
-
-        if (ghost.queue.length || ghost.settle || ghost.settling || ghost.stepReserved) return;
-
-        if (!this.ghostOverlaps(ghost)) {
-            this.endGhost();
-            return;
-        }
-
-        if (!ghost.ghostStuck) {
-            ghost.ghostStuck = true;
-            this.scene.events.emit('ghost:stuck');
-        }
     }
 
     ringTexture() {
@@ -3057,8 +2781,6 @@ export class GamePlay extends Phaser.GameObjects.Container {
     reset() {
         this.detachInput();
         this.stopPicking();
-
-        if (this.iceSheet) this.scene.tweens.killTweensOf(this.iceSheet);
 
         for (let i = 0; i < this.convoys.length; i++) this.scene.tweens.killTweensOf(this.convoys[i].rig);
 

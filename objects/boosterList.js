@@ -36,25 +36,6 @@ export const BOOSTERS = [
         noun: 'cranes',
         pick: 'Tap an obstacle to lift it',
         body: 'Lifts a cone, a planter, a pallet or one block of wall clean off the board.'
-    },
-    {
-        key: 'freeze',
-        icon: 'icons/icon-freeze',
-        opens: 12,
-        label: 'Freeze',
-        title: 'Get more freezes?',
-        noun: 'freezes',
-        body: 'Stops the clock for 10 seconds. One at a time: the next waits until it thaws.'
-    },
-    {
-        key: 'ghost',
-        icon: 'icons/icon-ghost',
-        opens: 20,
-        label: 'Ghost',
-        title: 'Get more ghosts?',
-        noun: 'ghosts',
-        pick: 'Tap a convoy to make it a ghost',
-        body: 'A ghost drives straight through other convoys. Set it down clear of them to land it.'
     }
 ];
 

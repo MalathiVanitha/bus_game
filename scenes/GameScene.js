@@ -527,7 +527,6 @@ export default class GameScene extends Phaser.Scene {
             const play = this.gamePlay;
 
             this.timer.set(play.timeLeft);
-            this.timer.setFreeze(play.frozen / 1000, play.frozenTotal / 1000, play.running && !play.finished);
         }
 
         // Clouds on the home screen, while it is up.
