@@ -1,4 +1,4 @@
-// Nests convoys inside others on levels 51 and up of data/level-data.js, in
+// Nests convoys inside others on levels 26 and up of data/level-data.js, in
 // place, the way Gecko Out's hardest boards carry a gecko inside a gecko.
 //
 // A nested convoy ("inside: <key>" on it, its cells the carts right behind
@@ -27,7 +27,7 @@
 // with convoys moved aside, the inner one set down wherever the outer one
 // is driven home from.
 //
-//   51-60    one nest            101-150  two
+//   26-60    one nest            101-150  two
 //   61-80    one, or two on      151-200  two or three
 //            every tenth level
 //   81-100   two
@@ -43,7 +43,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const FILE = fileURLToPath(new URL('../data/level-data.js', import.meta.url));
-const FIRST = 51;
+const FIRST = 26;
 const MARK = '(nested)';
 const NEST_TIME = 8;
 // The shortest a nested convoy can be (a tractor and a cart).

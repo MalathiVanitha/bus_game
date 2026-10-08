@@ -8,10 +8,10 @@
 // nowhere else: it colours the level card, and time is the clock the level
 // gets as it is (Hard and Super Hard times are already the shorter ones).
 // Every generated level is solvable by driving the convoys home one at a time.
-// Levels 101-200 (tools/lock-levels.mjs) are the boards of 51-100 again,
-// mirrored, with locked garages: "lock: n" on a convoy ices its garage over
-// until n other convoys are home.
-// From 51, convoys ride inside others (tools/nest-levels.mjs): "inside: key"
+// From 51, garages are locked (tools/lock-levels.mjs): "lock: n" on a convoy
+// ices its garage over until n other convoys are home. Levels 101-200 are the
+// boards of 51-100 again, mirrored, with more and bigger locks.
+// From 26, convoys ride inside others (tools/nest-levels.mjs): "inside: key"
 // on a convoy carries it on that convoy's carts until that one is home.
 export default [
     // Level 1
@@ -2083,13 +2083,13 @@ export default [
         ]
     },
 
-    // Level 26
+    // Level 26 (nested)
     {
         difficulty: "normal",
         rows: 9,
         columns: 8,
 
-        time: 90,
+        time: 98,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -2107,7 +2107,9 @@ export default [
             [6, 1, "cone"],
             [7, 6, "cargo_container"],
             [5, 3, "service_cabinet"],
-            [7, 2, "cone"]
+            [7, 2, "cone"],
+            [4, 6, "cone"],
+            [4, 5, "cone"]
         ],
 
         walls: [{
@@ -2142,11 +2144,10 @@ export default [
                 key: "white",
                 exit: [6, 4],
                 facing: 90,
+                inside: "blue",
                 cells: [
-                    [4, 8],
-                    [4, 7],
-                    [4, 6],
-                    [4, 5]
+                    [1, 7],
+                    [2, 7]
                 ]
             },
             {
@@ -2193,13 +2194,13 @@ export default [
         ]
     },
 
-    // Level 27
+    // Level 27 (nested)
     {
         difficulty: "normal",
         rows: 9,
         columns: 8,
 
-        time: 85,
+        time: 93,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -2217,7 +2218,11 @@ export default [
             [0, 2, "barrier"],
             [6, 6, "service_cabinet"],
             [5, 4, "cargo_container"],
-            [6, 2, "cone"]
+            [6, 2, "cone"],
+            [7, 1, "service_cabinet"],
+            [7, 3, "cargo_container"],
+            [7, 4, "cargo_container"],
+            [7, 2, "barrier"]
         ],
 
         walls: [{
@@ -2265,11 +2270,10 @@ export default [
                 key: "blue",
                 exit: [3, 4],
                 facing: 90,
+                inside: "pink",
                 cells: [
-                    [7, 1],
-                    [7, 2],
-                    [7, 3],
-                    [7, 4]
+                    [6, 7],
+                    [5, 7]
                 ]
             },
             {
@@ -2305,13 +2309,13 @@ export default [
         ]
     },
 
-    // Level 28
+    // Level 28 (nested)
     {
         difficulty: "normal",
         rows: 9,
         columns: 8,
 
-        time: 85,
+        time: 93,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -2328,7 +2332,10 @@ export default [
         obstacles: [
             [5, 8, "cargo_pallet"],
             [4, 1, "service_cabinet"],
-            [1, 5, "cargo_container"]
+            [1, 5, "cargo_container"],
+            [1, 2, "cargo_container"],
+            [0, 1, "service_cabinet"],
+            [0, 2, "cargo_pallet"]
         ],
 
         walls: [{
@@ -2414,22 +2421,23 @@ export default [
                 key: "green",
                 exit: [4, 2],
                 facing: 90,
+                inside: "pink",
                 cells: [
-                    [1, 2],
-                    [0, 2],
-                    [0, 1]
+                    [2, 6],
+                    [2, 7],
+                    [2, 8]
                 ]
             }
         ]
     },
 
-    // Level 29
+    // Level 29 (nested)
     {
         difficulty: "normal",
         rows: 9,
         columns: 8,
 
-        time: 85,
+        time: 93,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -2446,7 +2454,10 @@ export default [
         obstacles: [
             [1, 7, "cone"],
             [5, 8, "service_cabinet"],
-            [0, 6, "cargo_pallet"]
+            [0, 6, "cargo_pallet"],
+            [4, 6, "service_cabinet"],
+            [3, 5, "service_cabinet"],
+            [3, 6, "cone"]
         ],
 
         walls: [{
@@ -2473,10 +2484,10 @@ export default [
                 key: "purple",
                 exit: [7, 0],
                 facing: 90,
+                inside: "green",
                 cells: [
-                    [4, 6],
-                    [3, 6],
-                    [3, 5]
+                    [5, 2],
+                    [5, 1]
                 ]
             },
             {
@@ -2535,13 +2546,13 @@ export default [
         ]
     },
 
-    // Level 30 (packed)
+    // Level 30 (packed) (nested)
     {
         difficulty: "superHard",
         rows: 9,
         columns: 8,
 
-        time: 66,
+        time: 74,
 
         pattern: [
             [1, 1, 1, 0, 1, 1, 1, 0],
@@ -2556,7 +2567,12 @@ export default [
         ],
 
         obstacles: [
-            [6, 3, "cone"]
+            [6, 3, "cone"],
+            [4, 2, "cone"],
+            [5, 3, "cone"],
+            [3, 2, "cone"],
+            [3, 3, "cone"],
+            [5, 2, "cone"]
         ],
 
         walls: [{
@@ -2632,12 +2648,13 @@ export default [
                 key: "white",
                 exit: [4, 6],
                 facing: 90,
+                inside: "green",
                 cells: [
-                    [5, 3],
-                    [5, 2],
-                    [4, 2],
-                    [3, 2],
-                    [3, 3]
+                    [5, 7],
+                    [5, 8],
+                    [6, 8],
+                    [7, 8],
+                    [7, 7]
                 ]
             },
             {
@@ -2668,13 +2685,13 @@ export default [
         ]
     },
 
-    // Level 31
+    // Level 31 (nested)
     {
         difficulty: "normal",
         rows: 9,
         columns: 8,
 
-        time: 90,
+        time: 98,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -2691,7 +2708,10 @@ export default [
         obstacles: [
             [6, 7, "cargo_pallet"],
             [5, 0, "barrier"],
-            [7, 0, "barrier"]
+            [7, 0, "barrier"],
+            [3, 8, "barrier"],
+            [5, 8, "cargo_pallet"],
+            [4, 8, "barrier"]
         ],
 
         walls: [{
@@ -2767,10 +2787,10 @@ export default [
                 key: "cyan",
                 exit: [5, 2],
                 facing: 90,
+                inside: "yellow",
                 cells: [
-                    [5, 8],
-                    [4, 8],
-                    [3, 8]
+                    [5, 6],
+                    [5, 7]
                 ]
             },
             {
@@ -2786,13 +2806,13 @@ export default [
         ]
     },
 
-    // Level 32
+    // Level 32 (nested)
     {
         difficulty: "normal",
         rows: 9,
         columns: 8,
 
-        time: 95,
+        time: 103,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 0],
@@ -2884,11 +2904,10 @@ export default [
                 key: "pink",
                 exit: [5, 2],
                 facing: 90,
+                inside: "red",
                 cells: [
-                    [7, 4],
-                    [7, 3],
-                    [7, 2],
-                    [7, 1]
+                    [6, 3],
+                    [6, 4]
                 ]
             },
             {
@@ -2915,13 +2934,13 @@ export default [
         ]
     },
 
-    // Level 33
+    // Level 33 (nested)
     {
         difficulty: "normal",
         rows: 9,
         columns: 8,
 
-        time: 90,
+        time: 98,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 0],
@@ -2938,7 +2957,10 @@ export default [
         obstacles: [
             [7, 6, "cargo_container"],
             [4, 1, "service_cabinet"],
-            [6, 1, "planter"]
+            [6, 1, "planter"],
+            [7, 3, "cargo_container"],
+            [7, 1, "planter"],
+            [7, 2, "planter"]
         ],
 
         walls: [{
@@ -3005,10 +3027,10 @@ export default [
                 key: "pink",
                 exit: [2, 0],
                 facing: 90,
+                inside: "purple",
                 cells: [
-                    [7, 3],
-                    [7, 2],
-                    [7, 1]
+                    [1, 1],
+                    [0, 1]
                 ]
             },
             {
@@ -3035,13 +3057,13 @@ export default [
         ]
     },
 
-    // Level 34
+    // Level 34 (nested)
     {
         difficulty: "normal",
         rows: 9,
         columns: 8,
 
-        time: 95,
+        time: 103,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -3058,7 +3080,11 @@ export default [
         obstacles: [
             [4, 4, "cargo_container"],
             [3, 0, "cargo_pallet"],
-            [3, 2, "cargo_pallet"]
+            [3, 2, "cargo_pallet"],
+            [4, 8, "cargo_container"],
+            [3, 8, "cargo_pallet"],
+            [6, 8, "cargo_pallet"],
+            [5, 8, "cargo_pallet"]
         ],
 
         walls: [{
@@ -3157,23 +3183,23 @@ export default [
                 key: "yellow",
                 exit: [1, 7],
                 facing: 90,
+                inside: "green",
                 cells: [
-                    [6, 8],
-                    [5, 8],
-                    [4, 8],
-                    [3, 8]
+                    [3, 4],
+                    [3, 5],
+                    [2, 5]
                 ]
             }
         ]
     },
 
-    // Level 35 (hardened)
+    // Level 35 (hardened) (nested)
     {
         difficulty: "hard",
         rows: 9,
         columns: 8,
 
-        time: 33,
+        time: 41,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -3192,7 +3218,10 @@ export default [
             [6, 4, "cargo_container"],
             [4, 4, "cone"],
             [6, 5, "planter"],
-            [0, 2, "cone"]
+            [0, 2, "cone"],
+            [2, 0, "planter"],
+            [1, 0, "planter"],
+            [0, 0, "planter"]
         ],
 
         walls: [{
@@ -3271,10 +3300,10 @@ export default [
                 key: "cyan",
                 exit: [2, 7],
                 facing: 90,
+                inside: "green",
                 cells: [
-                    [2, 0],
-                    [1, 0],
-                    [0, 0]
+                    [5, 3],
+                    [5, 4]
                 ]
             },
             {
@@ -3291,13 +3320,13 @@ export default [
         ]
     },
 
-    // Level 36
+    // Level 36 (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 95,
+        time: 103,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -3316,7 +3345,10 @@ export default [
             [7, 7, "cargo_container"],
             [1, 8, "service_cabinet"],
             [0, 5, "cone"],
-            [5, 7, "cargo_container"]
+            [5, 7, "cargo_container"],
+            [3, 7, "cargo_container"],
+            [3, 8, "cone"],
+            [3, 9, "service_cabinet"]
         ],
 
         walls: [{
@@ -3384,10 +3416,11 @@ export default [
                 key: "yellow",
                 exit: [7, 6],
                 facing: 90,
+                inside: "lime",
                 cells: [
-                    [3, 7],
-                    [3, 8],
-                    [3, 9]
+                    [6, 2],
+                    [5, 2],
+                    [4, 2]
                 ]
             },
             {
@@ -3423,13 +3456,13 @@ export default [
         ]
     },
 
-    // Level 37
+    // Level 37 (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 95,
+        time: 103,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -3448,7 +3481,10 @@ export default [
             [5, 3, "cone"],
             [0, 2, "barrier"],
             [1, 8, "cargo_pallet"],
-            [6, 6, "planter"]
+            [6, 6, "planter"],
+            [4, 3, "cone"],
+            [4, 4, "barrier"],
+            [4, 5, "barrier"]
         ],
 
         walls: [{
@@ -3492,10 +3528,10 @@ export default [
                 key: "cyan",
                 exit: [7, 0],
                 facing: 90,
+                inside: "orange",
                 cells: [
-                    [4, 5],
-                    [4, 4],
-                    [4, 3]
+                    [5, 5],
+                    [5, 6]
                 ]
             },
             {
@@ -3552,13 +3588,13 @@ export default [
         ]
     },
 
-    // Level 38
+    // Level 38 (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 95,
+        time: 103,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -3577,7 +3613,9 @@ export default [
             [7, 0, "planter"],
             [3, 9, "service_cabinet"],
             [6, 1, "cone"],
-            [1, 8, "cone"]
+            [1, 8, "cone"],
+            [4, 2, "service_cabinet"],
+            [4, 0, "planter"]
         ],
 
         walls: [{
@@ -3612,10 +3650,11 @@ export default [
                 key: "white",
                 exit: [7, 1],
                 facing: 90,
+                inside: "red",
                 cells: [
-                    [4, 0],
-                    [4, 1],
-                    [4, 2]
+                    [5, 3],
+                    [6, 3],
+                    [7, 3]
                 ]
             },
             {
@@ -3684,13 +3723,13 @@ export default [
         ]
     },
 
-    // Level 39
+    // Level 39 (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 95,
+        time: 103,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -3709,7 +3748,11 @@ export default [
             [2, 6, "cargo_pallet"],
             [7, 7, "service_cabinet"],
             [0, 5, "cargo_pallet"],
-            [3, 5, "cargo_container"]
+            [3, 5, "cargo_container"],
+            [3, 0, "cargo_pallet"],
+            [0, 0, "service_cabinet"],
+            [1, 0, "cargo_pallet"],
+            [2, 0, "cargo_pallet"]
         ],
 
         walls: [{
@@ -3775,11 +3818,10 @@ export default [
                 key: "blue",
                 exit: [2, 8],
                 facing: 90,
+                inside: "yellow",
                 cells: [
-                    [3, 0],
-                    [2, 0],
-                    [1, 0],
-                    [0, 0]
+                    [7, 4],
+                    [7, 3]
                 ]
             },
             {
@@ -3816,13 +3858,13 @@ export default [
         ]
     },
 
-    // Level 40 (packed)
+    // Level 40 (packed) (nested)
     {
         difficulty: "superHard",
         rows: 10,
         columns: 8,
 
-        time: 77,
+        time: 85,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -3839,7 +3881,13 @@ export default [
 
         obstacles: [
             [3, 0, "cone"],
-            [2, 3, "planter"]
+            [2, 3, "planter"],
+            [5, 1, "cone"],
+            [3, 2, "planter"],
+            [4, 2, "cone"],
+            [2, 2, "planter"],
+            [5, 2, "planter"],
+            [1, 2, "cone"]
         ],
 
         walls: [{
@@ -3937,13 +3985,12 @@ export default [
                 key: "cyan",
                 exit: [0, 9],
                 facing: 90,
+                inside: "lime",
                 cells: [
-                    [5, 1],
-                    [5, 2],
-                    [4, 2],
-                    [3, 2],
-                    [2, 2],
-                    [1, 2]
+                    [2, 9],
+                    [3, 9],
+                    [4, 9],
+                    [4, 8]
                 ]
             },
             {
@@ -3961,13 +4008,13 @@ export default [
         ]
     },
 
-    // Level 41
+    // Level 41 (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 105,
+        time: 113,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -3987,7 +4034,10 @@ export default [
             [2, 1, "cargo_pallet"],
             [2, 9, "cone"],
             [3, 3, "cargo_pallet"],
-            [4, 6, "barrier"]
+            [4, 6, "barrier"],
+            [3, 6, "cargo_pallet"],
+            [3, 7, "cone"],
+            [3, 5, "cargo_pallet"]
         ],
 
         walls: [{
@@ -4033,10 +4083,11 @@ export default [
                 key: "cyan",
                 exit: [1, 9],
                 facing: 90,
+                inside: "green",
                 cells: [
-                    [3, 5],
-                    [3, 6],
-                    [3, 7]
+                    [3, 4],
+                    [2, 4],
+                    [1, 4]
                 ]
             },
             {
@@ -4104,13 +4155,13 @@ export default [
         ]
     },
 
-    // Level 42
+    // Level 42 (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 100,
+        time: 108,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -4130,7 +4181,10 @@ export default [
             [6, 1, "service_cabinet"],
             [7, 5, "cargo_pallet"],
             [5, 5, "barrier"],
-            [4, 9, "cargo_container"]
+            [4, 9, "cargo_container"],
+            [2, 0, "service_cabinet"],
+            [1, 1, "service_cabinet"],
+            [1, 0, "cargo_container"]
         ],
 
         walls: [{
@@ -4165,11 +4219,11 @@ export default [
                 key: "yellow",
                 exit: [2, 5],
                 facing: 90,
+                inside: "red",
                 cells: [
-                    [2, 0],
-                    [1, 0],
-                    [1, 1],
-                    [1, 2]
+                    [5, 8],
+                    [4, 8],
+                    [3, 8]
                 ]
             },
             {
@@ -4240,13 +4294,13 @@ export default [
         ]
     },
 
-    // Level 43
+    // Level 43 (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 95,
+        time: 103,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 0],
@@ -4265,7 +4319,10 @@ export default [
             [2, 7, "planter"],
             [3, 0, "cargo_container"],
             [3, 4, "service_cabinet"],
-            [1, 1, "barrier"]
+            [1, 1, "barrier"],
+            [6, 8, "cargo_container"],
+            [4, 8, "barrier"],
+            [5, 8, "barrier"]
         ],
 
         walls: [{
@@ -4352,10 +4409,10 @@ export default [
                 key: "blue",
                 exit: [7, 5],
                 facing: 90,
+                inside: "yellow",
                 cells: [
-                    [4, 8],
-                    [5, 8],
-                    [6, 8]
+                    [0, 2],
+                    [1, 2]
                 ]
             },
             {
@@ -4371,13 +4428,13 @@ export default [
         ]
     },
 
-    // Level 44
+    // Level 44 (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 100,
+        time: 108,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -4396,7 +4453,10 @@ export default [
             [1, 4, "cargo_container"],
             [4, 3, "cargo_pallet"],
             [5, 0, "service_cabinet"],
-            [0, 5, "service_cabinet"]
+            [0, 5, "service_cabinet"],
+            [7, 0, "service_cabinet"],
+            [7, 2, "cargo_pallet"],
+            [7, 1, "cargo_pallet"]
         ],
 
         walls: [{
@@ -4452,10 +4512,11 @@ export default [
                 key: "orange",
                 exit: [0, 0],
                 facing: 90,
+                inside: "cyan",
                 cells: [
-                    [7, 0],
-                    [7, 1],
-                    [7, 2]
+                    [4, 8],
+                    [3, 8],
+                    [2, 8]
                 ]
             },
             {
@@ -4515,13 +4576,13 @@ export default [
         ]
     },
 
-    // Level 45 (hardened)
+    // Level 45 (hardened) (nested)
     {
         difficulty: "hard",
         rows: 10,
         columns: 8,
 
-        time: 32,
+        time: 40,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -4542,7 +4603,10 @@ export default [
             [0, 7, "barrier"],
             [0, 0, "barrier"],
             [1, 7, "cone"],
-            [3, 8, "planter"]
+            [3, 8, "planter"],
+            [0, 1, "planter"],
+            [0, 3, "cone"],
+            [0, 2, "planter"]
         ],
 
         walls: [{
@@ -4632,10 +4696,10 @@ export default [
                 key: "white",
                 exit: [7, 3],
                 facing: 90,
+                inside: "green",
                 cells: [
-                    [0, 3],
-                    [0, 2],
-                    [0, 1]
+                    [2, 8],
+                    [2, 9]
                 ]
             },
             {
@@ -4651,13 +4715,13 @@ export default [
         ]
     },
 
-    // Level 46
+    // Level 46 (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 110,
+        time: 118,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -4677,7 +4741,9 @@ export default [
             [3, 0, "cargo_pallet"],
             [5, 5, "cargo_pallet"],
             [6, 3, "cone"],
-            [6, 8, "service_cabinet"]
+            [6, 8, "service_cabinet"],
+            [5, 2, "service_cabinet"],
+            [6, 2, "cargo_pallet"]
         ],
 
         walls: [{
@@ -4753,11 +4819,10 @@ export default [
                 key: "blue",
                 exit: [6, 5],
                 facing: 90,
+                inside: "green",
                 cells: [
-                    [6, 2],
-                    [5, 2],
-                    [4, 2],
-                    [3, 2]
+                    [0, 7],
+                    [0, 6]
                 ]
             },
             {
@@ -4803,13 +4868,13 @@ export default [
         ]
     },
 
-    // Level 47
+    // Level 47 (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 110,
+        time: 118,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -4829,7 +4894,8 @@ export default [
             [7, 2, "cargo_pallet"],
             [3, 9, "service_cabinet"],
             [0, 2, "cargo_pallet"],
-            [5, 9, "barrier"]
+            [5, 9, "barrier"],
+            [5, 6, "barrier"]
         ],
 
         walls: [{
@@ -4937,10 +5003,10 @@ export default [
                 key: "red",
                 exit: [5, 0],
                 facing: 90,
+                inside: "yellow",
                 cells: [
-                    [5, 6],
-                    [5, 5],
-                    [5, 4]
+                    [0, 5],
+                    [0, 4]
                 ]
             },
             {
@@ -4957,13 +5023,13 @@ export default [
         ]
     },
 
-    // Level 48
+    // Level 48 (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 115,
+        time: 123,
 
         pattern: [
             [0, 0, 1, 1, 1, 1, 0, 0],
@@ -4983,7 +5049,9 @@ export default [
             [1, 7, "cargo_container"],
             [2, 6, "cargo_container"],
             [2, 9, "cone"],
-            [5, 0, "cone"]
+            [5, 0, "cone"],
+            [6, 9, "cargo_container"],
+            [5, 9, "planter"]
         ],
 
         walls: [{
@@ -5090,10 +5158,10 @@ export default [
                 key: "orange",
                 exit: [2, 7],
                 facing: 90,
+                inside: "purple",
                 cells: [
-                    [4, 9],
-                    [5, 9],
-                    [6, 9]
+                    [4, 1],
+                    [5, 1]
                 ]
             },
             {
@@ -5109,13 +5177,13 @@ export default [
         ]
     },
 
-    // Level 49
+    // Level 49 (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 110,
+        time: 118,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 0],
@@ -5135,7 +5203,10 @@ export default [
             [0, 1, "barrier"],
             [1, 8, "cargo_pallet"],
             [4, 7, "planter"],
-            [3, 9, "service_cabinet"]
+            [3, 9, "service_cabinet"],
+            [7, 8, "planter"],
+            [6, 8, "service_cabinet"],
+            [7, 7, "planter"]
         ],
 
         walls: [{
@@ -5253,22 +5324,22 @@ export default [
                 key: "cyan",
                 exit: [0, 5],
                 facing: 90,
+                inside: "blue",
                 cells: [
-                    [7, 7],
-                    [7, 8],
-                    [6, 8]
+                    [1, 1],
+                    [2, 1]
                 ]
             }
         ]
     },
 
-    // Level 50 (packed)
+    // Level 50 (packed) (nested)
     {
         difficulty: "superHard",
         rows: 10,
         columns: 8,
 
-        time: 77,
+        time: 85,
 
         pattern: [
             [1, 1, 1, 0, 1, 1, 1, 1],
@@ -5285,7 +5356,12 @@ export default [
 
         obstacles: [
             [1, 8, "cone"],
-            [6, 4, "planter"]
+            [6, 4, "planter"],
+            [4, 7, "cone"],
+            [6, 6, "cone"],
+            [5, 7, "cone"],
+            [3, 7, "planter"],
+            [5, 6, "planter"]
         ],
 
         walls: [{
@@ -5341,12 +5417,12 @@ export default [
                 key: "white",
                 exit: [0, 9],
                 facing: 90,
+                inside: "cyan",
                 cells: [
-                    [3, 7],
-                    [4, 7],
-                    [5, 7],
-                    [5, 6],
-                    [6, 6]
+                    [7, 7],
+                    [7, 8],
+                    [7, 9],
+                    [6, 9]
                 ]
             },
             {
@@ -5421,13 +5497,13 @@ export default [
         ]
     },
 
-    // Level 51 (nested)
+    // Level 51 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 113,
+        time: 119,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -5448,9 +5524,9 @@ export default [
             [7, 4, "cone"],
             [5, 5, "cargo_pallet"],
             [4, 0, "cargo_container"],
-            [1, 9, "cargo_container"],
-            [2, 9, "planter"],
-            [0, 9, "cone"]
+            [4, 1, "cargo_container"],
+            [6, 1, "cargo_pallet"],
+            [5, 1, "cargo_pallet"]
         ],
 
         walls: [{
@@ -5505,10 +5581,11 @@ export default [
                 key: "purple",
                 exit: [4, 6],
                 facing: 90,
+                inside: "blue",
                 cells: [
-                    [4, 1],
-                    [5, 1],
-                    [6, 1]
+                    [0, 5],
+                    [1, 5],
+                    [2, 5]
                 ]
             },
             {
@@ -5536,6 +5613,7 @@ export default [
                 key: "white",
                 exit: [2, 8],
                 facing: 90,
+                lock: 2,
                 cells: [
                     [4, 3],
                     [4, 4],
@@ -5556,11 +5634,10 @@ export default [
                 key: "cyan",
                 exit: [3, 4],
                 facing: 90,
-                inside: "blue",
                 cells: [
-                    [0, 5],
-                    [1, 5],
-                    [2, 5]
+                    [2, 9],
+                    [1, 9],
+                    [0, 9]
                 ]
             },
             {
@@ -5887,13 +5964,13 @@ export default [
         ]
     },
 
-    // Level 54 (nested)
+    // Level 54 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 113,
+        time: 119,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 0],
@@ -5914,10 +5991,10 @@ export default [
             [6, 1, "cargo_pallet"],
             [2, 8, "cargo_container"],
             [7, 7, "cone"],
-            [0, 8, "cargo_container"],
-            [0, 5, "cargo_pallet"],
-            [0, 7, "cargo_container"],
-            [0, 6, "cone"]
+            [0, 8, "cone"],
+            [0, 6, "cargo_container"],
+            [0, 7, "cargo_pallet"],
+            [0, 5, "cargo_container"]
         ],
 
         walls: [{
@@ -5979,6 +6056,7 @@ export default [
                 key: "pink",
                 exit: [2, 5],
                 facing: 90,
+                lock: 2,
                 cells: [
                     [5, 2],
                     [5, 1],
@@ -6039,13 +6117,13 @@ export default [
         ]
     },
 
-    // Level 55 (hardened) (nested)
+    // Level 55 (hardened) (locked) (nested)
     {
         difficulty: "hard",
         rows: 10,
         columns: 8,
 
-        time: 45,
+        time: 51,
 
         pattern: [
             [0, 0, 1, 1, 1, 1, 1, 0],
@@ -6068,9 +6146,9 @@ export default [
             [1, 9, "cargo_pallet"],
             [1, 7, "cargo_pallet"],
             [7, 6, "cone"],
-            [2, 5, "planter"],
-            [2, 4, "cargo_container"],
-            [3, 5, "cone"]
+            [5, 2, "cone"],
+            [5, 4, "cargo_pallet"],
+            [5, 3, "cone"]
         ],
 
         walls: [{
@@ -6128,12 +6206,10 @@ export default [
                 key: "yellow",
                 exit: [7, 2],
                 facing: 90,
+                inside: "orange",
                 cells: [
-                    [3, 2],
-                    [4, 2],
-                    [5, 2],
-                    [5, 3],
-                    [5, 4]
+                    [0, 6],
+                    [0, 7]
                 ]
             },
             {
@@ -6162,6 +6238,7 @@ export default [
                 key: "red",
                 exit: [3, 4],
                 facing: 90,
+                lock: 2,
                 cells: [
                     [6, 9],
                     [6, 8],
@@ -6184,23 +6261,22 @@ export default [
                 key: "green",
                 exit: [6, 3],
                 facing: 90,
-                inside: "cyan",
                 cells: [
-                    [1, 6],
-                    [1, 5],
-                    [1, 4]
+                    [3, 5],
+                    [2, 5],
+                    [2, 4]
                 ]
             }
         ]
     },
 
-    // Level 56 (nested)
+    // Level 56 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 123,
+        time: 129,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -6273,6 +6349,7 @@ export default [
                 key: "orange",
                 exit: [3, 2],
                 facing: 90,
+                lock: 4,
                 cells: [
                     [6, 9],
                     [6, 8],
@@ -6499,13 +6576,13 @@ export default [
         ]
     },
 
-    // Level 58 (nested)
+    // Level 58 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 118,
+        time: 124,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -6526,7 +6603,7 @@ export default [
             [1, 9, "service_cabinet"],
             [7, 7, "barrier"],
             [1, 6, "service_cabinet"],
-            [6, 9, "planter"]
+            [4, 4, "cargo_container"]
         ],
 
         walls: [{
@@ -6565,10 +6642,12 @@ export default [
                 key: "blue",
                 exit: [7, 4],
                 facing: 90,
+                lock: 2,
+                inside: "purple",
                 cells: [
-                    [4, 2],
-                    [4, 3],
-                    [4, 4]
+                    [5, 2],
+                    [5, 1],
+                    [5, 0]
                 ]
             },
             {
@@ -6586,11 +6665,10 @@ export default [
                 key: "lime",
                 exit: [7, 2],
                 facing: 90,
-                inside: "purple",
                 cells: [
-                    [5, 2],
-                    [5, 1],
-                    [5, 0]
+                    [4, 9],
+                    [5, 9],
+                    [6, 9]
                 ]
             },
             {
@@ -6648,13 +6726,13 @@ export default [
         ]
     },
 
-    // Level 59 (nested)
+    // Level 59 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 123,
+        time: 129,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -6675,10 +6753,9 @@ export default [
             [7, 5, "planter"],
             [1, 4, "cone"],
             [1, 0, "barrier"],
-            [4, 9, "planter"],
-            [6, 9, "planter"],
-            [5, 9, "planter"],
-            [6, 8, "cone"]
+            [5, 7, "cone"],
+            [4, 7, "planter"],
+            [5, 8, "barrier"]
         ],
 
         walls: [{
@@ -6730,6 +6807,7 @@ export default [
                 key: "blue",
                 exit: [2, 1],
                 facing: 90,
+                lock: 3,
                 cells: [
                     [6, 0],
                     [6, 1],
@@ -6740,10 +6818,11 @@ export default [
                 key: "orange",
                 exit: [7, 0],
                 facing: 90,
+                inside: "cyan",
                 cells: [
-                    [5, 8],
-                    [5, 7],
-                    [4, 7]
+                    [3, 2],
+                    [2, 2],
+                    [1, 2]
                 ]
             },
             {
@@ -6772,11 +6851,11 @@ export default [
                 key: "white",
                 exit: [4, 0],
                 facing: 90,
-                inside: "cyan",
                 cells: [
-                    [3, 2],
-                    [2, 2],
-                    [1, 2]
+                    [6, 8],
+                    [6, 9],
+                    [5, 9],
+                    [4, 9]
                 ]
             },
             {
@@ -6960,13 +7039,13 @@ export default [
         ]
     },
 
-    // Level 61 (nested)
+    // Level 61 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 108,
+        time: 114,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 0],
@@ -7041,6 +7120,7 @@ export default [
                 key: "cyan",
                 exit: [2, 8],
                 facing: 90,
+                lock: 3,
                 cells: [
                     [5, 7],
                     [6, 7],
@@ -7104,13 +7184,13 @@ export default [
         ]
     },
 
-    // Level 62 (nested)
+    // Level 62 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 128,
+        time: 134,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -7131,9 +7211,10 @@ export default [
             [6, 7, "service_cabinet"],
             [5, 5, "barrier"],
             [7, 3, "service_cabinet"],
-            [5, 2, "service_cabinet"],
-            [5, 4, "cone"],
-            [5, 3, "barrier"]
+            [0, 8, "cargo_pallet"],
+            [1, 8, "cone"],
+            [0, 9, "barrier"],
+            [1, 9, "service_cabinet"]
         ],
 
         walls: [{
@@ -7183,6 +7264,7 @@ export default [
                 key: "red",
                 exit: [4, 7],
                 facing: 90,
+                lock: 2,
                 cells: [
                     [0, 3],
                     [1, 3],
@@ -7195,11 +7277,10 @@ export default [
                 key: "orange",
                 exit: [3, 6],
                 facing: 90,
-                inside: "purple",
                 cells: [
-                    [6, 4],
-                    [6, 3],
-                    [6, 2]
+                    [5, 4],
+                    [5, 3],
+                    [5, 2]
                 ]
             },
             {
@@ -7217,11 +7298,11 @@ export default [
                 key: "pink",
                 exit: [3, 1],
                 facing: 90,
+                inside: "purple",
                 cells: [
-                    [1, 8],
-                    [1, 9],
-                    [0, 9],
-                    [0, 8]
+                    [6, 4],
+                    [6, 3],
+                    [6, 2]
                 ]
             },
             {
@@ -7262,13 +7343,13 @@ export default [
         ]
     },
 
-    // Level 63 (nested)
+    // Level 63 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 118,
+        time: 124,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -7373,6 +7454,7 @@ export default [
                 key: "yellow",
                 exit: [0, 7],
                 facing: 90,
+                lock: 3,
                 cells: [
                     [2, 5],
                     [2, 4],
@@ -7383,10 +7465,11 @@ export default [
                 key: "orange",
                 exit: [4, 6],
                 facing: 90,
-                inside: "yellow",
+                inside: "blue",
                 cells: [
-                    [2, 4],
-                    [2, 3]
+                    [7, 5],
+                    [6, 5],
+                    [5, 5]
                 ]
             },
             {
@@ -7569,13 +7652,13 @@ export default [
         ]
     },
 
-    // Level 65 (hardened) (nested)
+    // Level 65 (hardened) (locked) (nested)
     {
         difficulty: "hard",
         rows: 10,
         columns: 8,
 
-        time: 54,
+        time: 60,
 
         pattern: [
             [0, 1, 0, 1, 1, 1, 1, 0],
@@ -7598,9 +7681,9 @@ export default [
             [2, 2, "service_cabinet"],
             [1, 4, "cone"],
             [4, 4, "barrier"],
-            [7, 7, "cone"],
-            [7, 8, "planter"],
-            [6, 7, "cone"]
+            [7, 7, "planter"],
+            [7, 8, "barrier"],
+            [6, 7, "service_cabinet"]
         ],
 
         walls: [{
@@ -7638,6 +7721,7 @@ export default [
                 key: "blue",
                 exit: [1, 0],
                 facing: 90,
+                lock: 4,
                 inside: "orange",
                 cells: [
                     [7, 3],
@@ -7722,13 +7806,13 @@ export default [
         ]
     },
 
-    // Level 66 (nested)
+    // Level 66 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 128,
+        time: 134,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -7837,6 +7921,7 @@ export default [
                 key: "blue",
                 exit: [1, 5],
                 facing: 90,
+                lock: 5,
                 cells: [
                     [5, 5],
                     [4, 5],
@@ -7881,13 +7966,13 @@ export default [
         ]
     },
 
-    // Level 67 (nested)
+    // Level 67 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 123,
+        time: 129,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -7952,17 +8037,18 @@ export default [
                 key: "white",
                 exit: [6, 2],
                 facing: 90,
-                inside: "green",
+                inside: "red",
                 cells: [
-                    [1, 1],
-                    [0, 1],
-                    [0, 2]
+                    [5, 3],
+                    [6, 3],
+                    [7, 3]
                 ]
             },
             {
                 key: "lime",
                 exit: [7, 9],
                 facing: 90,
+                lock: 4,
                 cells: [
                     [3, 1],
                     [4, 1],
@@ -8036,13 +8122,13 @@ export default [
         ]
     },
 
-    // Level 68 (nested)
+    // Level 68 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 123,
+        time: 129,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -8063,7 +8149,10 @@ export default [
             [4, 2, "service_cabinet"],
             [5, 6, "service_cabinet"],
             [2, 0, "planter"],
-            [5, 8, "service_cabinet"]
+            [2, 7, "service_cabinet"],
+            [1, 7, "planter"],
+            [0, 7, "cone"],
+            [3, 7, "cone"]
         ],
 
         walls: [{
@@ -8114,6 +8203,7 @@ export default [
                 key: "blue",
                 exit: [4, 1],
                 facing: 90,
+                lock: 4,
                 cells: [
                     [7, 1],
                     [7, 0],
@@ -8155,10 +8245,10 @@ export default [
                 key: "pink",
                 exit: [0, 0],
                 facing: 90,
-                inside: "white",
                 cells: [
-                    [7, 4],
-                    [7, 3]
+                    [4, 7],
+                    [5, 7],
+                    [5, 8]
                 ]
             },
             {
@@ -8175,23 +8265,22 @@ export default [
                 key: "cyan",
                 exit: [5, 0],
                 facing: 90,
+                inside: "pink",
                 cells: [
-                    [3, 7],
-                    [2, 7],
-                    [1, 7],
-                    [0, 7]
+                    [5, 7],
+                    [5, 8]
                 ]
             }
         ]
     },
 
-    // Level 69 (nested)
+    // Level 69 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 8,
 
-        time: 128,
+        time: 134,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -8212,9 +8301,9 @@ export default [
             [0, 0, "barrier"],
             [3, 1, "service_cabinet"],
             [7, 0, "service_cabinet"],
-            [6, 5, "service_cabinet"],
-            [7, 5, "service_cabinet"],
-            [5, 5, "service_cabinet"]
+            [3, 2, "service_cabinet"],
+            [4, 2, "barrier"],
+            [4, 1, "service_cabinet"]
         ],
 
         walls: [{
@@ -8254,10 +8343,11 @@ export default [
                 key: "pink",
                 exit: [3, 7],
                 facing: 90,
+                inside: "blue",
                 cells: [
-                    [4, 1],
-                    [4, 2],
-                    [3, 2]
+                    [7, 4],
+                    [6, 4],
+                    [6, 3]
                 ]
             },
             {
@@ -8298,6 +8388,7 @@ export default [
                 key: "cyan",
                 exit: [3, 9],
                 facing: 90,
+                lock: 2,
                 cells: [
                     [3, 3],
                     [3, 4],
@@ -8309,11 +8400,10 @@ export default [
                 key: "green",
                 exit: [3, 8],
                 facing: 90,
-                inside: "blue",
                 cells: [
-                    [7, 4],
-                    [6, 4],
-                    [6, 3]
+                    [5, 5],
+                    [6, 5],
+                    [7, 5]
                 ]
             },
             {
@@ -8510,13 +8600,13 @@ export default [
         ]
     },
 
-    // Level 71 (nested)
+    // Level 71 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 9,
 
-        time: 123,
+        time: 129,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -8537,9 +8627,11 @@ export default [
             [4, 5, "service_cabinet"],
             [6, 6, "cone"],
             [2, 6, "barrier"],
-            [7, 6, "service_cabinet"],
-            [7, 8, "barrier"],
-            [7, 7, "planter"]
+            [8, 0, "planter"],
+            [8, 4, "barrier"],
+            [8, 3, "barrier"],
+            [8, 1, "planter"],
+            [8, 2, "cargo_pallet"]
         ],
 
         walls: [{
@@ -8582,23 +8674,21 @@ export default [
                 key: "blue",
                 exit: [0, 3],
                 facing: 90,
-                inside: "lime",
                 cells: [
-                    [1, 1],
-                    [1, 2],
-                    [1, 3]
+                    [7, 8],
+                    [7, 7],
+                    [7, 6]
                 ]
             },
             {
                 key: "yellow",
                 exit: [2, 2],
                 facing: 90,
+                inside: "red",
                 cells: [
-                    [8, 0],
-                    [8, 1],
-                    [8, 2],
-                    [8, 3],
-                    [8, 4]
+                    [1, 5],
+                    [2, 5],
+                    [3, 5]
                 ]
             },
             {
@@ -8616,6 +8706,7 @@ export default [
                 key: "lime",
                 exit: [4, 0],
                 facing: 90,
+                lock: 2,
                 cells: [
                     [1, 0],
                     [1, 1],
@@ -8834,13 +8925,13 @@ export default [
         ]
     },
 
-    // Level 73 (nested)
+    // Level 73 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 9,
 
-        time: 138,
+        time: 144,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -8861,9 +8952,9 @@ export default [
             [5, 1, "cone"],
             [1, 9, "cargo_pallet"],
             [8, 1, "cargo_pallet"],
-            [5, 0, "cargo_container"],
-            [6, 0, "cone"],
-            [4, 0, "cargo_pallet"]
+            [5, 0, "cone"],
+            [4, 0, "cargo_container"],
+            [6, 0, "cargo_container"]
         ],
 
         walls: [{
@@ -8940,16 +9031,17 @@ export default [
                 key: "yellow",
                 exit: [1, 3],
                 facing: 90,
-                inside: "pink",
+                inside: "lime",
                 cells: [
-                    [3, 8],
-                    [3, 7]
+                    [7, 1],
+                    [6, 1]
                 ]
             },
             {
                 key: "pink",
                 exit: [4, 5],
                 facing: 90,
+                lock: 2,
                 cells: [
                     [2, 8],
                     [3, 8],
@@ -9508,13 +9600,13 @@ export default [
         ]
     },
 
-    // Level 77 (nested)
+    // Level 77 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 9,
 
-        time: 138,
+        time: 144,
 
         pattern: [
             [0, 0, 1, 1, 1, 1, 1, 0, 0],
@@ -9535,11 +9627,10 @@ export default [
             [0, 5, "cone"],
             [7, 9, "service_cabinet"],
             [8, 5, "barrier"],
-            [6, 5, "barrier"],
-            [7, 5, "cone"],
-            [8, 6, "barrier"],
-            [7, 6, "service_cabinet"],
-            [6, 6, "cone"]
+            [7, 8, "service_cabinet"],
+            [7, 7, "service_cabinet"],
+            [8, 8, "cone"],
+            [8, 7, "barrier"]
         ],
 
         walls: [{
@@ -9590,6 +9681,7 @@ export default [
                 key: "purple",
                 exit: [1, 4],
                 facing: 90,
+                lock: 2,
                 cells: [
                     [5, 4],
                     [5, 3],
@@ -9622,11 +9714,12 @@ export default [
                 key: "orange",
                 exit: [8, 1],
                 facing: 90,
+                inside: "red",
                 cells: [
-                    [7, 7],
-                    [7, 8],
-                    [8, 8],
-                    [8, 7]
+                    [3, 0],
+                    [2, 0],
+                    [2, 1],
+                    [2, 2]
                 ]
             },
             {
@@ -9664,23 +9757,24 @@ export default [
                 key: "green",
                 exit: [0, 6],
                 facing: 90,
-                inside: "orange",
                 cells: [
-                    [7, 8],
-                    [8, 8],
-                    [8, 7]
+                    [6, 6],
+                    [6, 5],
+                    [7, 5],
+                    [7, 6],
+                    [8, 6]
                 ]
             }
         ]
     },
 
-    // Level 78 (nested)
+    // Level 78 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 9,
 
-        time: 138,
+        time: 144,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 1, 0],
@@ -9701,7 +9795,9 @@ export default [
             [4, 1, "planter"],
             [7, 2, "cone"],
             [1, 2, "cargo_pallet"],
-            [4, 3, "cone"]
+            [7, 5, "planter"],
+            [7, 6, "cargo_pallet"],
+            [7, 7, "planter"]
         ],
 
         walls: [{
@@ -9757,6 +9853,7 @@ export default [
                 key: "pink",
                 exit: [6, 5],
                 facing: 90,
+                lock: 3,
                 cells: [
                     [6, 9],
                     [5, 9],
@@ -9767,10 +9864,11 @@ export default [
                 key: "orange",
                 exit: [1, 1],
                 facing: 90,
+                inside: "green",
                 cells: [
-                    [7, 7],
-                    [7, 6],
-                    [7, 5]
+                    [2, 6],
+                    [1, 6],
+                    [1, 7]
                 ]
             },
             {
@@ -9821,10 +9919,10 @@ export default [
                 key: "cyan",
                 exit: [4, 7],
                 facing: 90,
-                inside: "orange",
                 cells: [
-                    [7, 6],
-                    [7, 5]
+                    [4, 3],
+                    [4, 2],
+                    [3, 2]
                 ]
             },
             {
@@ -9840,13 +9938,13 @@ export default [
         ]
     },
 
-    // Level 79 (nested)
+    // Level 79 (locked) (nested)
     {
         difficulty: "normal",
         rows: 10,
         columns: 9,
 
-        time: 138,
+        time: 144,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 1, 0],
@@ -9945,6 +10043,7 @@ export default [
                 key: "yellow",
                 exit: [7, 5],
                 facing: 90,
+                lock: 3,
                 inside: "blue",
                 cells: [
                     [1, 2],
@@ -10180,13 +10279,13 @@ export default [
         ]
     },
 
-    // Level 81 (nested)
+    // Level 81 (locked) (nested)
     {
         difficulty: "normal",
         rows: 11,
         columns: 9,
 
-        time: 136,
+        time: 142,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 1, 0],
@@ -10209,15 +10308,15 @@ export default [
             [5, 9, "barrier"],
             [5, 7, "barrier"],
             [4, 9, "barrier"],
-            [8, 4, "barrier"],
-            [8, 5, "barrier"],
+            [0, 9, "cargo_pallet"],
+            [1, 9, "barrier"],
+            [2, 8, "barrier"],
+            [2, 9, "barrier"],
             [8, 3, "barrier"],
-            [7, 2, "cargo_pallet"],
-            [8, 2, "barrier"],
-            [1, 0, "cone"],
-            [1, 3, "cargo_pallet"],
-            [1, 2, "barrier"],
-            [1, 1, "barrier"]
+            [8, 4, "cone"],
+            [8, 2, "cargo_pallet"],
+            [7, 2, "barrier"],
+            [8, 5, "barrier"]
         ],
 
         walls: [{
@@ -10284,6 +10383,7 @@ export default [
                 key: "orange",
                 exit: [0, 8],
                 facing: 90,
+                lock: 4,
                 cells: [
                     [4, 5],
                     [4, 4],
@@ -10307,12 +10407,11 @@ export default [
                 key: "green",
                 exit: [0, 7],
                 facing: 90,
-                inside: "pink",
                 cells: [
-                    [3, 8],
-                    [3, 7],
-                    [3, 6],
-                    [4, 6]
+                    [1, 0],
+                    [1, 1],
+                    [1, 2],
+                    [1, 3]
                 ]
             },
             {
@@ -10330,22 +10429,21 @@ export default [
                 key: "purple",
                 exit: [1, 6],
                 facing: 90,
-                inside: "orange",
+                inside: "red",
                 cells: [
-                    [4, 4],
-                    [5, 4],
-                    [5, 5]
+                    [0, 3],
+                    [0, 4]
                 ]
             },
             {
                 key: "yellow",
                 exit: [2, 2],
                 facing: 90,
+                inside: "orange",
                 cells: [
-                    [0, 9],
-                    [1, 9],
-                    [2, 9],
-                    [2, 8]
+                    [4, 4],
+                    [5, 4],
+                    [5, 5]
                 ]
             },
             {
@@ -10361,13 +10459,13 @@ export default [
         ]
     },
 
-    // Level 82 (nested)
+    // Level 82 (locked) (nested)
     {
         difficulty: "normal",
         rows: 11,
         columns: 9,
 
-        time: 151,
+        time: 157,
 
         pattern: [
             [0, 0, 1, 1, 1, 1, 1, 0, 0],
@@ -10390,13 +10488,14 @@ export default [
             [3, 10, "cone"],
             [8, 3, "service_cabinet"],
             [5, 6, "cargo_pallet"],
-            [7, 9, "cargo_pallet"],
-            [5, 10, "cone"],
-            [7, 10, "cone"],
+            [6, 10, "cargo_pallet"],
+            [7, 10, "planter"],
             [7, 8, "cargo_pallet"],
-            [6, 10, "service_cabinet"],
-            [0, 1, "cone"],
-            [2, 0, "cargo_pallet"]
+            [7, 9, "cone"],
+            [5, 10, "cone"],
+            [3, 4, "service_cabinet"],
+            [5, 4, "planter"],
+            [4, 4, "planter"]
         ],
 
         walls: [{
@@ -10456,6 +10555,7 @@ export default [
                 key: "red",
                 exit: [2, 2],
                 facing: 90,
+                lock: 6,
                 cells: [
                     [0, 7],
                     [1, 7],
@@ -10491,10 +10591,11 @@ export default [
                 key: "white",
                 exit: [8, 7],
                 facing: 90,
-                inside: "pink",
                 cells: [
-                    [1, 3],
-                    [2, 3]
+                    [2, 0],
+                    [2, 1],
+                    [1, 1],
+                    [0, 1]
                 ]
             },
             {
@@ -10522,11 +10623,11 @@ export default [
                 key: "blue",
                 exit: [1, 2],
                 facing: 90,
+                inside: "cyan",
                 cells: [
-                    [5, 4],
-                    [4, 4],
-                    [3, 4],
-                    [2, 4]
+                    [5, 9],
+                    [4, 9],
+                    [3, 9]
                 ]
             },
             {
@@ -10543,13 +10644,13 @@ export default [
         ]
     },
 
-    // Level 83 (nested)
+    // Level 83 (locked) (nested)
     {
         difficulty: "normal",
         rows: 11,
         columns: 9,
 
-        time: 156,
+        time: 162,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -10572,14 +10673,14 @@ export default [
             [2, 1, "cone"],
             [4, 3, "planter"],
             [4, 10, "cone"],
-            [3, 10, "planter"],
-            [3, 8, "planter"],
-            [3, 9, "planter"],
-            [1, 0, "cone"],
-            [0, 1, "cone"],
+            [1, 0, "planter"],
             [1, 1, "planter"],
-            [1, 2, "cone"],
-            [0, 2, "planter"]
+            [0, 1, "planter"],
+            [1, 2, "planter"],
+            [0, 2, "cargo_pallet"],
+            [3, 10, "planter"],
+            [3, 9, "cone"],
+            [3, 8, "planter"]
         ],
 
         walls: [{
@@ -10654,11 +10755,12 @@ export default [
                 key: "orange",
                 exit: [3, 1],
                 facing: 90,
-                inside: "green",
+                lock: 4,
+                inside: "pink",
                 cells: [
-                    [4, 9],
-                    [5, 9],
-                    [6, 9]
+                    [6, 4],
+                    [6, 3],
+                    [6, 2]
                 ]
             },
             {
@@ -10677,12 +10779,12 @@ export default [
                 key: "cyan",
                 exit: [5, 10],
                 facing: 90,
-                inside: "pink",
+                inside: "green",
                 cells: [
-                    [6, 4],
-                    [6, 3],
-                    [6, 2],
-                    [7, 2]
+                    [4, 9],
+                    [5, 9],
+                    [6, 9],
+                    [6, 8]
                 ]
             },
             {
@@ -10734,13 +10836,13 @@ export default [
         ]
     },
 
-    // Level 84 (nested)
+    // Level 84 (locked) (nested)
     {
         difficulty: "normal",
         rows: 11,
         columns: 9,
 
-        time: 146,
+        time: 152,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -10763,14 +10865,14 @@ export default [
             [2, 7, "cargo_pallet"],
             [1, 5, "cargo_container"],
             [1, 6, "barrier"],
-            [1, 8, "cargo_container"],
-            [0, 8, "planter"],
-            [0, 7, "cone"],
-            [0, 6, "cargo_pallet"],
-            [7, 7, "planter"],
-            [8, 5, "cargo_container"],
-            [8, 6, "barrier"],
-            [8, 7, "cone"]
+            [5, 5, "cargo_pallet"],
+            [5, 6, "cargo_container"],
+            [5, 7, "planter"],
+            [5, 4, "cone"],
+            [5, 3, "cargo_pallet"],
+            [4, 10, "planter"],
+            [2, 10, "barrier"],
+            [3, 10, "cone"]
         ],
 
         walls: [{
@@ -10822,12 +10924,11 @@ export default [
                 key: "white",
                 exit: [7, 0],
                 facing: 90,
-                inside: "blue",
                 cells: [
-                    [5, 6],
-                    [5, 5],
-                    [5, 4],
-                    [5, 3]
+                    [0, 6],
+                    [0, 7],
+                    [0, 8],
+                    [1, 8]
                 ]
             },
             {
@@ -10844,11 +10945,11 @@ export default [
                 key: "purple",
                 exit: [1, 0],
                 facing: 90,
+                inside: "pink",
                 cells: [
-                    [2, 9],
-                    [2, 10],
-                    [3, 10],
-                    [4, 10]
+                    [8, 6],
+                    [8, 7],
+                    [7, 7]
                 ]
             },
             {
@@ -10876,23 +10977,23 @@ export default [
                 key: "pink",
                 exit: [4, 8],
                 facing: 90,
-                inside: "red",
                 cells: [
-                    [4, 2],
-                    [5, 2],
-                    [6, 2]
+                    [8, 5],
+                    [8, 6],
+                    [8, 7],
+                    [7, 7]
                 ]
             },
             {
                 key: "blue",
                 exit: [5, 0],
                 facing: 90,
+                lock: 4,
+                inside: "red",
                 cells: [
-                    [5, 7],
-                    [5, 6],
-                    [5, 5],
-                    [5, 4],
-                    [5, 3]
+                    [4, 2],
+                    [5, 2],
+                    [6, 2]
                 ]
             },
             {
@@ -10919,13 +11020,13 @@ export default [
         ]
     },
 
-    // Level 85 (hardened) (nested)
+    // Level 85 (hardened) (locked) (nested)
     {
         difficulty: "hard",
         rows: 11,
         columns: 9,
 
-        time: 58,
+        time: 64,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -10950,14 +11051,14 @@ export default [
             [0, 4, "cargo_pallet"],
             [3, 8, "planter"],
             [7, 4, "cargo_container"],
-            [2, 3, "cargo_container"],
-            [2, 4, "planter"],
-            [1, 4, "cargo_container"],
-            [1, 5, "cone"],
-            [4, 6, "cargo_container"],
-            [4, 7, "cargo_pallet"],
-            [5, 6, "planter"],
-            [4, 8, "planter"]
+            [1, 0, "cargo_pallet"],
+            [2, 0, "cargo_pallet"],
+            [4, 0, "cone"],
+            [3, 0, "cargo_container"],
+            [4, 6, "cargo_pallet"],
+            [4, 7, "cargo_container"],
+            [4, 8, "cargo_container"],
+            [5, 6, "cargo_container"]
         ],
 
         walls: [{
@@ -11019,23 +11120,22 @@ export default [
                 key: "lime",
                 exit: [5, 3],
                 facing: 90,
+                lock: 7,
+                inside: "purple",
                 cells: [
-                    [1, 0],
-                    [2, 0],
-                    [3, 0],
-                    [4, 0]
+                    [2, 4],
+                    [1, 4],
+                    [1, 5]
                 ]
             },
             {
                 key: "red",
                 exit: [7, 0],
                 facing: 90,
-                inside: "green",
+                inside: "yellow",
                 cells: [
-                    [2, 7],
-                    [2, 6],
-                    [1, 6],
-                    [0, 6]
+                    [4, 9],
+                    [4, 10]
                 ]
             },
             {
@@ -11054,11 +11154,11 @@ export default [
                 key: "purple",
                 exit: [8, 0],
                 facing: 90,
-                inside: "lime",
                 cells: [
-                    [2, 0],
-                    [3, 0],
-                    [4, 0]
+                    [2, 3],
+                    [2, 4],
+                    [1, 4],
+                    [1, 5]
                 ]
             },
             {
@@ -11109,13 +11209,13 @@ export default [
         ]
     },
 
-    // Level 86 (nested)
+    // Level 86 (locked) (nested)
     {
         difficulty: "normal",
         rows: 11,
         columns: 9,
 
-        time: 151,
+        time: 157,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 1, 0],
@@ -11138,11 +11238,13 @@ export default [
             [3, 7, "cargo_container"],
             [8, 3, "planter"],
             [3, 2, "cone"],
-            [8, 9, "cargo_pallet"],
-            [8, 8, "barrier"],
-            [8, 7, "planter"],
-            [8, 6, "cargo_pallet"],
-            [4, 10, "barrier"]
+            [2, 5, "planter"],
+            [3, 5, "barrier"],
+            [0, 5, "cargo_container"],
+            [4, 5, "cargo_pallet"],
+            [1, 5, "planter"],
+            [1, 8, "cone"],
+            [1, 9, "barrier"]
         ],
 
         walls: [{
@@ -11194,6 +11296,7 @@ export default [
                 key: "pink",
                 exit: [8, 4],
                 facing: 90,
+                lock: 3,
                 cells: [
                     [1, 6],
                     [2, 6],
@@ -11206,21 +11309,22 @@ export default [
                 key: "red",
                 exit: [7, 9],
                 facing: 90,
+                inside: "yellow",
                 cells: [
-                    [1, 9],
-                    [1, 8],
-                    [1, 7]
+                    [8, 7],
+                    [8, 8],
+                    [8, 9]
                 ]
             },
             {
                 key: "yellow",
                 exit: [3, 9],
                 facing: 90,
-                inside: "orange",
                 cells: [
-                    [5, 7],
-                    [5, 6],
-                    [5, 5]
+                    [8, 6],
+                    [8, 7],
+                    [8, 8],
+                    [8, 9]
                 ]
             },
             {
@@ -11239,10 +11343,10 @@ export default [
                 key: "purple",
                 exit: [3, 3],
                 facing: 90,
-                inside: "red",
                 cells: [
-                    [1, 8],
-                    [1, 7]
+                    [4, 8],
+                    [4, 9],
+                    [4, 10]
                 ]
             },
             {
@@ -11259,12 +11363,11 @@ export default [
                 key: "green",
                 exit: [1, 0],
                 facing: 90,
+                inside: "orange",
                 cells: [
-                    [4, 5],
-                    [3, 5],
-                    [2, 5],
-                    [1, 5],
-                    [0, 5]
+                    [5, 7],
+                    [5, 6],
+                    [5, 5]
                 ]
             },
             {
@@ -11292,13 +11395,13 @@ export default [
         ]
     },
 
-    // Level 87 (nested)
+    // Level 87 (locked) (nested)
     {
         difficulty: "normal",
         rows: 11,
         columns: 9,
 
-        time: 151,
+        time: 157,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 1, 0],
@@ -11321,12 +11424,13 @@ export default [
             [2, 2, "cone"],
             [8, 9, "planter"],
             [4, 10, "service_cabinet"],
-            [5, 6, "cone"],
-            [5, 9, "barrier"],
-            [5, 8, "cargo_container"],
+            [5, 9, "service_cabinet"],
+            [5, 8, "barrier"],
+            [5, 6, "planter"],
             [5, 7, "service_cabinet"],
-            [4, 4, "cargo_container"],
-            [5, 4, "planter"]
+            [3, 9, "service_cabinet"],
+            [1, 9, "service_cabinet"],
+            [0, 9, "planter"]
         ],
 
         walls: [{
@@ -11387,10 +11491,11 @@ export default [
                 key: "orange",
                 exit: [2, 10],
                 facing: 90,
-                inside: "cyan",
+                inside: "blue",
                 cells: [
-                    [4, 5],
-                    [3, 5]
+                    [1, 1],
+                    [2, 1],
+                    [2, 0]
                 ]
             },
             {
@@ -11421,11 +11526,12 @@ export default [
                 key: "green",
                 exit: [0, 6],
                 facing: 90,
-                inside: "blue",
+                lock: 2,
                 cells: [
-                    [1, 1],
-                    [2, 1],
-                    [2, 0]
+                    [3, 3],
+                    [3, 4],
+                    [4, 4],
+                    [5, 4]
                 ]
             },
             {
@@ -11443,11 +11549,12 @@ export default [
                 key: "red",
                 exit: [3, 0],
                 facing: 90,
+                inside: "purple",
                 cells: [
-                    [3, 9],
-                    [2, 9],
-                    [1, 9],
-                    [0, 9]
+                    [5, 3],
+                    [6, 3],
+                    [7, 3],
+                    [7, 4]
                 ]
             },
             {
@@ -11475,13 +11582,13 @@ export default [
         ]
     },
 
-    // Level 88 (nested)
+    // Level 88 (locked) (nested)
     {
         difficulty: "normal",
         rows: 11,
         columns: 9,
 
-        time: 161,
+        time: 167,
 
         pattern: [
             [0, 0, 1, 1, 1, 1, 1, 0, 0],
@@ -11504,15 +11611,11 @@ export default [
             [3, 5, "planter"],
             [2, 5, "barrier"],
             [5, 8, "planter"],
-            [3, 3, "barrier"],
-            [2, 3, "barrier"],
-            [1, 2, "barrier"],
-            [4, 3, "planter"],
-            [2, 2, "service_cabinet"],
-            [8, 3, "barrier"],
-            [8, 2, "planter"],
-            [8, 4, "barrier"],
-            [7, 2, "barrier"]
+            [6, 3, "barrier"],
+            [5, 4, "planter"],
+            [5, 3, "barrier"],
+            [5, 5, "service_cabinet"],
+            [7, 10, "barrier"]
         ],
 
         walls: [{
@@ -11569,11 +11672,12 @@ export default [
                 key: "blue",
                 exit: [8, 9],
                 facing: 90,
+                inside: "green",
                 cells: [
-                    [5, 5],
-                    [5, 4],
-                    [5, 3],
-                    [6, 3]
+                    [2, 2],
+                    [2, 3],
+                    [3, 3],
+                    [4, 3]
                 ]
             },
             {
@@ -11614,6 +11718,7 @@ export default [
                 key: "red",
                 exit: [6, 0],
                 facing: 90,
+                lock: 3,
                 cells: [
                     [6, 4],
                     [6, 5],
@@ -11626,34 +11731,36 @@ export default [
                 key: "pink",
                 exit: [6, 1],
                 facing: 90,
+                inside: "orange",
                 cells: [
-                    [7, 10],
-                    [7, 9],
-                    [7, 8],
-                    [7, 7]
+                    [8, 3],
+                    [8, 2],
+                    [7, 2],
+                    [6, 2]
                 ]
             },
             {
                 key: "orange",
                 exit: [3, 0],
                 facing: 90,
-                inside: "cyan",
                 cells: [
-                    [3, 1],
-                    [4, 1],
-                    [5, 1]
+                    [8, 4],
+                    [8, 3],
+                    [8, 2],
+                    [7, 2],
+                    [6, 2]
                 ]
             },
             {
                 key: "green",
                 exit: [3, 9],
                 facing: 90,
-                inside: "red",
                 cells: [
-                    [6, 5],
-                    [6, 6],
-                    [5, 6],
-                    [4, 6]
+                    [1, 2],
+                    [2, 2],
+                    [2, 3],
+                    [3, 3],
+                    [4, 3]
                 ]
             }
         ]
@@ -12031,13 +12138,13 @@ export default [
         ]
     },
 
-    // Level 91 (nested)
+    // Level 91 (locked) (nested)
     {
         difficulty: "normal",
         rows: 11,
         columns: 9,
 
-        time: 151,
+        time: 157,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -12060,13 +12167,15 @@ export default [
             [7, 0, "barrier"],
             [5, 1, "service_cabinet"],
             [3, 2, "cargo_pallet"],
-            [3, 8, "cargo_pallet"],
-            [2, 8, "service_cabinet"],
-            [4, 8, "barrier"],
-            [2, 1, "cargo_pallet"],
-            [4, 1, "cargo_pallet"],
-            [1, 1, "barrier"],
-            [3, 1, "cargo_pallet"]
+            [8, 3, "service_cabinet"],
+            [8, 5, "barrier"],
+            [8, 2, "barrier"],
+            [8, 4, "barrier"],
+            [6, 2, "service_cabinet"],
+            [8, 1, "cargo_pallet"],
+            [7, 1, "service_cabinet"],
+            [8, 0, "service_cabinet"],
+            [6, 1, "cargo_pallet"]
         ],
 
         walls: [{
@@ -12116,18 +12225,18 @@ export default [
                 key: "cyan",
                 exit: [0, 8],
                 facing: 90,
-                inside: "orange",
                 cells: [
-                    [0, 4],
-                    [0, 5],
-                    [0, 6],
-                    [1, 6]
+                    [4, 1],
+                    [3, 1],
+                    [2, 1],
+                    [1, 1]
                 ]
             },
             {
                 key: "yellow",
                 exit: [3, 3],
                 facing: 90,
+                lock: 4,
                 cells: [
                     [7, 7],
                     [7, 6],
@@ -12151,23 +12260,22 @@ export default [
                 key: "pink",
                 exit: [1, 2],
                 facing: 90,
-                inside: "purple",
                 cells: [
-                    [8, 3],
-                    [8, 4],
-                    [8, 5]
+                    [2, 8],
+                    [3, 8],
+                    [4, 8]
                 ]
             },
             {
                 key: "lime",
                 exit: [1, 4],
                 facing: 90,
+                inside: "blue",
                 cells: [
-                    [8, 0],
-                    [8, 1],
-                    [7, 1],
-                    [6, 1],
-                    [6, 2]
+                    [4, 4],
+                    [4, 5],
+                    [4, 6],
+                    [4, 7]
                 ]
             },
             {
@@ -12184,11 +12292,11 @@ export default [
                 key: "purple",
                 exit: [5, 0],
                 facing: 90,
+                inside: "cyan",
                 cells: [
-                    [8, 2],
-                    [8, 3],
-                    [8, 4],
-                    [8, 5]
+                    [3, 1],
+                    [2, 1],
+                    [1, 1]
                 ]
             },
             {
@@ -12218,13 +12326,13 @@ export default [
         ]
     },
 
-    // Level 92 (nested)
+    // Level 92 (locked) (nested)
     {
         difficulty: "normal",
         rows: 11,
         columns: 9,
 
-        time: 166,
+        time: 172,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -12247,16 +12355,16 @@ export default [
             [1, 5, "barrier"],
             [4, 3, "cargo_container"],
             [3, 5, "planter"],
-            [4, 4, "planter"],
+            [2, 6, "barrier"],
+            [3, 6, "planter"],
             [4, 6, "cargo_pallet"],
-            [2, 6, "service_cabinet"],
-            [3, 6, "cargo_pallet"],
-            [4, 5, "planter"],
-            [1, 10, "barrier"],
-            [1, 9, "cargo_container"],
-            [0, 9, "cargo_pallet"],
-            [0, 8, "planter"],
-            [0, 10, "cargo_container"]
+            [4, 5, "service_cabinet"],
+            [4, 4, "cargo_pallet"],
+            [1, 9, "service_cabinet"],
+            [0, 9, "barrier"],
+            [0, 10, "cargo_container"],
+            [0, 8, "cargo_pallet"],
+            [1, 10, "planter"]
         ],
 
         walls: [{
@@ -12304,6 +12412,7 @@ export default [
                 key: "white",
                 exit: [7, 0],
                 facing: 90,
+                lock: 4,
                 inside: "cyan",
                 cells: [
                     [4, 0],
@@ -12413,13 +12522,13 @@ export default [
         ]
     },
 
-    // Level 93 (nested)
+    // Level 93 (locked) (nested)
     {
         difficulty: "normal",
         rows: 11,
         columns: 9,
 
-        time: 161,
+        time: 167,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -12442,14 +12551,13 @@ export default [
             [5, 0, "cargo_container"],
             [2, 9, "barrier"],
             [6, 8, "cone"],
-            [6, 1, "cargo_container"],
-            [6, 0, "barrier"],
-            [7, 0, "barrier"],
-            [8, 0, "cargo_container"],
-            [8, 4, "cone"],
-            [7, 4, "cargo_container"],
-            [8, 5, "cargo_container"],
-            [6, 4, "cargo_pallet"]
+            [0, 1, "cone"],
+            [1, 1, "cargo_pallet"],
+            [0, 0, "cone"],
+            [1, 0, "cone"],
+            [7, 3, "cargo_container"],
+            [6, 3, "cargo_pallet"],
+            [8, 3, "cargo_container"]
         ],
 
         walls: [{
@@ -12546,16 +12654,18 @@ export default [
                 key: "red",
                 exit: [4, 0],
                 facing: 90,
+                inside: "purple",
                 cells: [
-                    [6, 3],
-                    [7, 3],
-                    [8, 3]
+                    [1, 3],
+                    [1, 2],
+                    [0, 2]
                 ]
             },
             {
                 key: "green",
                 exit: [4, 1],
                 facing: 90,
+                lock: 5,
                 cells: [
                     [5, 8],
                     [5, 7],
@@ -12567,21 +12677,22 @@ export default [
                 key: "cyan",
                 exit: [3, 1],
                 facing: 90,
-                inside: "red",
                 cells: [
-                    [7, 3],
-                    [8, 3]
+                    [8, 5],
+                    [8, 4],
+                    [7, 4],
+                    [6, 4]
                 ]
             },
             {
                 key: "blue",
                 exit: [5, 10],
                 facing: 90,
+                inside: "cyan",
                 cells: [
-                    [1, 1],
-                    [0, 1],
-                    [0, 0],
-                    [1, 0]
+                    [8, 4],
+                    [7, 4],
+                    [6, 4]
                 ]
             },
             {
@@ -12598,11 +12709,11 @@ export default [
                 key: "yellow",
                 exit: [0, 6],
                 facing: 90,
-                inside: "purple",
                 cells: [
-                    [1, 3],
-                    [1, 2],
-                    [0, 2]
+                    [6, 1],
+                    [6, 0],
+                    [7, 0],
+                    [8, 0]
                 ]
             }
         ]
@@ -12996,13 +13107,13 @@ export default [
         ]
     },
 
-    // Level 96 (nested)
+    // Level 96 (locked) (nested)
     {
         difficulty: "normal",
         rows: 11,
         columns: 9,
 
-        time: 171,
+        time: 177,
 
         pattern: [
             [1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -13025,12 +13136,13 @@ export default [
             [7, 9, "planter"],
             [8, 5, "cargo_container"],
             [6, 10, "barrier"],
-            [7, 5, "cargo_container"],
-            [6, 6, "cargo_container"],
-            [6, 5, "barrier"],
-            [7, 6, "planter"],
-            [3, 5, "barrier"],
-            [3, 7, "planter"]
+            [7, 3, "cargo_container"],
+            [7, 0, "barrier"],
+            [7, 2, "planter"],
+            [7, 4, "cargo_container"],
+            [7, 1, "cargo_container"],
+            [3, 7, "planter"],
+            [3, 5, "barrier"]
         ],
 
         walls: [{
@@ -13078,6 +13190,7 @@ export default [
                 key: "white",
                 exit: [0, 8],
                 facing: 90,
+                lock: 7,
                 cells: [
                     [3, 1],
                     [2, 1],
@@ -13089,12 +13202,11 @@ export default [
                 key: "red",
                 exit: [0, 1],
                 facing: 90,
+                inside: "orange",
                 cells: [
-                    [7, 4],
-                    [7, 3],
-                    [7, 2],
-                    [7, 1],
-                    [7, 0]
+                    [6, 6],
+                    [7, 6],
+                    [7, 5]
                 ]
             },
             {
@@ -13125,11 +13237,11 @@ export default [
                 key: "green",
                 exit: [5, 3],
                 facing: 90,
-                inside: "cyan",
+                inside: "blue",
                 cells: [
-                    [6, 7],
-                    [7, 7],
-                    [8, 7]
+                    [2, 2],
+                    [1, 2],
+                    [1, 3]
                 ]
             },
             {
@@ -13148,12 +13260,11 @@ export default [
                 key: "orange",
                 exit: [0, 0],
                 facing: 90,
-                inside: "red",
                 cells: [
-                    [7, 3],
-                    [7, 2],
-                    [7, 1],
-                    [7, 0]
+                    [6, 5],
+                    [6, 6],
+                    [7, 6],
+                    [7, 5]
                 ]
             },
             {
@@ -13582,13 +13693,13 @@ export default [
         ]
     },
 
-    // Level 99 (nested)
+    // Level 99 (locked) (nested)
     {
         difficulty: "normal",
         rows: 11,
         columns: 9,
 
-        time: 171,
+        time: 177,
 
         pattern: [
             [0, 1, 1, 1, 1, 1, 1, 1, 0],
@@ -13611,15 +13722,12 @@ export default [
             [3, 7, "cargo_pallet"],
             [0, 9, "planter"],
             [1, 9, "cargo_container"],
-            [0, 2, "cargo_container"],
-            [2, 4, "cargo_pallet"],
-            [0, 4, "planter"],
-            [0, 3, "planter"],
-            [1, 4, "planter"],
-            [2, 1, "cargo_container"],
-            [3, 2, "planter"],
-            [2, 2, "cargo_pallet"],
-            [3, 1, "planter"]
+            [0, 5, "cargo_pallet"],
+            [1, 5, "cargo_pallet"],
+            [8, 4, "cargo_container"],
+            [8, 5, "cargo_pallet"],
+            [8, 3, "planter"],
+            [8, 2, "cargo_container"]
         ],
 
         walls: [{
@@ -13664,6 +13772,7 @@ export default [
                 key: "yellow",
                 exit: [2, 7],
                 facing: 90,
+                lock: 5,
                 cells: [
                     [6, 3],
                     [6, 2],
@@ -13710,11 +13819,11 @@ export default [
                 key: "red",
                 exit: [2, 9],
                 facing: 90,
+                inside: "cyan",
                 cells: [
-                    [0, 5],
-                    [1, 5],
-                    [2, 5],
-                    [2, 6]
+                    [2, 2],
+                    [3, 2],
+                    [3, 1]
                 ]
             },
             {
@@ -13732,23 +13841,24 @@ export default [
                 key: "orange",
                 exit: [1, 10],
                 facing: 90,
-                cells: [
-                    [8, 2],
-                    [8, 3],
-                    [8, 4],
-                    [8, 5]
-                ]
-            },
-            {
-                key: "lime",
-                exit: [5, 9],
-                facing: 90,
                 inside: "yellow",
                 cells: [
                     [6, 2],
                     [5, 2],
                     [5, 3],
                     [5, 4]
+                ]
+            },
+            {
+                key: "lime",
+                exit: [5, 9],
+                facing: 90,
+                cells: [
+                    [0, 2],
+                    [0, 3],
+                    [0, 4],
+                    [1, 4],
+                    [2, 4]
                 ]
             },
             {
@@ -13766,12 +13876,11 @@ export default [
                 key: "cyan",
                 exit: [6, 10],
                 facing: 90,
-                inside: "purple",
                 cells: [
-                    [4, 2],
-                    [4, 1],
-                    [4, 0],
-                    [5, 0]
+                    [2, 1],
+                    [2, 2],
+                    [3, 2],
+                    [3, 1]
                 ]
             }
         ]

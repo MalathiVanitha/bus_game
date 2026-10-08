@@ -1,55 +1,34 @@
 import SoundManager from './SoundManager.js';
 
-// The change from one screen to the next, as a candy iris: rings in the
-// luggage colours close in on the middle one after another, each with a wavy
-// edge that turns, the last a deep blue sunburst. Once the screen is covered
-// the game's logo pops up in the middle with a convoy driving round it on a
-// ring road, and the screens are swapped underneath. Then the badge pops away,
-// the rings open back out, blue first, and confetti bursts over the new screen.
+// Which change plays between screens. Set it to one of:
+//   'convoy'   - the home convoy drives across, a blue road filling in behind
+//                it, and drives across again to push the blue away
+//   'clouds'   - rows of clouds drift across until the screen is all cloud,
+//                then drift on off it
+//   'garage'   - a garage's roller door comes down and rolls back up
+//   'suitcase' - a suitcase grows from the middle to fill the screen, then
+//                opens down its zip
+//   'tiles'    - rounded tiles pop up in a diagonal wave, then pop away
+//   'iris'     - a white rim and the sky close in on the middle, then open
+//   'random'   - a different one of the above each time
+// For a quick look without changing this, add ?transition=<name> to the URL.
+export const TRANSITION_STYLE = 'convoy';
+
+// The change from one screen to the next. Whatever the style, it covers the
+// screen, the game's logo settles in while the screens are swapped
+// underneath, then the logo fades and the style clears to show the new
+// screen.
 //
 // Everything is drawn from one clock of its own, stepped once a frame, so a
 // slow frame only slows the change down rather than making it jump.
 
-// The rings, from the one that leads to the one that closes last (and so lies
-// on top). Each sets off LAG ms after the change starts; opening, the order
-// runs the other way.
-const RINGS = [
-    { color: 0xffffff, lag: 0, spin: 1 },
-    { color: 0xffd23f, lag: 45, spin: -1 },
-    { color: 0xff8a1f, lag: 115, spin: 1 },
-    { color: 0xff4f8b, lag: 185, spin: -1 },
-    { color: 0x2f73dc, lag: 255, spin: 1 }
-];
-
-// The wavy edge: how many lobes, how deep, and how fast they turn.
-const LOBES = 9;
-const WAVE = 0.07;
-const WAVE_SPIN = 0.0016;
-const SEGMENTS = 120;
-
-// The sunburst on the blue ring.
-const RAYS = 18;
-const RAY_COLOR = 0x4f96f2;
-const RAY_ALPHA = 0.55;
-const RAY_SPIN = 0.00035;
-const RAY_GAP = 14;
-
-// Timing, in ms of the change's own clock.
-const CLOSE_TIME = 460;
-const COVERED = CLOSE_TIME + RINGS[RINGS.length - 1].lag;
-const HOLD_TIME = 520;
-const BADGE_OUT = 220;
-const OPEN_TIME = 520;
-const OPEN_AT = COVERED + HOLD_TIME;
-// The rings start opening a little after the badge starts popping away.
-const OPEN_DELAY = 110;
-const OPEN_LAST_LAG = RINGS[RINGS.length - 1].lag;
-const OPENED = OPEN_AT + OPEN_DELAY + OPEN_LAST_LAG + OPEN_TIME;
-// When the new screen starts to show: a little way into the last ring (the
-// lead one, over the screen) opening, while the hole is still a speck, so
-// the screen's own intro plays out as the iris opens rather than unseen
-// behind it.
-const REVEAL_AT = OPEN_AT + OPEN_DELAY + OPEN_LAST_LAG + OPEN_TIME * 0.3;
+// The game's button blue, with a lighter and a darker one for detail.
+const BLUE = 0x3f8ff0;
+const BLUE_LIGHT = 0x4b99f3;
+const BLUE_DARK = 0x2f73dc;
+const SKY = 0x98ddfc;
+const WHITE = 0xffffff;
+const SHADOW = 0x101a33;
 
 // Frames let go by after the swap before the clock runs on, so any hitch from
 // building the new screen falls while it is covered.
@@ -57,52 +36,571 @@ const SETTLE_FRAMES = 2;
 // The most the clock moves in one frame, whatever the frame took.
 const MAX_STEP = 1000 / 30;
 
-// The badge: the game's logo, as home shows it, on a soft glow, with a ring road round it.
-const BADGE_IN = 380;
+// The logo, as home shows it, in the middle while the screen is covered. It
+// starts settling in a little before the cover is complete, and is gone a
+// little after the cover starts clearing.
 const LOGO_SHEET = 'sheet';
 const LOGO_ART = 'home/logo';
-const LOGO_WIDTH = 0.66;
-const GLOW = 0xffffff;
-const GLOW_ALPHA = 0.18;
-const ROAD = 0x1d4fa8;
-const ROAD_ALPHA = 0.85;
-const ROAD_LINE = 0xffffff;
-const ROAD_LINE_ALPHA = 0.7;
-const ROAD_DASHES = 28;
+const LOGO_WIDTH = 0.6;
+const LOGO_IN_EARLY = 120;
+const LOGO_IN = 320;
+const LOGO_OUT_EARLY = 60;
+const LOGO_OUT = 160;
 
-// The convoy on the ring road, built the way convoy.js builds them, one
-// vehicle to a cell, from the same art.
-const VEHICLE_SHEET = 'luggages';
-const TRACTOR_ART = 'tractor_front';
-const CART_ART = 'luggage_cart';
-const ART_MARGIN = 200 / 220;
-const TRACTOR_ART_CELL = 220 * ART_MARGIN;
-const CART_ART_CELL = 314 * ART_MARGIN;
-const VEHICLE_FIT = 1.06;
-const TRACTOR_FACING = Math.PI / 2;
-const CART_FACING = -Math.PI / 2;
-const LINK_COLOR = 0x23262d;
-const LINK_WIDTH = 0.11;
-const CARTS = 4;
-// Radians a millisecond round the ring.
-const DRIVE = 0.0034;
+const Ease = Phaser.Math.Easing;
+const clamp01 = (v) => Phaser.Math.Clamp(v, 0, 1);
 
-const COLORS = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'lime', 'white'];
+// A style draws the cover: drawClose(ms) from nothing to full over `close`
+// ms, held full for `hold` ms, then drawOpen(ms) from full to nothing over
+// `open` ms. The new screen starts to show `reveal` of the way into opening.
+class Style {
+    constructor(transition) {
+        this.scene = transition.scene;
+        this.root = this.scene.add.container(0, 0);
+        this.root.visible = false;
+        transition.addAt(this.root, transition.getIndex(transition.logo));
+    }
 
-const SHADOW = 0x101a33;
-const SHADOW_ALPHA = 0.25;
-const SHADOW_DY = 6;
+    layout(width, height) {
+        this.width = width;
+        this.height = height;
+        this.left = -width / 2;
+        this.top = -height / 2;
+    }
 
-// Confetti thrown out as the rings open.
-const CONFETTI = 44;
-const CONFETTI_COLORS = [0xff4f4f, 0xff8a1f, 0xffd23f, 0x5ad35a, 0x37d0e0, 0x4f96f2, 0xa66bff, 0xff4f8b];
-const CONFETTI_TIME = 820;
-const CONFETTI_AT = OPEN_AT + OPEN_DELAY / 2;
-const CONFETTI_STAGGER = 60;
-const GRAVITY = 0.0016;
+    // Fresh choices for each run.
+    begin() {}
+}
 
-// The change is over once the rings are open and the confetti has fallen.
-const TOTAL = Math.max(OPENED, CONFETTI_AT + CONFETTI_STAGGER + CONFETTI_TIME);
+// The home convoy drives in from the right and out to the left, the blue
+// filling in behind its last cart; then it drives across again, pushing the
+// blue off ahead of it and leaving the new screen behind.
+const CONVOY_ART = 'home/convoy';
+
+class ConvoyStyle extends Style {
+    constructor(transition) {
+        super(transition);
+
+        this.close = 760;
+        this.hold = 240;
+        this.open = 760;
+        this.reveal = 0.02;
+
+        this.cover = this.scene.add.graphics();
+        this.root.add(this.cover);
+
+        this.shadow = this.scene.add.image(0, 0, 'sheet', CONVOY_ART);
+        this.shadow.setTintFill(SHADOW);
+        this.shadow.alpha = 0.2;
+        this.root.add(this.shadow);
+
+        this.convoy = this.scene.add.image(0, 0, 'sheet', CONVOY_ART);
+        this.root.add(this.convoy);
+    }
+
+    layout(width, height) {
+        super.layout(width, height);
+
+        this.size = Math.min(width * 0.95, 560);
+        this.convoy.setScale(this.size / this.convoy.width);
+        this.shadow.setScale(this.convoy.scale);
+        // Its ends, in from the art's edges: the front bumper and the last cart.
+        this.nose = -this.size * 0.47;
+        this.tail = this.size * 0.45;
+    }
+
+    // Where the convoy's middle is, t of the way across.
+    drive(t) {
+        const from = this.width / 2 + this.size / 2 + 10;
+        const to = -from;
+
+        return from + (to - from) * Ease.Sine.InOut(t);
+    }
+
+    place(x, at) {
+        const bounce = Math.abs(Math.sin(at / 70)) * 3;
+
+        this.convoy.setPosition(x, -bounce);
+        this.shadow.setPosition(x, 10);
+    }
+
+    // The blue between from and to, with a white kerb along the edge at kerb.
+    fill(from, to, kerb) {
+        const g = this.cover;
+
+        g.clear();
+
+        if (to <= from) return;
+
+        g.fillStyle(BLUE, 1);
+        g.fillRect(from, this.top, to - from, this.height);
+
+        if (kerb > this.left && kerb < -this.left) {
+            g.fillStyle(WHITE, 1);
+            g.fillRect(kerb - 5, this.top, 10, this.height);
+        }
+    }
+
+    drawClose(ms, at) {
+        const x = this.drive(ms / this.close);
+        const edge = x + this.tail;
+
+        this.fill(edge, -this.left, edge);
+        this.place(x, at);
+    }
+
+    drawOpen(ms, at) {
+        const x = this.drive(ms / this.open);
+        const edge = x + this.nose;
+
+        this.fill(this.left, edge, edge);
+        this.place(x, at);
+    }
+}
+
+// Rows of clouds drift in from the right, each trailing cloud-white behind
+// it, until the screen is all cloud; then they drift on to the left, the new
+// screen coming in behind the last cloud of each row.
+const CLOUD_ART = 'home/cloud';
+const CLOUD_ART_W = 300;
+const CLOUD_ART_H = 140;
+const CLOUD_COLOR = 0xf6fafb;
+
+class CloudsStyle extends Style {
+    constructor(transition) {
+        super(transition);
+
+        this.close = 640;
+        this.hold = 260;
+        this.open = 640;
+        this.reveal = 0.1;
+
+        // How long one row takes to drift across; the rows set off at odd
+        // times within the rest.
+        this.travel = 500;
+
+        this.cover = this.scene.add.graphics();
+        this.root.add(this.cover);
+
+        this.clouds = [];
+        this.lags = [];
+        this.sizes = [];
+    }
+
+    layout(width, height) {
+        super.layout(width, height);
+
+        this.cloudWidth = width * 0.75;
+        this.cloudHeight = this.cloudWidth * CLOUD_ART_H / CLOUD_ART_W;
+        this.rowHeight = this.cloudHeight * 0.4;
+        this.rows = Math.ceil(height / this.rowHeight);
+
+        while (this.clouds.length < this.rows) {
+            const cloud = this.scene.add.image(0, 0, 'sheet', CLOUD_ART);
+            this.clouds.push(cloud);
+            this.root.add(cloud);
+        }
+
+        // Each cloud sits a little high on its row, where its puffs are
+        // deepest.
+        this.clouds.forEach((cloud, i) => {
+            cloud.visible = i < this.rows;
+            cloud.y = this.top + (i + 0.5) * this.rowHeight - this.cloudHeight * 0.1;
+        });
+    }
+
+    begin() {
+        this.lags = this.clouds.map(() => Math.random() * (this.close - this.travel));
+        this.sizes = this.clouds.map(() => 0.9 + Math.random() * 0.25);
+    }
+
+    // Where row i's cloud is, ms into its drift across.
+    drift(i, ms) {
+        const t = clamp01((ms - this.lags[i]) / this.travel);
+        const from = this.width / 2 + this.cloudWidth * this.sizes[i] / 2;
+
+        return from - 2 * from * Ease.Sine.InOut(t);
+    }
+
+    // Leading, the white is behind (right of) each cloud; trailing, ahead of it.
+    draw(ms, leading) {
+        const g = this.cover;
+
+        g.clear();
+        g.fillStyle(CLOUD_COLOR, 1);
+
+        for (let i = 0; i < this.rows; i++) {
+            const cloud = this.clouds[i];
+            const x = this.drift(i, ms);
+            const scale = this.cloudWidth * this.sizes[i] / CLOUD_ART_W;
+            const reach = this.cloudWidth * this.sizes[i] * 0.2;
+            const y = this.top + i * this.rowHeight;
+
+            cloud.x = x;
+            cloud.setScale(leading ? scale : -scale, scale);
+
+            if (leading) g.fillRect(x + reach, y, -this.left - x - reach + 1, this.rowHeight + 1);
+            else g.fillRect(this.left - 1, y, x - reach - this.left + 1, this.rowHeight + 1);
+        }
+    }
+
+    drawClose(ms) {
+        this.draw(ms, true);
+    }
+
+    drawOpen(ms) {
+        this.draw(ms, false);
+    }
+}
+
+// A garage's roller door, slats and all, comes down from the top and rolls
+// back up.
+const DOOR = 0xe8eef6;
+const DOOR_GROOVE = 0xc4d0de;
+const DOOR_SHINE = 0xffffff;
+const DOOR_SLATS = 13;
+
+class GarageStyle extends Style {
+    constructor(transition) {
+        super(transition);
+
+        this.close = 520;
+        this.hold = 260;
+        this.open = 560;
+        this.reveal = 0.08;
+
+        this.door = this.scene.add.graphics();
+        this.root.add(this.door);
+    }
+
+    layout(width, height) {
+        super.layout(width, height);
+
+        this.slat = height / DOOR_SLATS;
+        this.bar = Math.max(18, this.slat * 0.55);
+    }
+
+    // The door with its bottom edge at y.
+    draw(y) {
+        const g = this.door;
+        const left = this.left;
+        const width = this.width;
+
+        g.clear();
+
+        if (y <= this.top) return;
+
+        // A soft shadow under the bottom bar.
+        g.fillStyle(SHADOW, 0.18);
+        g.fillRect(left, y, width, 10);
+
+        g.fillStyle(DOOR, 1);
+        g.fillRect(left, this.top, width, y - this.top);
+
+        // The slats ride with the door, counted up from its bottom edge.
+        for (let k = 1; ; k++) {
+            const line = y - this.bar - k * this.slat;
+
+            if (line < this.top - 8) break;
+
+            g.fillStyle(DOOR_GROOVE, 1);
+            g.fillRect(left, line, width, 5);
+            g.fillStyle(DOOR_SHINE, 1);
+            g.fillRect(left, line + 5, width, 3);
+        }
+
+        // The bottom bar, in blue, with its handle.
+        g.fillStyle(BLUE, 1);
+        g.fillRect(left, y - this.bar, width, this.bar);
+        g.fillStyle(BLUE_DARK, 1);
+        g.fillRect(left, y - 4, width, 4);
+
+        const handle = Math.min(120, width * 0.26);
+
+        g.fillStyle(WHITE, 0.9);
+        g.fillRoundedRect(-handle / 2, y - this.bar * 0.7, handle, this.bar * 0.36, this.bar * 0.18);
+    }
+
+    drawClose(ms) {
+        const t = Ease.Cubic.InOut(ms / this.close);
+
+        this.draw(this.top + (this.height + 10) * t);
+    }
+
+    drawOpen(ms) {
+        const t = Ease.Cubic.InOut(ms / this.open);
+        const down = -this.top + 10;
+        const up = this.top - 20;
+
+        this.draw(down + (up - down) * t);
+    }
+}
+
+// A suitcase grows out of the middle until its side fills the screen; then it
+// opens down its zip, the halves sliding apart to show the new screen.
+class SuitcaseStyle extends Style {
+    constructor(transition) {
+        super(transition);
+
+        this.close = 560;
+        this.hold = 240;
+        this.open = 520;
+        this.reveal = 0.05;
+
+        this.case = this.scene.add.graphics();
+        this.root.add(this.case);
+    }
+
+    layout(width, height) {
+        super.layout(width, height);
+
+        // Full size, a little past the screen so even its round corners are.
+        this.radius = Math.min(width, height) * 0.08;
+        this.caseWidth = width + this.radius * 2;
+        this.caseHeight = height + this.radius * 2;
+    }
+
+    // The case at scale s, its halves pulled split apart from the zip.
+    draw(s, split) {
+        const g = this.case;
+
+        g.clear();
+
+        if (s <= 0.001) return;
+
+        const w = this.caseWidth * s;
+        const h = this.caseHeight * s;
+        const r = this.radius * s;
+        const top = -h / 2;
+        const half = w / 2;
+
+        // While it is shut: the handle on top, the wheels underneath and an
+        // outline round it, all past the screen's edges by the time it fills.
+        if (split <= 0) {
+            const hw = w * 0.36;
+            const hh = h * 0.07;
+            const post = w * 0.07;
+            const wheel = w * 0.06;
+            const line = 3 * s + 2;
+
+            g.fillStyle(BLUE_DARK, 1);
+            g.fillRoundedRect(-hw / 2, top - hh, hw, post, post / 2);
+            g.fillRect(-hw / 2, top - hh + post / 2, post, hh - post / 2 + 2);
+            g.fillRect(hw / 2 - post, top - hh + post / 2, post, hh - post / 2 + 2);
+
+            g.fillStyle(SHADOW, 0.85);
+            g.fillCircle(-half + r + wheel, -top + wheel * 0.5, wheel);
+            g.fillCircle(half - r - wheel, -top + wheel * 0.5, wheel);
+
+            g.fillStyle(BLUE_DARK, 1);
+            g.fillRoundedRect(-half - line, top - line, w + line * 2, h + line * 2, r + line);
+        }
+
+        const zip = 3 * s + 2;
+
+        [-1, 1].forEach((side) => {
+            const offset = side * split;
+            const x = side < 0 ? offset - half : offset;
+            const corners = side < 0 ? { tl: r, tr: 0, bl: r, br: 0 } : { tl: 0, tr: r, bl: 0, br: r };
+
+            g.fillStyle(BLUE, 1);
+            g.fillRoundedRect(x, top, half, h, corners);
+
+            // A strap down each half.
+            g.fillStyle(BLUE_LIGHT, 1);
+            g.fillRect(offset + side * w * 0.36 - w * 0.03, top, w * 0.06, h);
+
+            // The zip, along the edge where the halves meet.
+            g.fillStyle(BLUE_DARK, 1);
+            g.fillRect(side < 0 ? offset - zip : offset, top, zip, h);
+        });
+    }
+
+    drawClose(ms) {
+        const t = ms / this.close;
+
+        this.root.rotation = Math.sin(t * Math.PI) * 0.12;
+        this.draw(Ease.Cubic.In(t), 0);
+    }
+
+    drawOpen(ms) {
+        const t = Ease.Cubic.InOut(ms / this.open);
+
+        this.root.rotation = 0;
+        this.draw(1, t * (this.width / 2 + this.radius * 2));
+    }
+}
+
+// Rounded squares like the board's cells pop up in a diagonal wave from a
+// corner, and pop away in the same sweep.
+class TilesStyle extends Style {
+    constructor(transition) {
+        super(transition);
+
+        // How long the wave takes to cross, and each tile to pop.
+        this.spread = 280;
+        this.pop = 230;
+
+        this.close = this.spread + this.pop;
+        this.hold = 280;
+        this.open = this.spread + this.pop;
+        this.reveal = 0.16;
+
+        this.tiles = this.scene.add.graphics();
+        this.root.add(this.tiles);
+    }
+
+    layout(width, height) {
+        super.layout(width, height);
+
+        this.cell = Math.ceil(Math.min(width, height) / 6);
+        this.cols = Math.ceil(width / this.cell);
+        this.rows = Math.ceil(height / this.cell);
+    }
+
+    // Each run sweeps from a corner of its own.
+    begin() {
+        this.flipX = Math.random() < 0.5;
+        this.flipY = Math.random() < 0.5;
+    }
+
+    lag(col, row) {
+        const c = this.flipX ? this.cols - 1 - col : col;
+        const r = this.flipY ? this.rows - 1 - row : row;
+
+        return (c + r) / Math.max(1, this.cols + this.rows - 2) * this.spread;
+    }
+
+    // size(lag) is how big a tile with that lag is, from 0 to 1; its corners
+    // square off as it grows, so full tiles meet without gaps.
+    draw(size) {
+        const g = this.tiles;
+        const cell = this.cell;
+
+        g.clear();
+
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                const s = size(this.lag(col, row));
+
+                if (s <= 0.01) continue;
+
+                const side = cell * s;
+                const corner = cell * 0.3 * clamp01(1 - s) * Math.min(1, s * 2);
+                const x = this.left + (col + 0.5) * cell - side / 2;
+                const y = this.top + (row + 0.5) * cell - side / 2;
+
+                g.fillStyle((row + col) % 2 ? BLUE_LIGHT : BLUE, 1);
+
+                if (corner > 0.5) g.fillRoundedRect(x, y, side, side, corner);
+                else g.fillRect(x, y, side, side);
+            }
+        }
+    }
+
+    drawClose(ms) {
+        this.draw((lag) => Ease.Back.Out(clamp01((ms - lag) / this.pop), 1.3));
+    }
+
+    drawOpen(ms) {
+        this.draw((lag) => 1 - Ease.Back.In(clamp01((ms - lag) / this.pop), 1.3));
+    }
+}
+
+// A white rim and the sky close in on the middle, then open, sky first.
+class IrisStyle extends Style {
+    constructor(transition) {
+        super(transition);
+
+        this.closeTime = 380;
+        this.openTime = 420;
+        this.lag = 50;
+
+        this.close = this.closeTime + this.lag;
+        this.hold = 300;
+        this.open = this.openTime + this.lag;
+        this.reveal = 0.2;
+
+        this.iris = this.scene.add.graphics();
+        this.root.add(this.iris);
+    }
+
+    layout(width, height) {
+        super.layout(width, height);
+
+        this.far = Math.hypot(width, height) / 2 + 4;
+        this.outer = this.far * 1.25;
+    }
+
+    // Everything outside a circle of radius r.
+    ring(g, r, color) {
+        g.fillStyle(color, 1);
+
+        if (r <= 0) {
+            g.fillRect(-this.outer, -this.outer, this.outer * 2, this.outer * 2);
+            return;
+        }
+
+        const segments = 72;
+        const outer = this.outer;
+
+        for (let s = 0; s < segments; s++) {
+            const a = s / segments * Math.PI * 2;
+            const b = (s + 1) / segments * Math.PI * 2;
+            const ax = Math.cos(a);
+            const ay = Math.sin(a);
+            const bx = Math.cos(b);
+            const by = Math.sin(b);
+
+            g.fillTriangle(ax * r, ay * r, bx * r, by * r, ax * outer, ay * outer);
+            g.fillTriangle(bx * r, by * r, bx * outer, by * outer, ax * outer, ay * outer);
+        }
+    }
+
+    // The white ring under the sky one; once the sky is shut it is all that shows.
+    draw(white, sky) {
+        const g = this.iris;
+
+        g.clear();
+
+        if (white < this.far && sky > 0) this.ring(g, white, WHITE);
+        if (sky < this.far) this.ring(g, sky, SKY);
+    }
+
+    drawClose(ms) {
+        const r = (lag) => this.far * (1 - Ease.Cubic.InOut(clamp01((ms - lag) / this.closeTime)));
+
+        this.draw(r(0), r(this.lag));
+    }
+
+    drawOpen(ms) {
+        const r = (lag) => this.far * Ease.Cubic.InOut(clamp01((ms - lag) / this.openTime));
+
+        this.draw(r(this.lag), r(0));
+    }
+}
+
+const STYLES = {
+    convoy: ConvoyStyle,
+    clouds: CloudsStyle,
+    garage: GarageStyle,
+    suitcase: SuitcaseStyle,
+    tiles: TilesStyle,
+    iris: IrisStyle
+};
+
+// The style asked for: from the URL if it names one, else TRANSITION_STYLE.
+function chosenStyle() {
+    let name = TRANSITION_STYLE;
+
+    try {
+        name = new URLSearchParams(window.location.search).get('transition') || name;
+    } catch (e) {
+        // No URL to read; keep the setting.
+    }
+
+    return name === 'random' || STYLES[name] ? name : 'convoy';
+}
 
 export class Transition extends Phaser.GameObjects.Container {
     constructor(scene, x = 0, y = 0) {
@@ -116,64 +614,34 @@ export class Transition extends Phaser.GameObjects.Container {
         this.reveals = [];
         this.revealed = true;
 
+        this.choice = chosenStyle();
+        this.styles = {};
+
         // Swallows taps while a change is under way.
         this.blocker = this.scene.add.zone(0, 0, 10, 10);
         this.add(this.blocker);
 
-        this.iris = this.scene.add.graphics();
-        this.add(this.iris);
-
-        this.badge = this.scene.add.container(0, 0);
-        this.add(this.badge);
-
-        this.road = this.scene.add.graphics();
-        this.badge.add(this.road);
-
-        this.convoy = this.scene.add.container(0, 0);
-        this.badge.add(this.convoy);
-
+        // Always on top; each style puts its own pieces in under it.
         this.logo = this.scene.add.image(0, 0, LOGO_SHEET, LOGO_ART);
-        this.badge.add(this.logo);
-
-        this.buildConvoy();
-
-        this.confetti = [];
-        for (let i = 0; i < CONFETTI; i++) {
-            const bit = this.scene.add.rectangle(0, 0, 14, 22, CONFETTI_COLORS[i % CONFETTI_COLORS.length]);
-            this.confetti.push(bit);
-            this.add(bit);
-        }
+        this.add(this.logo);
 
         this.visible = false;
     }
 
-    buildConvoy() {
-        this.links = [];
-        this.vehicles = [];
+    // The styles this setting can play: all of them for 'random'.
+    names() {
+        return this.choice === 'random' ? Object.keys(STYLES) : [this.choice];
+    }
 
-        for (let k = 0; k < CARTS; k++) {
-            const link = this.scene.add.rectangle(0, 0, 10, 10, LINK_COLOR);
-            this.links.push(link);
-            this.convoy.add(link);
+    // Each style is built the first time it is wanted.
+    styleFor(name) {
+        if (!this.styles[name]) {
+            this.styles[name] = new STYLES[name](this);
+
+            if (this.builtFor) this.styles[name].layout(this.layoutWidth, this.layoutHeight);
         }
 
-        const shadows = [];
-        const arts = [];
-
-        for (let k = CARTS; k >= 0; k--) {
-            const shadow = this.scene.add.sprite(0, 0, VEHICLE_SHEET, 'red/' + CART_ART);
-            shadow.setTintFill(SHADOW);
-            shadow.alpha = SHADOW_ALPHA;
-            shadows.push(shadow);
-
-            const art = this.scene.add.sprite(0, 0, VEHICLE_SHEET, 'red/' + CART_ART);
-            arts.push(art);
-
-            this.vehicles[k] = { art, shadow, tractor: k === 0 };
-        }
-
-        shadows.forEach((s) => this.convoy.add(s));
-        arts.forEach((a) => this.convoy.add(a));
+        return this.styles[name];
     }
 
     // Sizes that follow the screen, worked out again only when it changes.
@@ -183,73 +651,30 @@ export class Transition extends Phaser.GameObjects.Container {
         if (this.builtFor === size) return;
 
         this.builtFor = size;
+        this.layoutWidth = width;
+        this.layoutHeight = height;
 
-        // The rings start (and end) far enough out that even the deepest dip
-        // of their wavy edge is past the corners.
-        this.far = Math.hypot(width, height) / 2 / (1 - WAVE) + 4;
-        this.outer = this.far * 1.25;
+        this.logoScale = Math.min(width, height) * LOGO_WIDTH / this.logo.width;
 
-        const short = Math.min(width, height);
-
-        this.track = short * 0.36;
-        this.vehicle = Math.min(84, this.track * 0.42);
-
-        this.logo.setScale(this.track * 2 * LOGO_WIDTH / this.logo.width);
-
-        this.road.clear();
-        this.road.fillStyle(GLOW, GLOW_ALPHA);
-        this.road.fillCircle(0, 0, this.track + this.vehicle * 1.1);
-        this.road.lineStyle(this.vehicle * 1.02, ROAD, ROAD_ALPHA);
-        this.road.strokeCircle(0, 0, this.track);
-
-        this.road.lineStyle(Math.max(3, this.vehicle * 0.06), ROAD_LINE, ROAD_LINE_ALPHA);
-        for (let i = 0; i < ROAD_DASHES; i++) {
-            const a = i / ROAD_DASHES * Math.PI * 2;
-            this.road.beginPath();
-            this.road.arc(0, 0, this.track, a, a + Math.PI / ROAD_DASHES * 0.9);
-            this.road.strokePath();
-        }
-
-        this.links.forEach((link) => link.setSize(this.vehicle, LINK_WIDTH * this.vehicle));
-
-        this.vehicles.forEach((v) => {
-            const scale = this.vehicle * VEHICLE_FIT / (v.tractor ? TRACTOR_ART_CELL : CART_ART_CELL);
-            v.art.setScale(scale);
-            v.shadow.setScale(scale);
-        });
+        Object.values(this.styles).forEach((style) => style.layout(width, height));
     }
 
-    // Each run gets its own colours, and the sunburst and badge a fresh turn.
-    dress() {
-        const first = Phaser.Math.Between(0, COLORS.length - 1);
+    // Puts style in charge, and its timings on the clock.
+    use(style) {
+        Object.values(this.styles).forEach((other) => { other.root.visible = other === style; });
 
-        this.vehicles.forEach((v, k) => {
-            const color = COLORS[(first + (v.tractor ? 0 : 3 + k * 2)) % COLORS.length];
-            const frame = color + '/' + (v.tractor ? TRACTOR_ART : CART_ART);
+        this.style = style;
 
-            v.art.setFrame(frame);
-            v.shadow.setFrame(frame);
-        });
-
-        this.turn = Math.random() * Math.PI * 2;
-        this.flip = Math.random() < 0.5 ? 1 : -1;
-
-        this.confetti.forEach((bit) => {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 0.55 + Math.random() * 0.9;
-
-            bit.vx = Math.cos(angle) * speed;
-            bit.vy = Math.sin(angle) * speed - 0.35;
-            bit.spin = (Math.random() - 0.5) * 0.03;
-            bit.start = Math.random() * CONFETTI_STAGGER;
-            bit.setSize(10 + Math.random() * 8, 16 + Math.random() * 12);
-        });
+        this.covered = style.close;
+        this.openAt = style.close + style.hold;
+        this.total = this.openAt + style.open;
+        this.revealAt = this.openAt + style.open * style.reveal;
     }
 
     /**
-     * Closes the iris, calls onCovered to swap what is under it, then opens it
-     * and calls onDone. A change asked for while one is running is dropped,
-     * so a double tap cannot start two.
+     * Covers the screen, calls onCovered to swap what is under it, then
+     * clears it and calls onDone. A change asked for while one is running is
+     * dropped, so a double tap cannot start two.
      */
     run(onCovered, onDone = null) {
         if (this.running) return false;
@@ -265,7 +690,11 @@ export class Transition extends Phaser.GameObjects.Container {
         this.blocker.setInteractive();
 
         this.layout(width, height);
-        this.dress();
+
+        const style = this.styleFor(Phaser.Utils.Array.GetRandom(this.names()));
+
+        this.use(style);
+        style.begin();
 
         this.onCovered = onCovered;
         this.onDone = onDone;
@@ -276,7 +705,7 @@ export class Transition extends Phaser.GameObjects.Container {
 
         this.draw(0);
 
-        SoundManager.fx(this.scene, 'whoosh', 0.55);
+        SoundManager.fx(this.scene, 'whoosh', 0.45);
 
         this.scene.events.on('update', this.tick, this);
 
@@ -296,7 +725,7 @@ export class Transition extends Phaser.GameObjects.Container {
     reveal() {
         this.revealed = true;
 
-        SoundManager.fx(this.scene, 'whoosh', 0.4, 300);
+        SoundManager.fx(this.scene, 'whoosh', 0.3, 300);
 
         const reveals = this.reveals.splice(0);
 
@@ -307,10 +736,10 @@ export class Transition extends Phaser.GameObjects.Container {
         const step = Math.min(delta || 0, MAX_STEP);
 
         if (this.stage === 'closing') {
-            this.clock = Math.min(COVERED, this.clock + step);
+            this.clock = Math.min(this.covered, this.clock + step);
             this.draw(this.clock);
 
-            if (this.clock < COVERED) return;
+            if (this.clock < this.covered) return;
 
             this.stage = 'settling';
             this.settleFrames = SETTLE_FRAMES;
@@ -328,37 +757,43 @@ export class Transition extends Phaser.GameObjects.Container {
             return;
         }
 
-        this.clock = Math.min(TOTAL, this.clock + step);
+        this.clock = Math.min(this.total, this.clock + step);
 
         // Before this frame's draw, so whatever the reveal sets up is shown in
-        // its starting pose on the frame the hole first opens.
-        if (!this.revealed && this.clock >= REVEAL_AT) this.reveal();
+        // its starting pose on the frame the screen first shows.
+        if (!this.revealed && this.clock >= this.revealAt) this.reveal();
 
         this.draw(this.clock);
 
-        if (this.clock < TOTAL) return;
+        if (this.clock < this.total) return;
 
         this.scene.events.off('update', this.tick, this);
 
         this.stage = null;
         this.running = false;
         this.visible = false;
-        this.iris.clear();
         this.blocker.disableInteractive();
 
         if (this.onDone) this.onDone();
     }
 
-    // Everything the change shows, put through the renderer once, unseen, so
-    // its art is already on the GPU and the first real change has no hitch.
+    // Every style this setting can play, put through the renderer once,
+    // unseen, so its art is already on the GPU and the first real change has
+    // no hitch.
     warmUp() {
         if (this.running || this.warmed) return;
 
         this.warmed = true;
 
-        this.dress();
-        this.draw(OPEN_AT + OPEN_DELAY + 80);
+        const styles = this.names().map((name) => this.styleFor(name));
 
+        styles.forEach((style) => {
+            style.begin();
+            style.drawClose(style.close * 0.6, 0);
+            style.root.visible = true;
+        });
+
+        this.logo.visible = true;
         this.alpha = 0.001;
         this.visible = true;
 
@@ -367,195 +802,48 @@ export class Transition extends Phaser.GameObjects.Container {
 
             this.visible = false;
             this.alpha = 1;
-            this.iris.clear();
+            styles.forEach((style) => { style.root.visible = false; });
         });
-    }
-
-    // How far out ring i's edge is at this point of the clock: from far out
-    // down to nothing while closing, and back out again while opening.
-    ringRadius(i, at) {
-        const ring = RINGS[i];
-
-        if (at < OPEN_AT) {
-            const t = Phaser.Math.Clamp((at - ring.lag) / CLOSE_TIME, 0, 1);
-
-            return this.far * (1 - Phaser.Math.Easing.Cubic.InOut(t));
-        }
-
-        // Opening, the top ring (blue) goes first and the lead ring last.
-        const lag = OPEN_LAST_LAG - ring.lag;
-        const t = Phaser.Math.Clamp((at - OPEN_AT - OPEN_DELAY - lag) / OPEN_TIME, 0, 1);
-
-        return this.far * Phaser.Math.Easing.Cubic.In(t);
     }
 
     draw(at) {
-        const g = this.iris;
+        const style = this.style;
 
-        g.clear();
+        if (at < this.openAt) style.drawClose(Math.min(at, style.close), at);
+        else style.drawOpen(Math.min(at - this.openAt, style.open), at);
 
-        const radii = RINGS.map((ring, i) => this.ringRadius(i, at));
-        const top = RINGS.length - 1;
-
-        // Once the top ring is shut, it is all that shows.
-        const from = radii[top] <= 0 ? top : 0;
-
-        for (let i = from; i < RINGS.length; i++) {
-            if (radii[i] >= this.far) continue;
-
-            this.drawRing(g, radii[i], RINGS[i].color, at * WAVE_SPIN * RINGS[i].spin * this.flip + i);
-        }
-
-        if (radii[top] < this.far) this.drawRays(g, radii[top], at);
-
-        this.drawBadge(at);
-        this.drawConfetti(at);
+        this.drawLogo(at);
     }
 
-    // Everything outside a wavy circle of radius r, as a band of quads out to
-    // well past the corners.
-    drawRing(g, r, color, phase) {
-        g.fillStyle(color, 1);
+    // The logo grows gently into place as the cover completes, floats a
+    // little while the screens swap, and shrinks away as the cover clears.
+    drawLogo(at) {
+        const inAt = this.covered - LOGO_IN_EARLY;
+        const outAt = this.openAt - LOGO_OUT_EARLY;
+        const shown = at - inAt;
 
-        const outer = this.outer;
-        let px = 0;
-        let py = 0;
-        let ox = 0;
-        let oy = 0;
-
-        for (let s = 0; s <= SEGMENTS; s++) {
-            const a = s / SEGMENTS * Math.PI * 2;
-            const edge = r * (1 + WAVE * Math.sin(a * LOBES + phase));
-            const cos = Math.cos(a);
-            const sin = Math.sin(a);
-            const x = cos * edge;
-            const y = sin * edge;
-            const fx = cos * outer;
-            const fy = sin * outer;
-
-            if (s > 0) {
-                g.fillTriangle(px, py, x, y, ox, oy);
-                g.fillTriangle(x, y, fx, fy, ox, oy);
-            }
-
-            px = x;
-            py = y;
-            ox = fx;
-            oy = fy;
-        }
-    }
-
-    // Lighter wedges turning slowly on the blue ring, kept clear of its edge.
-    drawRays(g, r, at) {
-        g.fillStyle(RAY_COLOR, RAY_ALPHA);
-
-        const inner = r > 0 ? r * (1 + WAVE) + RAY_GAP : 0;
-        const outer = this.outer;
-        const width = Math.PI / RAYS;
-        const turn = this.turn + at * RAY_SPIN * this.flip;
-
-        for (let i = 0; i < RAYS; i++) {
-            const a = turn + i * width * 2;
-            const b = a + width;
-            const ax = Math.cos(a);
-            const ay = Math.sin(a);
-            const bx = Math.cos(b);
-            const by = Math.sin(b);
-
-            if (inner <= 0) {
-                g.fillTriangle(0, 0, ax * outer, ay * outer, bx * outer, by * outer);
-                continue;
-            }
-
-            g.fillTriangle(ax * inner, ay * inner, bx * inner, by * inner, ax * outer, ay * outer);
-            g.fillTriangle(bx * inner, by * inner, bx * outer, by * outer, ax * outer, ay * outer);
-        }
-    }
-
-    // The logo and its ring road pop up once the screen is covered, the
-    // convoy drives round, and it all pops away as the rings open.
-    drawBadge(at) {
-        const shown = at - COVERED + BADGE_IN * 0.25;
-
-        if (shown <= 0 || at >= OPEN_AT + BADGE_OUT) {
-            this.badge.visible = false;
+        if (shown <= 0 || at >= outAt + LOGO_OUT) {
+            this.logo.visible = false;
             return;
         }
 
-        this.badge.visible = true;
+        this.logo.visible = true;
 
+        let t;
         let scale;
-        let spin;
 
-        if (at < OPEN_AT) {
-            const t = Math.min(1, shown / BADGE_IN);
-            scale = Phaser.Math.Easing.Back.Out(t, 2.2);
-            spin = (1 - Phaser.Math.Easing.Cubic.Out(t)) * -0.5 * this.flip;
+        if (at < outAt) {
+            t = Math.min(1, shown / LOGO_IN);
+            scale = 0.8 + 0.2 * Ease.Back.Out(t, 1.4);
+            this.logo.alpha = Ease.Quadratic.Out(t);
         } else {
-            const t = (at - OPEN_AT) / BADGE_OUT;
-            scale = 1 + Math.sin(t * Math.PI) * 0.12 - Phaser.Math.Easing.Back.In(t, 2.5);
-            spin = Phaser.Math.Easing.Cubic.In(t) * 0.4 * this.flip;
+            t = (at - outAt) / LOGO_OUT;
+            scale = 1 - 0.15 * Ease.Quadratic.In(t);
+            this.logo.alpha = 1 - Ease.Quadratic.In(t);
         }
 
-        this.badge.setScale(Math.max(0.001, scale));
-        this.badge.rotation = spin;
-
-        // The logo breathes while it waits.
-        this.logo.rotation = Math.sin(at / 180) * 0.05;
-        this.logo.y = Math.sin(at / 240) * 4;
-
-        this.drawConvoy(shown);
-    }
-
-    drawConvoy(shown) {
-        const R = this.track;
-        const dir = this.flip;
-        const head = this.turn + shown * DRIVE * dir;
-        const gap = this.vehicle / R;
-
-        const place = (angle) => ({
-            x: Math.cos(angle) * R,
-            y: Math.sin(angle) * R,
-            heading: angle + dir * Math.PI / 2
-        });
-
-        this.vehicles.forEach((v, k) => {
-            const p = place(head - dir * k * gap);
-            const facing = v.tractor ? TRACTOR_FACING : CART_FACING;
-            const bounce = Math.abs(Math.sin(shown / 70 + k * 0.9)) * 2;
-
-            v.art.setPosition(p.x, p.y - bounce);
-            v.shadow.setPosition(p.x, p.y + SHADOW_DY);
-            v.art.rotation = v.shadow.rotation = p.heading - facing;
-        });
-
-        this.links.forEach((link, k) => {
-            const p = place(head - dir * (k + 0.5) * gap);
-
-            link.setPosition(p.x, p.y);
-            link.rotation = p.heading;
-        });
-    }
-
-    // Thrown out from the middle as the rings open, falling and spinning, and
-    // fading at the end.
-    drawConfetti(at) {
-        this.confetti.forEach((bit) => {
-            const t = at - CONFETTI_AT - bit.start;
-
-            if (t <= 0 || t >= CONFETTI_TIME) {
-                bit.visible = false;
-                return;
-            }
-
-            bit.visible = true;
-            bit.x = bit.vx * t;
-            bit.y = bit.vy * t + GRAVITY * t * t / 2;
-            bit.rotation = bit.spin * t;
-            // Flutter: the bit turns edge-on and back as it falls.
-            bit.scaleX = Math.cos(t / 90 + bit.start);
-            bit.alpha = Math.min(1, (CONFETTI_TIME - t) / 250);
-        });
+        this.logo.setScale(this.logoScale * scale);
+        this.logo.y = Math.sin(shown / 260) * 3;
     }
 
     adjust() {

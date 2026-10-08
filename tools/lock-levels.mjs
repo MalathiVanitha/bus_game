@@ -1,10 +1,13 @@
-// Writes levels 101-200 into data/level-data.js: the boards of levels 51-100
-// again, with some of their garages locked. Only the boards that clear by
+// Locks garages on levels 51-100 of data/level-data.js in place, and writes
+// levels 101-200: the boards of levels 51-100 again, with some of their
+// garages locked. Only the boards that clear by
 // driving convoys home one at a time are used (the others need convoys
 // shuffled about first, which this can't check), and of them only those a
 // lock can hold something back on (see lockable), walked three times over,
 // easiest first: mirrored left to right for 101-133, top to bottom for
-// 134-166 and both ways for 167-200, so they don't read as repeats.
+// 134-166 and both ways for 167-200, so they don't read as repeats. Levels
+// 51-100 keep their own boards and get one gentle lock where one fits, to
+// bring locks in.
 //
 // A locked garage ("lock: n" on its convoy) sits under a block of ice showing
 // n: it opens once n other convoys are home. The locks go on the convoys that
@@ -14,11 +17,13 @@
 // promise the level data makes), and only if it really holds that convoy
 // back. More locks and bigger numbers further on:
 //
+//   51-100   one lock (counting 2-3)
 //   101-120  one lock       141-170  two locks
 //   121-140  one or two     171-200  two or three
 //
-// The levels it wrote before (everything past 100) are replaced on every run;
-// the picks are seeded by level number.
+// The levels it wrote before (everything past 100) are replaced on every run,
+// and 51-100 locked again from their boards; the picks are seeded by level
+// number.
 //
 //   node tools/lock-levels.mjs
 
@@ -29,6 +34,8 @@ const FILE = fileURLToPath(new URL('../data/level-data.js', import.meta.url));
 const FIRST = 101;
 const LAST = 200;
 const BASE = 51;
+// Levels locked in place, on their own boards.
+const INTRO_LAST = 100;
 // Seconds more on the clock for each lock: waiting on one is thinking time.
 const LOCK_TIME = 6;
 const MARK = '(locked)';
@@ -45,7 +52,8 @@ const lastHead = keep[keep.length - 1];
 const nextHead = heads.find((h) => Number(h[1]) > 100);
 const tailEnd = nextHead ? nextHead.index : source.lastIndexOf(']');
 const head = source.slice(0, tailEnd).replace(/,?\s*$/, '');
-const base = levels.slice(0, 100);
+// Levels 51-100 as they were before being locked here.
+const base = levels.slice(0, 100).map(unlocked);
 
 // Its boards are laid out before convoys are nested (tools/nest-levels.mjs),
 // which it knows nothing of.
@@ -54,6 +62,35 @@ if (base.some((l) => l.convoys.some((c) => c.inside))) {
 }
 const bases = [];
 const blocks = [];
+let intro = '';
+let at = 0;
+
+for (let h = 0; h < keep.length; h++) {
+    const level = Number(keep[h][1]);
+
+    if (level < BASE || level > INTRO_LAST) continue;
+
+    const start = keep[h].index;
+    const end = h + 1 < keep.length ? keep[h + 1].index : tailEnd;
+    const data = copy(base[level - 1]);
+    const marks = keep[h][0].trim().replace(/^\/\/ Level \d+\s*/, '').replace(MARK, '').trim();
+    const board = makeBoard(data);
+    let result = { locks: 0, report: 'left as it is, its board does not clear' };
+
+    if (lockable(board)) result = lock(data, level, seeded(level * 7919 + 101));
+
+    let block = head.slice(start, end);
+
+    block = block.replace(keep[h][0], keep[h][0].replace(/^( *\/\/ Level \d+).*$/, '$1') +
+        [marks, result.locks ? MARK : ''].filter(Boolean).map((m) => ' ' + m).join(''));
+    block = replaceField(block, 'convoys', (indent) => formatConvoys(data.convoys, indent));
+    block = block.replace(/^( *)time: \d+,/m, '$1time: ' + ((data.time || 60) + LOCK_TIME * result.locks) + ',');
+    intro += head.slice(at, start) + block;
+    at = end;
+    console.log('Level ' + level + ': ' + result.report);
+}
+
+const lockedHead = intro + head.slice(at);
 const PASSES = ['x', 'y', 'xy'];
 
 for (let from = BASE; from <= 100; from++) {
@@ -73,7 +110,7 @@ for (let level = FIRST; level <= LAST; level++) {
     data.time = (data.time || 60) + LOCK_TIME * result.locks;
 
     const baseHead = heads.find((h) => Number(h[1]) === from)[0].trim();
-    const marks = baseHead.replace(/^\/\/ Level \d+\s*/, '');
+    const marks = baseHead.replace(/^\/\/ Level \d+\s*/, '').replace(MARK, '').trim();
 
     blocks.push(write(data, level, [marks, MARK].filter(Boolean).join(' ')));
     console.log('Level ' + level + ' (from ' + from + '): ' + result.report);
@@ -81,9 +118,38 @@ for (let level = FIRST; level <= LAST; level++) {
 
 if (lastHead === undefined) throw new Error('No levels found');
 
-writeFileSync(FILE, head + ',\n\n' + blocks.join(',\n\n') + '\n]\n');
+writeFileSync(FILE, lockedHead + ',\n\n' + blocks.join(',\n\n') + '\n]\n');
 
 // ---- making a level ------------------------------------------------------
+
+// A level with its locks, and the time they put on its clock, taken off.
+function unlocked(data) {
+    const locks = data.convoys.filter((c) => c.lock).length;
+
+    return Object.assign(copy(data), {
+        time: (data.time || 60) - LOCK_TIME * locks,
+        convoys: data.convoys.map((c) => {
+            const rest = Object.assign({}, c, { cells: c.cells.map((p) => p.slice()) });
+
+            delete rest.lock;
+
+            return rest;
+        })
+    });
+}
+
+function copy(data) {
+    return {
+        difficulty: data.difficulty,
+        rows: data.rows,
+        columns: data.columns,
+        time: data.time,
+        pattern: data.pattern.map((r) => r.slice()),
+        obstacles: (data.obstacles || []).map((o) => o.slice()),
+        walls: (data.walls || []).map((w) => Object.assign({}, w, { cells: w.cells.map((p) => p.slice()) })),
+        convoys: data.convoys.map((c) => Object.assign({}, c, { cells: c.cells.map((p) => p.slice()) }))
+    };
+}
 
 function mirror(data, axis) {
     const columns = data.columns;
@@ -115,6 +181,8 @@ function mirror(data, axis) {
 
 // How many locks a level gets, and the most each can count.
 function plan(level, random) {
+    if (level <= INTRO_LAST) return { count: 1, most: level <= 75 ? 2 : 3 };
+
     const t = (level - FIRST) / (LAST - FIRST);
     let count;
 
@@ -330,6 +398,24 @@ function write(data, level, marks) {
     ];
 
     return lines.join('\n');
+}
+
+// Puts write(indent) in place of the [...] that follows "name:" in block.
+function replaceField(block, name, write) {
+    const found = new RegExp('^( *)' + name + ': \\[', 'm').exec(block);
+
+    if (!found) throw new Error('No ' + name + ' in:\n' + block.slice(0, 200));
+
+    const open = found.index + found[0].length - 1;
+    let depth = 0;
+    let close = open;
+
+    for (; close < block.length; close++) {
+        if (block[close] === '[') depth++;
+        else if (block[close] === ']' && --depth === 0) break;
+    }
+
+    return block.slice(0, open) + write(found[1]) + block.slice(close + 1);
 }
 
 function formatRows(rows, indent) {
