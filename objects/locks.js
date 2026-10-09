@@ -98,7 +98,20 @@ const FLASH_TIME = 90;
 const CHAIN_FLING = 0.8;
 const CHAIN_HOP = 0.6;
 const CHAIN_FALL = 2.4;
-const CHAIN_OFF_STAGGER = 30;
+// Each chain is a strip of rings: they burst one ring at a time, the nearest
+// the padlock first, each flashing white, swelling and popping before it is
+// flung off. However many there are, they are all gone in about the same time.
+const CHAIN_OFF_STAGGER = 70;
+const CHAIN_OFF_SPAN = 1100;
+const CHAIN_SWELL = 1.4;
+const CHAIN_SWELL_TIME = 80;
+const CHAIN_POP_GLINTS = 2;
+// Each pop a little higher than the one before, in cents, up to a top.
+const CHAIN_POP_RISE = 60;
+const CHAIN_POP_TOP = 1200;
+// Where the strip is cut into rings, in the chain art's pixels: across the
+// bars between them, clear of the rings.
+const CHAIN_CUTS = [0, 104, 248, 392, 496];
 const UNLOCK_GLINTS = 9;
 const UNLOCK_CONFETTI = 14;
 
@@ -658,49 +671,115 @@ export class Locks {
         this.doneWithTip();
     }
 
-    // Each band of chain snaps off and is flung away from the padlock,
-    // tumbling, the nearest first, and drops out of sight.
+    // Each chain breaks into its rings, and they burst in turn, the nearest
+    // the padlock first: each flashes white and swells, pops, and is flung
+    // away tumbling, dropping out of sight.
     flingChains(lock) {
         const padlock = lock.padlock;
         const cell = this.cell;
-        const links = lock.chains.slice().sort((a, b) =>
+        const glow = PALETTE[lock.color].glow;
+        const rings = [];
+
+        lock.chains.forEach((link) => rings.push(...this.breakChain(link)));
+        lock.chains.length = 0;
+
+        rings.sort((a, b) =>
             Phaser.Math.Distance.Between(a.x, a.y, padlock.x, padlock.y) -
             Phaser.Math.Distance.Between(b.x, b.y, padlock.x, padlock.y));
 
-        links.forEach((link, i) => {
-            const away = Math.atan2(link.y - padlock.y, link.x - padlock.x) + (Math.random() - 0.5) * 0.8;
-            const reach = cell * CHAIN_FLING * (0.7 + Math.random() * 0.6);
-            const x0 = link.x;
-            const y0 = link.y;
-            const r0 = link.rotation;
-            const spin = (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random() * 2);
+        const gap = Math.min(CHAIN_OFF_STAGGER, CHAIN_OFF_SPAN / Math.max(1, rings.length));
 
-            const run = this.scene.tweens.addCounter({
+        rings.forEach((ring, i) => {
+            const swell = this.scene.tweens.addCounter({
                 from: 0,
                 to: 1,
-                delay: i * CHAIN_OFF_STAGGER,
-                duration: OFF_TIME + 200,
+                delay: i * gap,
+                duration: CHAIN_SWELL_TIME,
                 onStart: () => {
-                    // Over the board while it flies.
-                    link.depth += 100;
+                    // Over the board from here.
+                    ring.depth += 100;
                     this.play.stackDirty = true;
-                    if (i % 3 === 0) this.play.glintsAt(x0, y0, 2, PALETTE[lock.color].glow);
+                    ring.setTintFill(0xffffff);
                 },
                 onUpdate: (tween) => {
-                    const t = tween.getValue();
-                    const out = Phaser.Math.Easing.Quadratic.Out(t);
-
-                    link.x = x0 + Math.cos(away) * reach * out;
-                    link.y = y0 + Math.sin(away) * reach * out - cell * CHAIN_HOP * Math.sin(t * Math.PI * 0.8) + cell * CHAIN_FALL * t * t * 0.4;
-                    link.rotation = r0 + spin * t;
-                    link.setScale(link.fit * (1 + 0.15 * Math.sin(t * Math.PI)));
-                    link.alpha = t < 0.55 ? 1 : 1 - (t - 0.55) / 0.45;
+                    ring.setScale(ring.fit * (1 + (CHAIN_SWELL - 1) * Phaser.Math.Easing.Quadratic.Out(tween.getValue())));
                 },
-                onComplete: () => link.destroy()
+                onComplete: () => {
+                    ring.clearTint();
+                    this.popRing(ring, i, padlock, cell, glow);
+                }
             });
 
-            this.runs.push(run);
+            this.runs.push(swell);
         });
+    }
+
+    // A chain swapped for its rings, each where it was in the chain.
+    breakChain(link) {
+        const texture = this.scene.textures.get(link.texture.key);
+        const middle = link.height * ART_ORIGIN.chain.y;
+        const cos = Math.cos(link.rotation);
+        const sin = Math.sin(link.rotation);
+        const rings = [];
+
+        for (let i = 0; i < CHAIN_CUTS.length - 1; i++) {
+            const name = 'ring-' + i;
+            const top = CHAIN_CUTS[i];
+            const height = CHAIN_CUTS[i + 1] - top;
+
+            if (!texture.has(name)) texture.add(name, 0, 0, top, link.width, height);
+
+            // Along the chain from its middle, turned with it.
+            const along = (top + height / 2 - middle) * link.scaleY;
+            const ring = this.scene.add.image(link.x - sin * along, link.y + cos * along, link.texture.key, name);
+
+            ring.rotation = link.rotation;
+            ring.fit = link.scaleX;
+            ring.setScale(ring.fit);
+            ring.depth = link.depth;
+            ring.visible = link.visible;
+            this.play.stage.add(ring);
+            this.parts.push(ring);
+            rings.push(ring);
+        }
+
+        link.destroy();
+        this.play.stackDirty = true;
+
+        return rings;
+    }
+
+    popRing(ring, i, padlock, cell, glow) {
+        const away = Math.atan2(ring.y - padlock.y, ring.x - padlock.x) + (Math.random() - 0.5) * 1.2;
+        const reach = cell * CHAIN_FLING * (0.6 + Math.random() * 0.7);
+        const x0 = ring.x;
+        const y0 = ring.y;
+        const r0 = ring.rotation;
+        const s0 = ring.scaleX;
+        const spin = (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 3);
+
+        this.play.glintsAt(x0, y0, CHAIN_POP_GLINTS, glow);
+        SoundManager.fx(this.scene, 'poof', 0.45, Math.min(CHAIN_POP_TOP, i * CHAIN_POP_RISE));
+
+        const run = this.scene.tweens.addCounter({
+            from: 0,
+            to: 1,
+            duration: OFF_TIME + 200,
+            onUpdate: (tween) => {
+                const t = tween.getValue();
+                const out = Phaser.Math.Easing.Quadratic.Out(t);
+
+                ring.x = x0 + Math.cos(away) * reach * out;
+                ring.y = y0 + Math.sin(away) * reach * out - cell * CHAIN_HOP * Math.sin(t * Math.PI * 0.8) + cell * CHAIN_FALL * t * t * 0.4;
+                ring.rotation = r0 + spin * t;
+                // Settling back from its swell as it flies.
+                ring.setScale(s0 + (ring.fit - s0) * Math.min(1, t * 3));
+                ring.alpha = t < 0.55 ? 1 : 1 - (t - 0.55) / 0.45;
+            },
+            onComplete: () => ring.destroy()
+        });
+
+        this.runs.push(run);
     }
 
     release(convoy) {

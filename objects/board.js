@@ -18,6 +18,20 @@ const WELL_PAD = 3 / ART_CELL;
 const WELL_CORNER = 16 / ART_CELL;
 // How round the board's outline is where it turns in, round a cut in it.
 const FILLET = 10 / ART_CELL;
+// The rim curves down into the well like the lip of a bowl: white on top,
+// shading to this where it meets the well, over the inner part of its width.
+const RIM_DIP = 0xc3cbd9;
+const RIM_DIP_FROM = 9 / ART_CELL;
+const RIM_DIP_STEPS = 6;
+// The floor sits down in the rim: shadow on the tiles along every edge of
+// it, darkest at the edge and gone this far in.
+const SINK = 0x1b2740;
+const SINK_ALPHA = 0.055;
+const SINK_DEPTH = 14 / ART_CELL;
+const SINK_STEPS = 7;
+// The board stands a little off the background, shadow below it.
+const BOARD_SHADOW_ALPHA = 0.16;
+const BOARD_SHADOW_DROP = 5 / ART_CELL;
 const TILE_GAP = 1.5 / ART_CELL;
 const TILE_CORNER = 5 / ART_CELL;
 const TILE_BEVEL = 1.5 / ART_CELL;
@@ -99,6 +113,7 @@ const DEFAULT_WALL = 'concrete-wall';
 // The floor and the lift highlight are drawn once into these, not every frame.
 const FLOOR_KEY = 'board-floor';
 const LIFT_KEY = 'board-lift';
+const SHADOW_KEY = 'board-shadow';
 
 // The outline of a box with its corners rounded each by its own radius (0 for
 // square), clockwise from the top left.
@@ -209,6 +224,7 @@ export class Board {
 
         dropBaked(this.scene, FLOOR_KEY);
         dropBaked(this.scene, LIFT_KEY);
+        dropBaked(this.scene, SHADOW_KEY);
 
         const width = this.columns * this.tileWidth;
         const height = this.rows * this.tileHeight;
@@ -225,19 +241,83 @@ export class Board {
             height: height + rimPad * 2
         };
 
+        const fillet = FILLET * this.cell;
+
+        // Solid, then faded as a whole, so the cells' overlapping shapes
+        // don't darken where they meet.
+        const shadow = bakeShape(this.scene, bounds, (g) => {
+            g.fillStyle(SHADOW, 1);
+            this.drawOutline(g, rimPad, RIM_CORNER * this.cell, fillet);
+        }, SHADOW_KEY, res);
+
+        shadow.y = BOARD_SHADOW_DROP * this.cell;
+        shadow.setAlpha(BOARD_SHADOW_ALPHA);
+        this.tileLayer.add(shadow);
+
         this.tileLayer.add(bakeShape(this.scene, bounds, (g) => {
             // The rim and the well follow the board's own outline, round
             // any cells cut out of it, rounded where it turns outward.
-            const fillet = FILLET * this.cell;
-
             g.fillStyle(RIM, 1);
             this.drawOutline(g, rimPad, RIM_CORNER * this.cell, fillet);
+
+            // Each band a little narrower and greyer, down to the well.
+            const dipFrom = RIM_DIP_FROM * this.cell;
+            const white = Phaser.Display.Color.ValueToColor(RIM);
+            const grey = Phaser.Display.Color.ValueToColor(RIM_DIP);
+
+            for (let i = 1; i <= RIM_DIP_STEPS; i++) {
+                const t = i / RIM_DIP_STEPS;
+                const pad = dipFrom + (wellPad - dipFrom) * t;
+                const tint = Phaser.Display.Color.Interpolate.ColorWithColor(white, grey, 1, t * t);
+                const corner = RIM_CORNER * this.cell + (WELL_CORNER - RIM_CORNER) * this.cell * (rimPad - pad) / (rimPad - wellPad);
+
+                g.fillStyle(Phaser.Display.Color.GetColor(tint.r, tint.g, tint.b), 1);
+                this.drawOutline(g, pad, corner, fillet + rimPad - pad);
+            }
 
             g.fillStyle(WELL, 1);
             this.drawOutline(g, wellPad, WELL_CORNER * this.cell, fillet + rimPad - wellPad);
 
             this.drawTiles(g);
+            this.drawSink(g, wellPad);
         }, FLOOR_KEY, res));
+    }
+
+    // Along each side of a floor cell with no floor past it, bands from the
+    // well's edge in, each a little deeper: stacked, they shade off inward.
+    drawSink(g, wellPad) {
+        const depth = SINK_DEPTH * this.cell;
+        const halfW = this.tileWidth / 2;
+        const halfH = this.tileHeight / 2;
+
+        g.fillStyle(SINK, SINK_ALPHA);
+
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.columns; col++) {
+                if (!this.isFloor(col, row)) continue;
+
+                const { x, y } = this.cellToPixel(col, row);
+                const up = !this.isFloor(col, row - 1);
+                const down = !this.isFloor(col, row + 1);
+                const left = !this.isFloor(col - 1, row);
+                const right = !this.isFloor(col + 1, row);
+
+                // A side's band reaches into the well only where the well is.
+                const x0 = x - halfW - (left ? wellPad : 0);
+                const x1 = x + halfW + (right ? wellPad : 0);
+                const y0 = y - halfH - (up ? wellPad : 0);
+                const y1 = y + halfH + (down ? wellPad : 0);
+
+                for (let i = 1; i <= SINK_STEPS; i++) {
+                    const d = wellPad + depth * i / SINK_STEPS;
+
+                    if (up) g.fillRect(x0, y - halfH - wellPad, x1 - x0, d);
+                    if (down) g.fillRect(x0, y + halfH + wellPad - d, x1 - x0, d);
+                    if (left) g.fillRect(x - halfW - wellPad, y0, d, y1 - y0);
+                    if (right) g.fillRect(x + halfW + wellPad - d, y0, d, y1 - y0);
+                }
+            }
+        }
     }
 
     // Every floor cell, grown by pad on all sides: together they make the
