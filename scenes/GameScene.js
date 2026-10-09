@@ -290,9 +290,13 @@ export default class GameScene extends Phaser.Scene {
 
         if (lesson) this.boosterBar.holdLocked(lesson);
 
-        this.timer.intro(this.gamePlay.timeLeft);
-        this.levelBadge.intro(this.level);
-        this.boosterBar.intro();
+        // Level 1's lesson comes up as soon as the board lands, so the clock,
+        // badge and boosters are already in place for it.
+        const instant = this.level === 1;
+
+        this.timer.intro(this.gamePlay.timeLeft, instant);
+        this.levelBadge.intro(this.level, instant);
+        this.boosterBar.intro(instant);
 
         if (this.level === 1) this.firstLesson.begin();
         else if (lesson) this.boosterTutorial.teach(lesson);

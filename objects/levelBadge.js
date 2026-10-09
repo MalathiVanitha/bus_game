@@ -156,16 +156,17 @@ export class LevelBadge extends Phaser.GameObjects.Container {
     }
 
     /** Drops in from above the screen with the level on it. */
-    intro(level) {
+    // instant: put straight in place, for a level that starts with a lesson.
+    intro(level, instant = false) {
         this.set(level);
         this.show();
 
         this.scene.tweens.killTweensOf(this.pill);
 
-        this.pill.y = INTRO_Y;
-        this.pill.alpha = 0;
+        this.pill.y = instant ? 0 : INTRO_Y;
+        this.pill.alpha = instant ? 1 : 0;
 
-        this.scene.tweens.add({
+        if (!instant) this.scene.tweens.add({
             targets: this.pill,
             y: 0,
             alpha: 1,
@@ -180,7 +181,9 @@ export class LevelBadge extends Phaser.GameObjects.Container {
 
             if (!horn.visible) continue;
 
-            horn.setScale(0);
+            horn.setScale(instant ? horn.restScale : 0);
+            if (instant) continue;
+
             this.scene.tweens.add({
                 targets: horn,
                 scale: horn.restScale,

@@ -590,7 +590,8 @@ export class BoosterBar extends Phaser.GameObjects.Container {
     }
 
     /** Rises in under the board as a level starts. */
-    intro() {
+    // instant: put straight in place, for a level that starts with a lesson.
+    intro(instant = false) {
         this.stopPicking();
         this.say(null);
         this.refresh();
@@ -605,9 +606,11 @@ export class BoosterBar extends Phaser.GameObjects.Container {
 
             this.scene.tweens.killTweensOf(button);
 
-            button.y = button.restY + INTRO_DROP;
-            button.alpha = 0;
+            button.y = button.restY + (instant ? 0 : INTRO_DROP);
+            button.alpha = instant ? 1 : 0;
             button.setScale(1);
+
+            if (instant) continue;
 
             this.scene.tweens.add({
                 targets: button,

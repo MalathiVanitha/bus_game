@@ -226,7 +226,8 @@ export class Timer extends Phaser.GameObjects.Container {
     }
 
     /** Slides in from the left with the level's full time on it. */
-    intro(seconds) {
+    // instant: put straight in place, for a level that starts with a lesson.
+    intro(seconds, instant = false) {
         this.shown = -1;
         this.warn(false);
         this.set(seconds);
@@ -235,8 +236,10 @@ export class Timer extends Phaser.GameObjects.Container {
         this.scene.tweens.killTweensOf(this.pill);
 
         this.pill.setScale(1);
-        this.pill.x = INTRO_X;
-        this.pill.alpha = 0;
+        this.pill.x = instant ? 0 : INTRO_X;
+        this.pill.alpha = instant ? 1 : 0;
+
+        if (instant) return;
 
         this.scene.tweens.add({
             targets: this.pill,

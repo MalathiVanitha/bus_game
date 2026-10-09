@@ -17,10 +17,6 @@ import { hintArrowImage, hintTouchImage } from './game-play.js';
 // garage's spots are cut out of it, so what shows through there is the live
 // board.
 
-// How long the level has to land - board, clock, badge and boosters - before
-// its picture is taken.
-const LESSON_WAIT = 1100;
-
 // The snapshot is blurred at this many pixels per game unit, then stretched.
 const BLUR_RES = 0.25;
 // Box blur radius in those pixels, run this many times (three is near enough
@@ -204,15 +200,24 @@ export class FirstLesson extends Phaser.GameObjects.Container {
         this.blocker.setInteractive();
         this.layoutBlocker();
 
-        this.wait = this.scene.tweens.addCounter({
-            from: 0,
-            to: 1,
-            duration: LESSON_WAIT,
-            onComplete: () => {
-                this.wait = null;
-                this.capture(() => this.show());
-            }
-        });
+        // The picture is taken the moment the board has landed. The clock,
+        // badge and boosters come in already in place on this level, so
+        // nothing else is still moving then.
+        this.wait = () => {
+            if (play.introTweens) return;
+
+            this.stopWaiting();
+            this.capture(() => this.show());
+        };
+
+        this.scene.events.on('update', this.wait);
+    }
+
+    stopWaiting() {
+        if (!this.wait) return;
+
+        this.scene.events.off('update', this.wait);
+        this.wait = null;
     }
 
     // The screen as it stands, taken at the end of the next frame drawn,
@@ -612,10 +617,7 @@ export class FirstLesson extends Phaser.GameObjects.Container {
         this.target = null;
         this.blocker.disableInteractive();
 
-        if (this.wait) {
-            this.wait.remove();
-            this.wait = null;
-        }
+        this.stopWaiting();
 
         this.dropCapture();
 
@@ -642,10 +644,7 @@ export class FirstLesson extends Phaser.GameObjects.Container {
     }
 
     clear() {
-        if (this.wait) {
-            this.wait.remove();
-            this.wait = null;
-        }
+        this.stopWaiting();
 
         this.dropCapture();
         this.clearGuide();
