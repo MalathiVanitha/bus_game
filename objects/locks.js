@@ -16,10 +16,24 @@ import { bakeShape } from '../utils/bake.js';
 // the locks open by themselves, so a board is never left with nothing to
 // move.
 //
-// The art is drawn once a colour, for a cell UNIT across, and scaled to the
-// board's.
+// The art is in assets/locks (loaded in BootScene), drawn ART_RES pixels to
+// the unit for a cell UNIT across, and scaled to the board's. ART_ORIGIN is
+// where each piece's own middle falls in its image: a replacement image has
+// to keep its canvas size and that point where it is.
 
 const UNIT = 100;
+const ART_RES = 4;
+
+const ART_ORIGIN = {
+    // On the shaft, between the bow and the bit.
+    key: { x: 0.4889, y: 0.5217 },
+    chain: { x: 0.5, y: 0.5 },
+    // The middle of its top edge.
+    body: { x: 0.5, y: 0.037 },
+    // Level with the top of the body its legs stand in.
+    shackle: { x: 0.5, y: 0.7333 },
+    rope: { x: 0.5, y: 0.5 }
+};
 
 const PALETTE = {
     gold: { fill: 0xffc93c, dark: 0xd98a0b, light: 0xfff3b0, ink: 0x6e4300, glow: 0xffd84a },
@@ -31,12 +45,12 @@ const ROPE_DARK = 0x7a4f22;
 const ROPE_LIGHT = 0xe8c48e;
 
 // Sizes, against the art as drawn for a cell UNIT across.
-const KEY_SIZE = 1.05;
+const KEY_SIZE = 1.3;
 // The rope loop, round the key's neck between its bow and shaft.
-const ROPE_SIZE = 0.55;
+const ROPE_SIZE = 0.7;
 const ROPE_AT = 6;
-const CHAIN_SIZE = 0.82;
-const PADLOCK_SIZE = 1.1;
+const CHAIN_SIZE = 0.95;
+const PADLOCK_SIZE = 1.35;
 
 // The chains cross over each vehicle this far either side of square.
 const CHAIN_CROSS = Math.PI / 4;
@@ -53,20 +67,40 @@ const RATTLE = 18;
 const RATTLE_TIME = 420;
 
 // Sent: the key springs off its tractor, then flies in an arc to the
-// padlock, spinning round to sit level in it.
+// padlock, trailing sparkles and spinning round to hang bit down over the
+// keyhole.
 const SPRING = 1.4;
-const SPRING_TIME = 160;
-const FLIGHT_TIME = 620;
-const FLIGHT_ARC = 1.3;
-const FLIGHT_END = 0.55;
+const SPRING_TIME = 180;
+const FLIGHT_TIME = 560;
+const FLIGHT_ARC = 1.2;
+const FLIGHT_PEAK = 1.5;
+const FLIGHT_END = 0.8;
+const TRAIL_EVERY = 45;
+const TRAIL_SIZE = 0.32;
+const TRAIL_TIME = 320;
 
-// Unlocked: the key turns, the shackle jumps open, and it all bursts off.
-const TURN_TIME = 200;
-const OPEN_TIME = 160;
-const OFF_TIME = 380;
-const OFF_DROP = 0.5;
-const CHAIN_OFF_STAGGER = 50;
-const UNLOCK_GLINTS = 7;
+// Where the keyhole is in the padlock, and how far in from its tip the key
+// goes, in art units.
+const KEYHOLE_Y = 2.5;
+const KEY_TIP = 40;
+const KEY_IN = 10;
+
+// Unlocked: the key pushes in, turns with a click, the shackle swings open
+// on one leg, and padlock and chains burst off.
+const INSERT_TIME = 140;
+const TURN_TIME = 300;
+const OPEN_TIME = 240;
+const OPEN_LIFT = 12;
+const OPEN_SWING = -38;
+const POP_TIME = 120;
+const OFF_TIME = 460;
+const FLASH_TIME = 90;
+const CHAIN_FLING = 0.8;
+const CHAIN_HOP = 0.6;
+const CHAIN_FALL = 2.4;
+const CHAIN_OFF_STAGGER = 30;
+const UNLOCK_GLINTS = 9;
+const UNLOCK_CONFETTI = 14;
 
 // The first lock level's tip, once a player.
 const TIP_KEY = 'baggage-out.lock-tip';
@@ -126,142 +160,12 @@ export class Locks {
 
     // ---- art ---------------------------------------------------------------
 
-    textures(color) {
-        const name = (part) => 'lock-' + part + '-' + color;
-
-        if (this.scene.textures.exists(name('key'))) return;
-
-        const c = PALETTE[color];
-
-        // A key, lying along +x: the bow on the left, the bit on the right.
-        bakeShape(this.scene, { left: -44, top: -26, width: 90, height: 48 }, (g) => {
-            g.lineStyle(17, c.ink, 1);
-            g.strokeCircle(-22, 0, 12);
-            g.fillStyle(c.ink, 1);
-            g.fillRoundedRect(-10, -7, 48, 14, 5);
-            g.fillRoundedRect(17, 0, 11, 17, 3);
-            g.fillRoundedRect(27, 0, 10, 13, 3);
-
-            g.fillStyle(c.dark, 1);
-            g.fillRoundedRect(-7, -4.5, 42, 9, 3);
-            g.fillRoundedRect(19.5, 2, 6, 12.5, 2);
-            g.fillRoundedRect(29.5, 2, 5, 8.5, 2);
-            g.fillStyle(c.fill, 1);
-            g.fillRoundedRect(-7, -4.5, 42, 5, 2.5);
-
-            g.lineStyle(10, c.dark, 1);
-            g.strokeCircle(-22, 0, 12);
-            g.lineStyle(6, c.fill, 1);
-            g.beginPath();
-            g.arc(-22, 0, 13, Math.PI * 0.65, Math.PI * 1.85, false);
-            g.strokePath();
-            g.lineStyle(2.5, c.light, 1);
-            g.beginPath();
-            g.arc(-22, 0, 14, Math.PI * 1.05, Math.PI * 1.45, false);
-            g.strokePath();
-        }, name('key')).destroy();
-
-        // A band of chunky chain, running along y: links face on and edge on
-        // in turn, the edge-on ones behind.
-        bakeShape(this.scene, { left: -18, top: -62, width: 36, height: 124 }, (g) => {
-            const step = 18;
-
-            for (let y = -36; y <= 36; y += step * 2) {
-                g.fillStyle(c.ink, 1);
-                g.fillRoundedRect(-5.5, y - 4, 11, 26, 5.5);
-                g.fillStyle(c.dark, 1);
-                g.fillRoundedRect(-2.5, y - 1, 5, 20, 2.5);
-            }
-
-            for (let y = -45; y <= 45; y += step * 2) {
-                g.lineStyle(11, c.ink, 1);
-                g.strokeEllipse(0, y, 23, 27);
-                g.lineStyle(6.5, c.fill, 1);
-                g.strokeEllipse(0, y, 23, 27);
-                g.lineStyle(2, c.light, 1);
-                g.beginPath();
-                g.arc(0, y, 10, Math.PI * 1.1, Math.PI * 1.5, false);
-                g.strokePath();
-            }
-        }, name('chain')).destroy();
-
-        // The padlock's round body, centred at (0, 24), its top at y = 0.
-        bakeShape(this.scene, { left: -29, top: -3, width: 58, height: 58 }, (g) => {
-            g.fillStyle(c.ink, 1);
-            g.fillCircle(0, 25, 27);
-            g.fillStyle(c.dark, 1);
-            g.fillCircle(0, 25, 24);
-            g.fillStyle(c.fill, 1);
-            g.fillCircle(0, 22.5, 21.5);
-            g.fillStyle(c.light, 0.85);
-            g.fillEllipse(-8, 12, 14, 7);
-
-            // The keyhole, set in a darker ring.
-            g.fillStyle(c.dark, 1);
-            g.fillCircle(0, 25, 11);
-            g.fillStyle(c.ink, 1);
-            g.fillCircle(0, 22, 5);
-            g.fillRoundedRect(-2.5, 22, 5, 12, 2);
-        }, name('body')).destroy();
-
-        // The shackle, its legs standing in the body's top.
-        bakeShape(this.scene, { left: -24, top: -30, width: 48, height: 42 }, (g) => {
-            const bend = (width, tint) => {
-                g.lineStyle(width, tint, 1);
-                g.beginPath();
-                g.moveTo(-14, 8);
-                g.lineTo(-14, -6);
-                g.arc(0, -6, 14, Math.PI, 0, false);
-                g.lineTo(14, 8);
-                g.strokePath();
-            };
-
-            bend(13, c.ink);
-            bend(7, c.dark);
-            g.lineStyle(2.5, c.light, 1);
-            g.beginPath();
-            g.arc(0, -6, 14, Math.PI * 1.15, Math.PI * 1.5, false);
-            g.strokePath();
-        }, name('shackle')).destroy();
-    }
-
-    // The loop of rope a key is tied on with: one for every colour.
-    ropeTexture() {
-        if (this.scene.textures.exists('lock-rope')) return;
-
-        bakeShape(this.scene, { left: -24, top: -24, width: 48, height: 48 }, (g) => {
-            g.lineStyle(11, ROPE_DARK, 1);
-            g.strokeCircle(0, 0, 16);
-            g.lineStyle(7, ROPE, 1);
-            g.strokeCircle(0, 0, 16);
-
-            // The twist of its strands.
-            g.lineStyle(2, ROPE_DARK, 0.8);
-
-            for (let i = 0; i < 14; i++) {
-                const a = (i / 14) * Math.PI * 2;
-                const cx = Math.cos(a);
-                const cy = Math.sin(a);
-                const ax = -cy * 2.5;
-                const ay = cx * 2.5;
-
-                g.lineBetween(cx * 13 - ax, cy * 13 - ay, cx * 19 + ax, cy * 19 + ay);
-            }
-
-            g.lineStyle(1.5, ROPE_LIGHT, 0.9);
-            g.beginPath();
-            g.arc(0, 0, 18, Math.PI * 1.05, Math.PI * 1.5, false);
-            g.strokePath();
-        }, 'lock-rope').destroy();
-    }
-
     image(color, part, size) {
-        if (part === 'rope') this.ropeTexture();
-        else this.textures(color);
+        const key = part === 'rope' ? 'lock-rope' : 'lock-' + part + '-' + color;
+        const image = this.scene.add.image(0, 0, key);
 
-        const image = this.scene.add.image(0, 0, part === 'rope' ? 'lock-rope' : 'lock-' + part + '-' + color);
-
-        image.restScale = image.scaleX;
+        image.setOrigin(ART_ORIGIN[part].x, ART_ORIGIN[part].y);
+        image.restScale = 1 / ART_RES;
         image.fit = image.restScale * this.k * size;
         image.setScale(image.fit);
 
@@ -494,10 +398,19 @@ export class Locks {
 
         lock.opening = true;
 
+        const padlock = lock.padlock;
         const x0 = art.x;
         const y0 = art.y;
+        const lift = this.cell * 0.25;
         const spin0 = art.rotation;
+        // Bit down, after a full turn or so the way it is already facing.
+        const end = Math.PI / 2 + Math.PI * 2 * Math.round((spin0 - Math.PI / 2) / (Math.PI * 2) + 1);
         const springAt = SPRING_TIME / (SPRING_TIME + FLIGHT_TIME);
+        let trail = 0;
+
+        // The padlock stops swaying and straightens up to take it.
+        lock.sway.remove();
+        this.scene.tweens.add({ targets: padlock, angle: 0, duration: FLIGHT_TIME, ease: 'Sine.easeOut' });
 
         const run = this.scene.tweens.addCounter({
             from: 0,
@@ -507,23 +420,32 @@ export class Locks {
                 const t = tween.getValue();
 
                 if (t < springAt) {
-                    const s = Phaser.Math.Easing.Back.Out(t / springAt);
+                    const v = t / springAt;
+                    const s = Phaser.Math.Easing.Back.Out(v);
+                    // Squashed as it leaves, stretched as it rises.
+                    const squash = 1 + Math.sin(v * Math.PI) * 0.18;
 
-                    art.setPosition(x0, y0 - this.cell * 0.25 * s);
-                    art.setScale(art.fit * (1 + (SPRING - 1) * s));
+                    art.setPosition(x0, y0 - lift * s);
+                    art.setScale(art.fit * (1 + (SPRING - 1) * s) * squash, art.fit * (1 + (SPRING - 1) * s) / squash);
                     return;
                 }
 
-                // Where the padlock is now, as it may be bumped meanwhile.
-                const u = Phaser.Math.Easing.Sine.InOut((t - springAt) / (1 - springAt));
-                const fromY = y0 - this.cell * 0.25;
-                const to = lock.padlock;
-                const end = Math.PI / 2 + Math.PI * 2 * Math.round((spin0 - Math.PI / 2) / (Math.PI * 2) + 1);
+                const v = (t - springAt) / (1 - springAt);
+                const u = Phaser.Math.Easing.Sine.InOut(v);
+                const to = this.keyAt(padlock, art, art.fit * FLIGHT_END);
+                const fromY = y0 - lift;
+                // It swells towards the top of its arc and comes down to size.
+                const size = SPRING + (FLIGHT_END - SPRING) * u + (FLIGHT_PEAK - SPRING) * Math.sin(u * Math.PI) * 0.6;
 
                 art.x = x0 + (to.x - x0) * u;
                 art.y = fromY + (to.y - fromY) * u - Math.sin(u * Math.PI) * this.cell * FLIGHT_ARC;
-                art.rotation = spin0 + (end - spin0) * u;
-                art.setScale(art.fit * (SPRING + (FLIGHT_END - SPRING) * u));
+                art.rotation = spin0 + (end - spin0) * Phaser.Math.Easing.Cubic.Out(v);
+                art.setScale(art.fit * size);
+
+                if (tween.elapsed - trail >= TRAIL_EVERY && v < 0.92) {
+                    trail = tween.elapsed;
+                    this.sparkle(art.x, art.y, glow);
+                }
             },
             onComplete: () => this.unlock(lock, art)
         });
@@ -532,91 +454,253 @@ export class Locks {
         SoundManager.fx(this.scene, 'whoosh', 0.5);
     }
 
-    // The key is in: it turns, the shackle jumps open, and padlock and
-    // chains burst off. The convoy is free from here.
+    // Where a key of this scale has to be for its tip to sit at the keyhole,
+    // hanging bit down, pushed in by depth (art units).
+    keyAt(padlock, art, scale, depth = 0) {
+        const unit = scale * ART_RES;
+        const hole = padlock.y + KEYHOLE_Y * padlock.scaleY;
+
+        return { x: padlock.x, y: hole - (KEY_TIP - depth) * unit };
+    }
+
+    // One sparkle left behind by a flying key.
+    sparkle(x, y, color) {
+        if (!this.scene.textures.exists('fx-glint')) return;
+
+        const glint = this.scene.add.image(x, y, 'fx-glint');
+        const size = this.cell * TRAIL_SIZE * (0.7 + Math.random() * 0.6) / 256;
+
+        glint.setTint(color);
+        glint.setScale(size);
+        glint.rotation = Math.random() * Math.PI;
+        this.play.effectGroup.addAt(glint, 0);
+
+        this.scene.tweens.add({
+            targets: glint,
+            scale: 0,
+            angle: glint.angle + 140,
+            y: y + this.cell * 0.15,
+            duration: TRAIL_TIME,
+            ease: 'Quad.easeIn',
+            onComplete: () => glint.destroy()
+        });
+    }
+
+    // The key is over the keyhole: it pushes in, the padlock giving under
+    // it, then turns with a click and the lock springs open.
     unlock(lock, key) {
         const padlock = lock.padlock;
+        const rest = padlock.restScale;
+        const scale = key.scaleX;
+        const glow = PALETTE[lock.color].glow;
 
-        lock.sway.remove();
+        const insert = this.scene.tweens.addCounter({
+            from: 0,
+            to: 1,
+            duration: INSERT_TIME,
+            onUpdate: (tween) => {
+                const t = tween.getValue();
+                const at = this.keyAt(padlock, key, scale, KEY_IN * Phaser.Math.Easing.Back.Out(t));
+                const give = Math.sin(t * Math.PI) * 0.1;
+
+                key.setPosition(at.x, at.y);
+                padlock.setScale(rest * (1 + give), rest * (1 - give));
+            },
+            onComplete: () => {
+                padlock.setScale(rest);
+                this.turn(lock, key, scale, glow);
+            }
+        });
+
+        this.runs.push(insert);
+        SoundManager.fx(this.scene, 'tap', 0.6);
+    }
+
+    // The key turns about its shaft (seen side on, it narrows to an edge and
+    // opens out the other way round), and clicks home half way.
+    turn(lock, key, scale, glow) {
+        const padlock = lock.padlock;
+        let clicked = false;
 
         const run = this.scene.tweens.addCounter({
             from: 0,
             to: 1,
             duration: TURN_TIME,
+            ease: 'Sine.easeInOut',
             onUpdate: (tween) => {
                 const t = tween.getValue();
 
-                key.setPosition(padlock.x, padlock.y + this.cell * 0.06);
-                key.rotation = Math.PI / 2 - Math.PI / 2 * Phaser.Math.Easing.Back.Out(t);
-                padlock.angle *= 0.8;
+                key.scaleY = scale * Math.cos(t * Math.PI);
+                padlock.angle = Math.sin(t * Math.PI) * 5;
+
+                if (!clicked && t >= 0.5) {
+                    clicked = true;
+                    SoundManager.fx(this.scene, 'tap', 0.8);
+                    this.play.glintOn(padlock.x, padlock.y + KEYHOLE_Y * padlock.scaleY, 0.5);
+                }
             },
             onComplete: () => {
-                key.destroy();
-                this.burstOff(lock, PALETTE[lock.color].glow);
+                // Turned over: the same as flipped, so it can scale as usual.
+                key.scaleY = scale;
+                key.flipY = !key.flipY;
+                padlock.angle = 0;
+                this.open(lock, key, glow);
             }
         });
 
         this.runs.push(run);
-        SoundManager.fx(this.scene, 'tap', 0.7);
+    }
+
+    // The key sinks in, the shackle jumps up and swings open on its right
+    // leg, and the convoy is free from here; then it all bursts off.
+    open(lock, key, glow) {
+        const shackle = lock.shackle;
+        const x0 = shackle.x;
+        const y0 = shackle.y;
+        // The top of its right leg, in the padlock.
+        const px = x0 + 16;
+        const py = y0 - 8;
+
+        SoundManager.fx(this.scene, 'unlock', 0.9);
 
         // Freed as the shackle opens, not once the pieces have gone.
         this.release(lock.convoy);
+
+        // The key sinks into the keyhole, out of the shackle's way.
+        const hole = lock.padlock.y + KEYHOLE_Y * lock.padlock.scaleY;
+
+        this.scene.tweens.add({
+            targets: key,
+            y: hole,
+            scaleX: 0,
+            scaleY: 0,
+            duration: OPEN_TIME * 0.5,
+            ease: 'Back.easeIn',
+            onComplete: () => key.destroy()
+        });
+
+        const run = this.scene.tweens.addCounter({
+            from: 0,
+            to: 1,
+            duration: OPEN_TIME,
+            onUpdate: (tween) => {
+                const t = tween.getValue();
+                const up = OPEN_LIFT * Phaser.Math.Easing.Back.Out(Math.min(1, t * 1.6));
+                const swing = Phaser.Math.DegToRad(OPEN_SWING) * Phaser.Math.Easing.Back.Out(Math.max(0, t * 1.6 - 0.6));
+                const dx = x0 - px;
+                const dy = y0 - py;
+
+                shackle.rotation = swing;
+                shackle.x = px + dx * Math.cos(swing) - dy * Math.sin(swing);
+                shackle.y = py + dx * Math.sin(swing) + dy * Math.cos(swing) - up;
+            },
+            onComplete: () => this.burstOff(lock, glow)
+        });
+
+        this.runs.push(run);
     }
 
     burstOff(lock, glow) {
         const padlock = lock.padlock;
-        const cell = this.cell;
+        const rest = padlock.restScale;
+        const color = '#' + glow.toString(16).padStart(6, '0');
 
-        SoundManager.fx(this.scene, 'unlock', 0.9);
+        // A white flash, then it swells and is gone.
         lock.body.setTintFill(0xffffff);
         lock.shackle.setTintFill(0xffffff);
 
+        this.scene.time.delayedCall(FLASH_TIME, () => {
+            if (lock.body.scene) lock.body.clearTint();
+            if (lock.shackle.scene) lock.shackle.clearTint();
+        });
+
         this.play.ringAt(padlock.x, padlock.y, glow);
         this.play.glintsAt(padlock.x, padlock.y, UNLOCK_GLINTS, glow);
-        this.play.confettiFrom(padlock.x, padlock.y, 10, '#' + glow.toString(16).padStart(6, '0'));
-
-        this.scene.tweens.add({
-            targets: lock.shackle,
-            y: lock.shackle.y - 12,
-            duration: OPEN_TIME,
-            ease: 'Back.easeOut',
-            onComplete: () => {
-                lock.body.clearTint();
-                lock.shackle.clearTint();
-            }
-        });
+        this.play.confettiFrom(padlock.x, padlock.y, UNLOCK_CONFETTI, color);
 
         this.scene.tweens.add({
             targets: padlock,
-            y: padlock.y + cell * OFF_DROP,
-            angle: padlock.angle + 40,
-            scale: padlock.restScale * 1.3,
-            alpha: 0,
-            delay: OPEN_TIME,
-            duration: OFF_TIME,
-            ease: 'Back.easeIn',
-            onComplete: () => padlock.destroy()
+            scale: '*=1.25',
+            duration: POP_TIME,
+            ease: 'Quad.easeOut',
+            onComplete: () => {
+                this.scene.tweens.add({
+                    targets: padlock,
+                    scale: 0,
+                    angle: '+=25',
+                    alpha: 0,
+                    duration: OFF_TIME * 0.6,
+                    ease: 'Back.easeIn',
+                    onComplete: () => {
+                        padlock.destroy();
+                    }
+                });
+            }
         });
 
-        lock.chains.forEach((link, i) => {
-            this.scene.tweens.add({
-                targets: link,
-                scale: link.fit * 1.35,
-                alpha: 0,
-                delay: OPEN_TIME * 0.5 + i * CHAIN_OFF_STAGGER,
-                duration: OFF_TIME,
-                ease: 'Quad.easeOut',
-                onStart: () => { if (i % 2) this.play.ringAt(link.x, link.y, glow); },
-                onComplete: () => link.destroy()
-            });
+        // The shackle flies off on its own, spinning.
+        this.scene.tweens.add({
+            targets: lock.shackle,
+            y: lock.shackle.y - 30,
+            angle: lock.shackle.angle - 90,
+            duration: POP_TIME + OFF_TIME * 0.6,
+            ease: 'Quad.easeOut'
         });
+
+        this.flingChains(lock, rest);
 
         const convoy = lock.convoy;
 
         this.play.lightConvoy(convoy);
+        this.play.bumpConvoy(convoy);
         if (convoy.garage) convoy.garage.cheer();
 
         this.doneWithTip();
+    }
+
+    // Each band of chain snaps off and is flung away from the padlock,
+    // tumbling, the nearest first, and drops out of sight.
+    flingChains(lock) {
+        const padlock = lock.padlock;
+        const cell = this.cell;
+        const links = lock.chains.slice().sort((a, b) =>
+            Phaser.Math.Distance.Between(a.x, a.y, padlock.x, padlock.y) -
+            Phaser.Math.Distance.Between(b.x, b.y, padlock.x, padlock.y));
+
+        links.forEach((link, i) => {
+            const away = Math.atan2(link.y - padlock.y, link.x - padlock.x) + (Math.random() - 0.5) * 0.8;
+            const reach = cell * CHAIN_FLING * (0.7 + Math.random() * 0.6);
+            const x0 = link.x;
+            const y0 = link.y;
+            const r0 = link.rotation;
+            const spin = (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random() * 2);
+
+            const run = this.scene.tweens.addCounter({
+                from: 0,
+                to: 1,
+                delay: i * CHAIN_OFF_STAGGER,
+                duration: OFF_TIME + 200,
+                onStart: () => {
+                    // Over the board while it flies.
+                    link.depth += 100;
+                    this.play.stackDirty = true;
+                    if (i % 3 === 0) this.play.glintsAt(x0, y0, 2, PALETTE[lock.color].glow);
+                },
+                onUpdate: (tween) => {
+                    const t = tween.getValue();
+                    const out = Phaser.Math.Easing.Quadratic.Out(t);
+
+                    link.x = x0 + Math.cos(away) * reach * out;
+                    link.y = y0 + Math.sin(away) * reach * out - cell * CHAIN_HOP * Math.sin(t * Math.PI * 0.8) + cell * CHAIN_FALL * t * t * 0.4;
+                    link.rotation = r0 + spin * t;
+                    link.setScale(link.fit * (1 + 0.15 * Math.sin(t * Math.PI)));
+                    link.alpha = t < 0.55 ? 1 : 1 - (t - 0.55) / 0.45;
+                },
+                onComplete: () => link.destroy()
+            });
+
+            this.runs.push(run);
+        });
     }
 
     release(convoy) {

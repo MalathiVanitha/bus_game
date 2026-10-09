@@ -25,6 +25,15 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('toggle-base', 'assets/toggle-base.png')
         this.load.image('toggle-fill', 'assets/toggle-fill.png')
 
+        // The chains, padlocks and keys of locked levels, one set a colour.
+        for (const color of ['gold', 'silver']) {
+            for (const part of ['key', 'chain', 'body', 'shackle']) {
+                this.load.image('lock-' + part + '-' + color, 'assets/locks/' + part + '-' + color + '.png')
+            }
+        }
+
+        this.load.image('lock-rope', 'assets/locks/rope.png')
+
         this.load.atlas('sheet', 'assets/sheet/sheet.webp', 'assets/sheet/sheet.json')
         this.load.atlas('walls', 'assets/sheet/walls.webp', 'assets/sheet/walls.json')
         this.load.atlas('luggages', 'assets/sheet/luggages.webp', 'assets/sheet/luggages.json')

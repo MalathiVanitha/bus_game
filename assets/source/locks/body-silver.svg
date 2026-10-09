@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="216" viewBox="0 0 240 216"><defs>
+<linearGradient id="sbv" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#f4f7fb"/><stop offset="0.45" stop-color="#d6dee9"/>
+  <stop offset="0.8" stop-color="#b3bfd0"/><stop offset="1" stop-color="#8592a8"/></linearGradient>
+<linearGradient id="sbd" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#f4f7fb"/><stop offset="0.5" stop-color="#d6dee9"/>
+  <stop offset="1" stop-color="#8592a8"/></linearGradient>
+<linearGradient id="sbcyl" x1="0" y1="0" x2="1" y2="0">
+  <stop offset="0" stop-color="#8592a8"/><stop offset="0.3" stop-color="#f4f7fb"/>
+  <stop offset="0.55" stop-color="#d6dee9"/><stop offset="1" stop-color="#8592a8"/></linearGradient>
+<linearGradient id="sbcylh" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#b3bfd0"/><stop offset="0.28" stop-color="#ffffff"/>
+  <stop offset="0.55" stop-color="#d6dee9"/><stop offset="1" stop-color="#8592a8"/></linearGradient>
+<radialGradient id="sbhole" cx="0.5" cy="0.35" r="0.7">
+  <stop offset="0" stop-color="#b3bfd0"/><stop offset="1" stop-color="#8592a8"/></radialGradient>
+<filter id="sbsh" x="-30%" y="-30%" width="160%" height="170%">
+  <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#0d1630" flood-opacity="0.35"/></filter>
+
+<linearGradient id="sblip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3bfd0"/><stop offset="1" stop-color="#56627a"/></linearGradient>
+<radialGradient id="sbplate" cx="0.45" cy="0.35" r="0.7"><stop offset="0" stop-color="#d6dee9"/><stop offset="1" stop-color="#8592a8"/></radialGradient></defs>
+<g filter="url(#sbsh)">
+  <rect x="10" y="10" width="220" height="174" rx="42" fill="url(#sblip)" stroke="#56627a" stroke-width="5"/>
+  <rect x="16" y="14" width="208" height="150" rx="36" fill="url(#sbv)"/>
+  <!-- bevel: lit top rim -->
+  <path d="M40 22 H200 A26 26 0 0 1 214 34" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.9"/>
+  <!-- gloss -->
+  <rect x="34" y="30" width="110" height="26" rx="13" fill="#ffffff" opacity="0.55"/>
+  <circle cx="166" cy="42" r="8" fill="#ffffff" opacity="0.7"/>
+  <!-- rivets -->
+  <g><circle cx="46" cy="140" r="11" fill="url(#sbd)" stroke="#56627a" stroke-width="3"/><circle cx="43" cy="136" r="3.5" fill="#ffffff"/><circle cx="194" cy="140" r="11" fill="url(#sbd)" stroke="#56627a" stroke-width="3"/><circle cx="191" cy="136" r="3.5" fill="#ffffff"/></g>
+  <!-- keyhole plate -->
+  <circle cx="120" cy="84" r="42" fill="url(#sbplate)" stroke="#56627a" stroke-width="4"/>
+  <circle cx="120" cy="84" r="42" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.5" stroke-dasharray="70 400" transform="rotate(200 120 84)"/>
+  <path d="M120 58 a17 17 0 0 1 9 31.5 l5 28 a5 5 0 0 1 -5 6 h-18 a5 5 0 0 1 -5 -6 l5 -28 a17 17 0 0 1 9 -31.5 z" fill="#2c3446"/>
+  <path d="M110 70 a12 12 0 0 1 14 -6" fill="none" stroke="#ffffff" stroke-width="2.5" opacity="0.25"/>
+</g></svg>

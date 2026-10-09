@@ -105,10 +105,10 @@ const CONVOY_SPLASH = {
 
 const LOOK_AHEAD_CELLS = 2;
 
-// How close (in cells, either way) a vehicle has to be to a garage for its
-// front to need cutting at the mouth: the mouth reaches about 1.1 cells out,
-// and a vehicle about half a cell past its middle.
-const GARAGE_NEAR = 2;
+// How far (in cells) a vehicle's middle can be from the slab cut out of a
+// garage's front at its mouth and still overlap it: a vehicle reaches a little
+// under 0.7 cells from its middle, corner to corner.
+const GARAGE_NEAR = 0.75;
 
 const DOOR_HALF = 0.75;
 const DOOR_DEPTH = 12;
@@ -120,9 +120,7 @@ const INTRO_FADE = 320;
 const INTRO_FROM = 0.84;
 const INTRO_DROP = 70;
 
-// What fills a hole in the board: a wall for a run of them, in this style if
-// the level has no wall of its own, or one of these for a single hole.
-const HOLE_WALL = 'hedge-green';
+// What fills a single hole inside the board, by turns.
 const HOLE_OBSTACLES = ['planter', 'cone', 'cargo_pallet'];
 
 // Seconds on the clock for a level that does not give its own.
@@ -470,11 +468,12 @@ export class GamePlay extends Phaser.GameObjects.Container {
     }
 
     /**
-     * No cell is left an empty hole in the board: a run of them becomes a
-     * wall - joined to one it touches, or in the level's own wall style - and
-     * one on its own an obstacle. Either way it stays as blocked as the hole
-     * was, so the level plays the same; but it is floor under it now, so the
-     * Crane can lift it like any other.
+     * Walls are not built on the board but cut out of it: the board's outline
+     * goes round them, like round a hole at its edge. A run of holes is left
+     * a cut too, joined to any wall it touches; only a hole on its own, inside
+     * the board, is filled - with an obstacle, floor under it, so the Crane
+     * can lift it like any other. Either way every cell stays as blocked as it
+     * was, so the level plays the same.
      */
     fillHoles() {
         const holes = [];
@@ -521,32 +520,39 @@ export class GamePlay extends Phaser.GameObjects.Container {
                     }
                 }
 
-                holes.push(group);
+                // One at the board's edge, or of more than one cell, is left
+                // a gap in it: the board's outline goes round it.
+                if (group.length > 1) continue;
+                if (group.some(([c, r]) => c === 0 || r === 0 || c === this.columns - 1 || r === this.rows - 1)) continue;
+
+                holes.push(group[0]);
             }
         }
-
-        if (!holes.length) return;
-
-        const style = (this.walls[0] && this.walls[0].style) || HOLE_WALL;
 
         for (let i = 0; i < holes.length; i++) {
-            const group = holes[i];
+            const [col, row] = holes[i];
+            const nextToWall = this.walls.some((wall) => wall.cells.some((w) =>
+                Math.abs(w[0] - col) + Math.abs(w[1] - row) === 1));
 
-            for (let j = 0; j < group.length; j++) this.pattern[group[j][1]][group[j][0]] = 1;
+            // Beside a wall it is part of the wall's cut.
+            if (nextToWall) continue;
 
-            const touching = this.walls.find((wall) => wall.cells.some((w) =>
-                group.some((g) => Math.abs(w[0] - g[0]) + Math.abs(w[1] - g[1]) === 1)));
+            this.pattern[row][col] = 1;
+            this.obstacles.push([col, row, HOLE_OBSTACLES[(col + row) % HOLE_OBSTACLES.length]]);
+        }
 
-            if (touching) {
-                touching.cells.push(...group);
-            } else if (group.length > 1) {
-                this.walls.push({ style: style, cells: group });
-            } else {
-                const [col, row] = group[0];
+        // Then the walls themselves are cut out of the board.
+        for (let i = 0; i < this.walls.length; i++) {
+            const cells = this.walls[i].cells;
 
-                this.obstacles.push([col, row, HOLE_OBSTACLES[(col + row) % HOLE_OBSTACLES.length]]);
+            for (let j = 0; j < cells.length; j++) {
+                const [col, row] = cells[j];
+
+                if (this.onBoard(col, row)) this.pattern[row][col] = 0;
             }
         }
+
+        this.walls.length = 0;
     }
 
     cellToPixel(col, row) {
@@ -1404,9 +1410,9 @@ export class GamePlay extends Phaser.GameObjects.Container {
             const going = !convoy.escaped &&
                 (convoy.swallowing || this.enteringGarage(convoy));
 
-            garage.clip(going || this.vehicleNear(garage));
+            garage.clip(going ? "mask" : this.vehicleNear(garage) ? "cut" : false);
 
-            if (garage.clipped) {
+            if (garage.clipped === "mask") {
                 this.fillSlab(
                     mouths, spot, outX, outY,
                     garage.doorMouth, garage.doorBack, garage.doorHalf
@@ -1428,10 +1434,19 @@ export class GamePlay extends Phaser.GameObjects.Container {
         }
     }
 
-    // Whether any vehicle still on the board is close enough to the garage
-    // to be under its roof edge.
+    // Whether any vehicle still on the board is close enough to the garage's
+    // mouth to pass under its roof edge. Measured from the slab the mask cuts,
+    // along and across the way the garage faces, so convoys merely parked
+    // beside a garage do not keep its front masked.
     vehicleNear(garage) {
         const reach = this.cellSize * GARAGE_NEAR;
+        const outX = Math.cos(garage.facing);
+        const outY = Math.sin(garage.facing);
+        const mid = (garage.doorMouth + garage.doorBack) / 2;
+        const cx = garage.x + outX * mid;
+        const cy = garage.y + outY * mid;
+        const along = Math.abs(garage.doorMouth - garage.doorBack) / 2 + reach;
+        const across = garage.doorHalf + reach;
 
         for (let i = 0; i < this.convoys.length; i++) {
             const convoy = this.convoys[i];
@@ -1442,8 +1457,11 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
             for (let j = 0; j < vehicles.length; j++) {
                 const art = vehicles[j].art;
+                const dx = art.x - cx;
+                const dy = art.y - cy;
 
-                if (Math.abs(art.x - garage.x) < reach && Math.abs(art.y - garage.y) < reach) return true;
+                if (Math.abs(dx * outX + dy * outY) < along &&
+                    Math.abs(dy * outX - dx * outY) < across) return true;
             }
         }
 

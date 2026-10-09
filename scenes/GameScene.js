@@ -25,7 +25,7 @@ const LEVEL_KEY = 'baggage-out.level';
 
 function readLevel() {
     try {
-        const saved = Number(window.localStorage.getItem(LEVEL_KEY));
+        const saved = Number(window.localStorage.getItem(LEVEL_KEY)) + 101;
 
         if (isFinite(saved) && saved >= 1) return Math.floor(saved);
     } catch (e) {

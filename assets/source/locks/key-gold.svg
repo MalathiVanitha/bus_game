@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="184" viewBox="0 0 360 184"><defs>
+<linearGradient id="gkv" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#ffe680"/><stop offset="0.45" stop-color="#ffc928"/>
+  <stop offset="0.8" stop-color="#f5a40c"/><stop offset="1" stop-color="#d27a00"/></linearGradient>
+<linearGradient id="gkd" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#ffe680"/><stop offset="0.5" stop-color="#ffc928"/>
+  <stop offset="1" stop-color="#d27a00"/></linearGradient>
+<linearGradient id="gkcyl" x1="0" y1="0" x2="1" y2="0">
+  <stop offset="0" stop-color="#d27a00"/><stop offset="0.3" stop-color="#ffe680"/>
+  <stop offset="0.55" stop-color="#ffc928"/><stop offset="1" stop-color="#d27a00"/></linearGradient>
+<linearGradient id="gkcylh" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#f5a40c"/><stop offset="0.28" stop-color="#fffbe0"/>
+  <stop offset="0.55" stop-color="#ffc928"/><stop offset="1" stop-color="#d27a00"/></linearGradient>
+<radialGradient id="gkhole" cx="0.5" cy="0.35" r="0.7">
+  <stop offset="0" stop-color="#f5a40c"/><stop offset="1" stop-color="#d27a00"/></radialGradient>
+<filter id="gksh" x="-30%" y="-30%" width="160%" height="170%">
+  <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#0d1630" flood-opacity="0.35"/></filter>
+
+<mask id="gkcut" maskUnits="userSpaceOnUse" x="0" y="0" width="360" height="184">
+  <rect width="360" height="184" fill="#fff"/><circle cx="80" cy="96" r="22" fill="#000"/></mask></defs>
+<g mask="url(#gkcut)"><g filter="url(#gksh)">
+  <!-- bit -->
+  <path d="M250 104 h28 v48 a10 10 0 0 1 -10 10 h-8 a10 10 0 0 1 -10 -10 z" fill="url(#gkcyl)" stroke="#9a5200" stroke-width="5"/>
+  <path d="M294 104 h26 v32 a10 10 0 0 1 -10 10 h-6 a10 10 0 0 1 -10 -10 z" fill="url(#gkcyl)" stroke="#9a5200" stroke-width="5"/>
+  <!-- shaft -->
+  <rect x="120" y="76" width="216" height="36" rx="18" fill="url(#gkcylh)" stroke="#9a5200" stroke-width="5"/>
+  <rect x="140" y="83" width="170" height="7" rx="3.5" fill="#fffbe0" opacity="0.9"/>
+  <!-- collar -->
+  <rect x="122" y="64" width="30" height="60" rx="12" fill="url(#gkcyl)" stroke="#9a5200" stroke-width="5"/>
+  <rect x="129" y="70" width="8" height="40" rx="4" fill="#fffbe0" opacity="0.8"/>
+  <!-- bow -->
+  <circle cx="80" cy="96" r="62" fill="url(#gkd)" stroke="#9a5200" stroke-width="5"/>
+  <circle cx="80" cy="96" r="48" fill="none" stroke="#ffe680" stroke-width="5" opacity="0.6"/>
+  <path d="M42 66 A48 48 0 0 1 106 54" fill="none" stroke="#fffbe0" stroke-width="9" stroke-linecap="round" opacity="0.95"/>
+  <circle cx="110" cy="66" r="5" fill="#fffbe0" opacity="0.9"/>
+  <!-- the rim of the hole through the bow -->
+  <circle cx="80" cy="96" r="24" fill="none" stroke="#9a5200" stroke-width="5"/>
+  <path d="M96 112 A22 22 0 0 1 68 115" fill="none" stroke="#fffbe0" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+</g></g>
+</svg>

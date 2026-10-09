@@ -95,6 +95,43 @@ const BREAK_SWELL = 1.2;
 const BREAK_TIME = 260;
 const ICE_COLOR = 0xc8f1ff;
 
+// The front with its mouth already cut out on one side, drawn once per colour
+// and side and shared. A garage that only has a vehicle waiting by its mouth
+// shows this rather than being masked: a mask costs the GPU a stencil pass of
+// its own every frame, and on a full board nearly every garage has one by it.
+function cutTexture(scene, key, side) {
+    const name = "garage-cut-" + key + "-" + side;
+
+    if (scene.textures.exists(name)) return name;
+
+    const frame = scene.textures.getFrame(VEHICLE_SHEET, key + "/garage");
+
+    if (!frame) return null;
+
+    const w = frame.realWidth;
+    const h = frame.realHeight;
+    const canvas = scene.textures.createCanvas(name, w, h);
+
+    if (!canvas) return null;
+
+    const ctx = canvas.getContext();
+    const trim = frame.data.spriteSourceSize;
+
+    ctx.drawImage(
+        frame.source.image,
+        frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight,
+        trim.x, trim.y, frame.cutWidth, frame.cutHeight
+    );
+
+    ctx.translate(w / 2, h / 2);
+    ctx.rotate(DOOR_FACING + side * Math.PI / 2);
+    ctx.clearRect(DOOR_BACK, -DOOR_HALF, DOOR_MOUTH - DOOR_BACK, DOOR_HALF * 2);
+
+    canvas.refresh();
+
+    return name;
+}
+
 function iceTexture(scene) {
     if (scene.textures.exists(ICE_TEXTURE)) return ICE_TEXTURE;
 
@@ -256,9 +293,10 @@ export class Garage {
         // Everything that swells and squashes together.
         this.parts = [this.shadow, this.back, this.front];
 
+        this.key = config.key;
         this.mouthMask = config.mask;
-        this.clipped = true;
-        this.front.setMask(config.mask);
+        this.clipped = false;
+        this.cutKey = null;
         this.front.depth = config.y + config.size * (FOOT + NOSE);
 
         this.doorBack = DOOR_BACK * this.baseScale;
@@ -420,15 +458,36 @@ export class Garage {
     }
 
     // The front is cut at its mouth only while something is near enough to
-    // pass under the roof edge: every masked sprite costs the GPU its own
-    // stencil pass each frame.
-    clip(on) {
-        if (on === this.clipped) return;
+    // pass under the roof edge. One waiting there gets the front drawn with its
+    // mouth already cut out ("cut"); one driving in, while the garage gapes
+    // and gulps, gets the real mask ("mask"), which every masked sprite pays
+    // a stencil pass of its own for each frame.
+    clip(mode) {
+        let cut = null;
 
-        this.clipped = on;
+        if (mode === "cut") {
+            // Which side of the art the mouth is on, in quarter turns.
+            const turn = Math.round((this.facing - this.front.rotation - DOOR_FACING) / (Math.PI / 2));
 
-        if (on) this.front.setMask(this.mouthMask);
-        else this.front.clearMask();
+            cut = cutTexture(this.scene, this.key, ((turn % 4) + 4) % 4);
+
+            if (!cut) mode = "mask";
+        }
+
+        if (mode === this.clipped && cut === this.cutKey) return;
+
+        if ((mode === "mask") !== (this.clipped === "mask")) {
+            if (mode === "mask") this.front.setMask(this.mouthMask);
+            else this.front.clearMask();
+        }
+
+        if (cut !== this.cutKey) {
+            if (cut) this.front.setTexture(cut);
+            else this.front.setTexture(VEHICLE_SHEET, this.key + "/garage");
+        }
+
+        this.clipped = mode;
+        this.cutKey = cut;
     }
 
     // Turns the doorway to the side a convoy is coming in from. The art stays

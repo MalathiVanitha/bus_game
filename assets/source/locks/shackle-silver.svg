@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="180" viewBox="0 0 200 180"><defs>
+<linearGradient id="ssv" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#f4f7fb"/><stop offset="0.45" stop-color="#d6dee9"/>
+  <stop offset="0.8" stop-color="#b3bfd0"/><stop offset="1" stop-color="#8592a8"/></linearGradient>
+<linearGradient id="ssd" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#f4f7fb"/><stop offset="0.5" stop-color="#d6dee9"/>
+  <stop offset="1" stop-color="#8592a8"/></linearGradient>
+<linearGradient id="sscyl" x1="0" y1="0" x2="1" y2="0">
+  <stop offset="0" stop-color="#8592a8"/><stop offset="0.3" stop-color="#f4f7fb"/>
+  <stop offset="0.55" stop-color="#d6dee9"/><stop offset="1" stop-color="#8592a8"/></linearGradient>
+<linearGradient id="sscylh" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#b3bfd0"/><stop offset="0.28" stop-color="#ffffff"/>
+  <stop offset="0.55" stop-color="#d6dee9"/><stop offset="1" stop-color="#8592a8"/></linearGradient>
+<radialGradient id="sshole" cx="0.5" cy="0.35" r="0.7">
+  <stop offset="0" stop-color="#b3bfd0"/><stop offset="1" stop-color="#8592a8"/></radialGradient>
+<filter id="sssh" x="-30%" y="-30%" width="160%" height="170%">
+  <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#0d1630" flood-opacity="0.35"/></filter>
+</defs>
+<g>
+  <path d="M36 176 V100 A64 64 0 0 1 164 100 V176" fill="none" stroke="#56627a" stroke-width="40" stroke-linecap="butt"/>
+  <path d="M36 176 V100 A64 64 0 0 1 164 100 V176" fill="none" stroke="#8592a8" stroke-width="32"/>
+  <path d="M36 176 V100 A64 64 0 0 1 164 100 V176" fill="none" stroke="#d6dee9" stroke-width="22" transform="translate(-3 -3)"/>
+  <path d="M36 176 V100 A64 64 0 0 1 164 100 V176" fill="none" stroke="#f4f7fb" stroke-width="10" transform="translate(-6 -6)"/>
+  <path d="M30 150 V100 A70 70 0 0 1 80 34" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+</g></svg>

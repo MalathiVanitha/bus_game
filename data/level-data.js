@@ -1,5 +1,30 @@
+// Where each special mechanic starts (once in, it stays for every level after):
+//
+//   Level  Mechanic
+//   1      open boards: drive each convoy home to its garage
+//   4      obstacles: planters at 4, cones at 5, cargo containers at 7,
+//          pallets at 8, barriers at 9, service cabinets at 11
+//   7      walls (hedges, concrete, cargo walls)
+//   10     Super Hard levels, every tenth level (10, 20 ... 200): packed
+//          boards with bent convoys and holes cut in the floor
+//   12     bent convoys on Normal levels
+//   14     holes cut in the floor on Normal levels
+//   15     Hard levels, every tenth level from 15 (15, 25 ... 195)
+//   26     nested convoys ("inside: key"): one convoy rides inside another
+//          until that one is home; one on every level from 26
+//   51     frozen garages ("frozen: n"): iced over until n other convoys are
+//          home; one on most levels from 51 to 100
+//   70     two nested convoys (on every level from 80)
+//   101    chained convoys ("lock: colour", key on another convoy's
+//          "carryKey: colour"): one on every level from 101;
+//          freezes two or three to a board from here on
+//   153    three nested convoys on some levels
+//
+//   Board sizes (columns x rows): 6x7 at 1, 7x8 at 7, 8x8 at 13, 8x9 at 21,
+//   8x10 at 36, 9x10 at 71, 9x11 at 81.
+//
 // 200 levels, easiest first. Levels 1-3 are open boards, cones and planters
-// arrive at 4, walls at 7, bent convoys at 11 and cut corners at 16; each
+// arrive at 4, walls at 7, bent convoys at 12 and cut corners at 14; each
 // band adds a convoy or a wall and one more round of "clear that one first".
 // From 51 the boards grow (10x9 at 71, 11x9 at 81) and convoys run up to ten;
 // every tenth level is a harder one with an extra convoy and round, and the

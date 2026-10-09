@@ -16,6 +16,8 @@ const RIM_PAD = 16 / ART_CELL;
 const RIM_CORNER = 26 / ART_CELL;
 const WELL_PAD = 3 / ART_CELL;
 const WELL_CORNER = 16 / ART_CELL;
+// How round the board's outline is where it turns in, round a cut in it.
+const FILLET = 10 / ART_CELL;
 const TILE_GAP = 1.5 / ART_CELL;
 const TILE_CORNER = 5 / ART_CELL;
 const TILE_BEVEL = 1.5 / ART_CELL;
@@ -97,6 +99,37 @@ const DEFAULT_WALL = 'concrete-wall';
 // The floor and the lift highlight are drawn once into these, not every frame.
 const FLOOR_KEY = 'board-floor';
 const LIFT_KEY = 'board-lift';
+
+// The outline of a box with its corners rounded each by its own radius (0 for
+// square), clockwise from the top left.
+const ROUND_STEPS = 6;
+
+function roundedBox(x0, y0, x1, y1, tl, tr, br, bl) {
+    const points = [];
+    const corner = (cx, cy, r, from) => {
+        if (r <= 0) {
+            points.push({ x: cx, y: cy });
+            return;
+        }
+
+        // The corner's own point, pulled in by r both ways, is the arc's middle.
+        const mx = cx + (cx === x0 ? r : -r);
+        const my = cy + (cy === y0 ? r : -r);
+
+        for (let i = 0; i <= ROUND_STEPS; i++) {
+            const a = from + (i / ROUND_STEPS) * Math.PI / 2;
+
+            points.push({ x: mx + Math.cos(a) * r, y: my + Math.sin(a) * r });
+        }
+    };
+
+    corner(x0, y0, tl, Math.PI);
+    corner(x1, y0, tr, Math.PI * 1.5);
+    corner(x1, y1, br, 0);
+    corner(x0, y1, bl, Math.PI / 2);
+
+    return points;
+}
 
 export class Board {
     constructor(scene, config) {
@@ -193,22 +226,87 @@ export class Board {
         };
 
         this.tileLayer.add(bakeShape(this.scene, bounds, (g) => {
+            // The rim and the well follow the board's own outline, round
+            // any cells cut out of it, rounded where it turns outward.
+            const fillet = FILLET * this.cell;
+
             g.fillStyle(RIM, 1);
-            g.fillRoundedRect(
-                left - rimPad, top - rimPad,
-                width + rimPad * 2, height + rimPad * 2,
-                RIM_CORNER * this.cell
-            );
+            this.drawOutline(g, rimPad, RIM_CORNER * this.cell, fillet);
 
             g.fillStyle(WELL, 1);
-            g.fillRoundedRect(
-                left - wellPad, top - wellPad,
-                width + wellPad * 2, height + wellPad * 2,
-                WELL_CORNER * this.cell
-            );
+            this.drawOutline(g, wellPad, WELL_CORNER * this.cell, fillet + rimPad - wellPad);
 
             this.drawTiles(g);
         }, FLOOR_KEY, res));
+    }
+
+    // Every floor cell, grown by pad on all sides: together they make the
+    // board's shape, an even pad wider than its tiles. A corner is rounded
+    // only where the outline turns outward there (nothing beside it either
+    // way), so cells meet square; where it turns inward, round a cut, the
+    // corner is filled in to a curve of radius fillet.
+    drawOutline(g, pad, corner, fillet) {
+        const halfW = this.tileWidth / 2 + pad;
+        const halfH = this.tileHeight / 2 + pad;
+
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.columns; col++) {
+                if (!this.isFloor(col, row)) continue;
+
+                const spot = this.cellToPixel(col, row);
+                const up = this.isFloor(col, row - 1);
+                const down = this.isFloor(col, row + 1);
+                const left = this.isFloor(col - 1, row);
+                const right = this.isFloor(col + 1, row);
+
+                g.fillPoints(roundedBox(
+                    spot.x - halfW, spot.y - halfH, spot.x + halfW, spot.y + halfH,
+                    !up && !left ? corner : 0,
+                    !up && !right ? corner : 0,
+                    !down && !right ? corner : 0,
+                    !down && !left ? corner : 0
+                ), true);
+            }
+        }
+
+        // The cut cells' corners with floor on both sides of them.
+        const sides = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.columns; col++) {
+                if (this.isFloor(col, row)) continue;
+
+                const spot = this.cellToPixel(col, row);
+
+                for (let i = 0; i < sides.length; i++) {
+                    const [sx, sy] = sides[i];
+
+                    if (!this.isFloor(col + sx, row) || !this.isFloor(col, row + sy)) continue;
+
+                    // Where the two cells' pads meet, in the cut cell.
+                    const qx = spot.x + sx * (this.tileWidth / 2 - pad);
+                    const qy = spot.y + sy * (this.tileHeight / 2 - pad);
+                    // The curve's middle, in from there both ways.
+                    const cx = qx - sx * fillet;
+                    const cy = qy - sy * fillet;
+                    const from = Math.atan2(qy - cy, 0);
+                    let to = Math.atan2(0, qx - cx);
+
+                    // The quarter turn between them, not the long way round.
+                    if (to - from > Math.PI) to -= Math.PI * 2;
+                    if (from - to > Math.PI) to += Math.PI * 2;
+                    const points = [{ x: qx, y: qy }];
+
+                    for (let k = 0; k <= ROUND_STEPS; k++) {
+                        const a = from + (to - from) * (k / ROUND_STEPS);
+
+                        points.push({ x: cx + Math.cos(a) * fillet, y: cy + Math.sin(a) * fillet });
+                    }
+
+                    g.fillPoints(points, true);
+                }
+            }
+        }
     }
 
     drawTiles(g) {

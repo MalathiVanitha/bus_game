@@ -35,7 +35,7 @@ export const BOOSTERS = [
         title: 'Get more cranes?',
         noun: 'cranes',
         pick: 'Tap an obstacle to lift it',
-        body: 'Lifts a cone, a planter, a pallet or one block of wall clean off the board.'
+        body: 'Lifts a cone, a planter or a pallet clean off the board.'
     }
 ];
 
