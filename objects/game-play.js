@@ -4,6 +4,7 @@ import { Trail } from './trail.js';
 import { Board } from './board.js';
 import { Convoy } from './convoy.js';
 import { Garage } from './garage.js';
+import { Locks } from './locks.js';
 import levels from '../data/level-data.js';
 import { bakeShape } from '../utils/bake.js';
 
@@ -462,6 +463,9 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         this.createGarages();
 
+        // Chained convoys and the keys to them (see locks.js).
+        this.locks = new Locks(this);
+
         this.attachInput();
     }
 
@@ -828,6 +832,13 @@ export class GamePlay extends Phaser.GameObjects.Container {
             exit: data.exit,
             // How many others have to be home before its garage opens.
             frozen: data.frozen || 0,
+            // The colour of the chains holding it until the convoy with its key
+            // is home, and those chains; the colour of the key it carries
+            // home itself, and that key (see locks.js).
+            lock: data.lock || null,
+            chains: null,
+            carryKey: data.carryKey || null,
+            keyRide: null,
             // Carried inside another convoy (set once they are all made),
             // and still under it.
             inside: null,
@@ -1333,6 +1344,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         convoy.gulped = 0;
 
         this.dropCargo(convoy);
+        this.locks.deliver(convoy);
 
         if (this.drag && this.drag.convoy === convoy) {
             this.drag = null;
@@ -1526,6 +1538,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         }
 
         this.countDownFrozen();
+        this.locks.rescue();
 
         for (let i = 0; i < this.convoys.length; i++) {
             if (!this.convoys[i].escaped) return;
@@ -1832,6 +1845,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         });
 
         if (convoy.cargo && convoy.cargo.carried) this.drawCargo(convoy);
+        if (convoy.chains || convoy.keyRide) this.locks.follow(convoy);
     }
 
     // What a convoy carries sits on its carts behind the tractor, drawn with
@@ -1912,6 +1926,12 @@ export class GamePlay extends Phaser.GameObjects.Container {
         if (this.paused || this.removing > 0) return;
 
         if (!grabbed) return;
+
+        // Chained: it only rattles.
+        if (grabbed.convoy.lock) {
+            this.locks.rattle(grabbed.convoy);
+            return;
+        }
 
         if (this.lesson) {
             if (grabbed.convoy !== this.lesson.convoy) return;
@@ -2155,6 +2175,8 @@ export class GamePlay extends Phaser.GameObjects.Container {
 
         // What it carries is left behind, and comes out as it goes.
         this.dropCargo(convoy);
+        this.locks.drop(convoy);
+        this.locks.deliver(convoy);
 
         const spots = convoy.cells.map((cell) => this.cellToPixel(cell.col, cell.row));
         const tint = CONFETTI_TINT[convoy.key] || null;
@@ -2234,6 +2256,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         if (convoy.garage) convoy.garage.vanish(() => { this.boardStamp++; }, this.garageColor(convoy));
 
         this.countDownFrozen();
+        this.locks.rescue();
 
         // Its own counter, the length of the whole pop, before the level can
         // be called: the last convoy off the board should be seen to go.
@@ -2912,7 +2935,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
     /**
      * The convoy that can drive into its garage soonest as the board stands:
      * { convoy, route, from }, from being the end to drive it by. Null if none
-     * can.
+     * can. A chained convoy can't be driven, so is never it.
      */
     findHint() {
         let best = null;
@@ -2920,7 +2943,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         for (let i = 0; i < this.convoys.length; i++) {
             const convoy = this.convoys[i];
 
-            if (!convoy.exit || !this.canGrab(convoy) || !convoy.cells.length) continue;
+            if (!convoy.exit || !this.canGrab(convoy) || convoy.lock || !convoy.cells.length) continue;
 
             const ends = [this.headCell(convoy), this.tailCell(convoy)];
 
@@ -3161,6 +3184,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         for (let i = 0; i < this.convoys.length; i++) this.convoys[i].rig.destroy();
         for (let i = 0; i < this.garages.length; i++) this.garages[i].destroy();
         this.mouthShape.destroy();
+        this.locks.destroy();
         this.clearEffects();
 
         this.removeAll(true);
@@ -3200,6 +3224,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         this.setScale(this.fitScale);
 
         if (this.board) this.board.refresh();
+        if (this.locks) this.locks.adjust();
 
         this.stopIntro();
     }
@@ -3212,6 +3237,7 @@ export class GamePlay extends Phaser.GameObjects.Container {
         for (let i = 0; i < this.convoys.length; i++) this.convoys[i].rig.destroy();
         for (let i = 0; i < this.garages.length; i++) this.garages[i].destroy();
         this.mouthShape.destroy();
+        this.locks.destroy();
         this.clearEffects();
 
         super.destroy(fromScene);

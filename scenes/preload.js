@@ -137,8 +137,17 @@ export default class Preload extends Phaser.Scene {
         this.bg.setPosition(this.screenWidth / 2, this.screenHeight / 2);
         this.bg.setSize(this.screenWidth, this.screenHeight);
 
+        // Centre the logo and bar as one block (the group's origin is the
+        // bar, with the logo above it), shrinking it on short landscape screens.
+        const top = this.logo.y - this.logo.displayHeight / 2;
+        const bottom = this.bar.y + this.bar.displayHeight / 2;
+        const blockW = Math.max(this.logo.displayWidth, this.bar.displayWidth);
+        const blockH = bottom - top;
+        const scale = Math.min(1, this.screenWidth * 0.85 / blockW, this.screenHeight * 0.7 / blockH);
+
+        this.barGrp.setScale(scale);
         this.barGrp.x = this.screenWidth / 2;
-        this.barGrp.y = this.screenHeight / 2;
+        this.barGrp.y = this.screenHeight / 2 - (top + bottom) / 2 * scale;
 
     }
 }

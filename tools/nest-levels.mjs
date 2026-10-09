@@ -28,8 +28,8 @@
 // is driven home from.
 //
 //   26-60    one nest            101-150  two
-//   61-80    one, or two on      151-200  two or three
-//            every tenth level
+//   61-80    one, or two on      151-600  two or three
+//            every tenth level   601-     three
 //   81-100   two
 //
 // Each nest puts NEST_TIME more seconds on the clock. Nested levels are
@@ -103,6 +103,7 @@ function plan(level, data, random) {
     if (level <= 60) return 1;
     if (level <= 80) return level % 10 === 0 ? 2 : 1;
     if (level <= 150) return 2;
+    if (level > 600) return 3;
 
     return random() < 0.5 ? 2 : 3;
 }
