@@ -212,8 +212,10 @@ export default class GameScene extends Phaser.Scene {
      * the card's video buttons is taken as paid, the same way the store's is.
      */
     wireEndCard() {
-        this.events.on('cta:double', (offer) => this.transition.run(() => this.nextLevel(offer.coins)));
-        this.events.on('cta:next', (offer) => this.transition.run(() => this.nextLevel(offer.coins)));
+        // Straight on to the next level's card: the transition is kept for
+        // the card's Play, as the level starts.
+        this.events.on('cta:double', (offer) => this.nextLevel(offer.coins));
+        this.events.on('cta:next', (offer) => this.nextLevel(offer.coins));
         this.events.on('cta:continue', (offer) => this.gamePlay.addTime(offer.seconds));
         // The board is laid out again under the transition, and the clock
         // only starts once it has cleared.
